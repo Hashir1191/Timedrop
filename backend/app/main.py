@@ -6,6 +6,7 @@ from app.config import settings
 from app.database import Base, engine
 from app import models
 from app.routers.parcels import router as parcels_router
+from app.routers.scheduling import router as scheduling_router
 
 
 @asynccontextmanager
@@ -16,12 +17,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.2.0",
+    version="0.3.0",
     description="Backend API for the TimeDrop delivery scheduling pilot.",
     lifespan=lifespan,
 )
 
 app.include_router(parcels_router)
+app.include_router(scheduling_router)
 
 
 @app.get("/", tags=["General"])
