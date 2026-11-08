@@ -8,26 +8,38 @@ The initial pilot uses only parcels that TimeDrop is explicitly authorized to re
 ## Current milestone
 
 - FastAPI application with Swagger/OpenAPI documentation
-- Health-check endpoint
 - SQLAlchemy + SQLite persistence for local development
 - Parcel registration, listing, retrieval, and status updates
-- Pydantic request/response validation
-- Pytest smoke tests
+- Delivery-slot creation and availability lookup
+- Capacity-aware parcel booking with overbooking protection
+- Parcel rescheduling and booking cancellation
+- Pydantic request/response validation and pytest coverage
 
-The current API supports these parcel endpoints:
+## API endpoints
 
 | Method | Endpoint | Purpose |
 |---|---|---|
-| `POST` | `/api/v1/parcels/` | Register a parcel |
-| `GET` | `/api/v1/parcels/` | List parcels (`skip` / `limit` pagination) |
-| `GET` | `/api/v1/parcels/{parcel_id}` | Retrieve one parcel |
-| `PATCH` | `/api/v1/parcels/{parcel_id}/status` | Update parcel status |
+| POST | `/api/v1/parcels/` | Register a parcel |
+| GET | `/api/v1/parcels/` | List parcels |
+| GET | `/api/v1/parcels/{parcel_id}` | Retrieve a parcel |
+| PATCH | `/api/v1/parcels/{parcel_id}/status` | Update parcel status |
+| POST | `/api/v1/scheduling/slots` | Create a delivery slot (operations) |
+| GET | `/api/v1/scheduling/slots?delivery_date=YYYY-MM-DD` | View remaining capacity |
+| POST | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Book a parcel |
+| PATCH | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Reschedule a booking |
+| DELETE | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Cancel a booking |
 
-## Requirements
+All delivery dates and slot times are interpreted as India Standard Time (Asia/Kolkata).
 
-- Python 3.11 or newer
-- Git
-- VS Code
+## Scheduling rules
+
+- Operations creates dated slots with a fixed capacity.
+- Availability only returns active slots with remaining capacity.
+- A parcel can have one active booking at a time.
+- Booking reserves capacity using a conditional database update, preventing capacity from exceeding the configured limit.
+- Rescheduling reserves the destination slot before releasing the current slot.
+- Cancellation releases one unit of capacity and returns the parcel to `registered`.
+- Past delivery dates cannot be created or booked.
 
 ## Run on Windows PowerShell
 
@@ -35,26 +47,16 @@ The current API supports these parcel endpoints:
 py -3 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install --upgrade pip
-pip install -r backend\requirements.txt
-Copy-Item backend\.env.example backend\.env
+pip install -r backend\requirements-dev.txt
+$env:PYTHONPATH = "backend"
 uvicorn app.main:app --reload --app-dir backend
 ```
 
-If PowerShell blocks activation, run this once in the current terminal:
-
-```powershell
-Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
-```
-
-Open:
-- API: http://127.0.0.1:8000
-- Swagger docs: http://127.0.0.1:8000/docs
-- Health: http://127.0.0.1:8000/health
+Open Swagger UI at http://127.0.0.1:8000/docs.
 
 ## Run tests
 
 ```powershell
-pip install -r backend\requirements-dev.txt
 $env:PYTHONPATH = "backend"
 pytest
 ```
@@ -65,23 +67,16 @@ pytest
 timedrop/
 ├── backend/
 │   ├── app/
-│   │   ├── __init__.py
-│   │   ├── config.py
-│   │   ├── database.py
-│   │   ├── main.py
+│   │   ├── routers/
+│   │   │   ├── parcels.py
+│   │   │   └── scheduling.py
 │   │   ├── models.py
 │   │   ├── schemas.py
-│   │   └── routers/
-│   │       ├── __init__.py
-│   │       └── parcels.py
-│   ├── tests/
-│   │   └── test_health.py
-│   ├── .env.example
-│   ├── requirements.txt
-│   └── requirements-dev.txt
+│   │   └── main.py
+│   └── tests/
+│       ├── test_health.py
+│       └── test_scheduling.py
 ├── docs/
-│   ├── MVP_SCOPE.md
-│   └── DEVELOPMENT_LOG.md
 ├── .gitignore
 └── README.md
 ```
