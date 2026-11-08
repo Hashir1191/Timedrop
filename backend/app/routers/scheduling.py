@@ -79,6 +79,20 @@ def create_delivery_slot(
     if slot_data.delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Delivery date must be today or in the future.")
 
+    overlapping_slot = db.scalar(
+        select(DeliverySlot).where(
+            DeliverySlot.delivery_date == slot_data.delivery_date,
+            DeliverySlot.is_active.is_(True),
+            DeliverySlot.start_time < slot_data.end_time,
+            DeliverySlot.end_time > slot_data.start_time,
+        )
+    )
+    if overlapping_slot is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This delivery window overlaps an existing active slot.",
+        )
+
     slot = DeliverySlot(**slot_data.model_dump())
     db.add(slot)
     try:
