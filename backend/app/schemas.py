@@ -1,7 +1,7 @@
-from datetime import date, datetime
+from datetime import date, datetime, time
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class ParcelStatus(str, Enum):
@@ -21,10 +21,7 @@ class ParcelCreate(BaseModel):
     city: str = Field(min_length=2, max_length=100)
     state: str = Field(min_length=2, max_length=100)
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
-    delivery_instructions: str | None = Field(
-        default=None,
-        max_length=500,
-    )
+    delivery_instructions: str | None = Field(default=None, max_length=500)
     preferred_delivery_date: date | None = None
 
 
@@ -47,3 +44,58 @@ class ParcelResponse(BaseModel):
 
 class ParcelStatusUpdate(BaseModel):
     status: ParcelStatus
+
+
+class DeliverySlotCreate(BaseModel):
+    delivery_date: date
+    start_time: time
+    end_time: time
+    capacity: int = Field(ge=1, le=500)
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("end_time must be later than start_time")
+        return self
+
+
+class DeliverySlotResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    delivery_date: date
+    start_time: time
+    end_time: time
+    capacity: int
+    booked_count: int
+    is_active: bool
+
+    @property
+    def available_capacity(self) -> int:
+        return self.capacity - self.booked_count
+
+
+class DeliverySlotAvailability(BaseModel):
+    id: int
+    delivery_date: date
+    start_time: time
+    end_time: time
+    capacity: int
+    booked_count: int
+    remaining_capacity: int
+
+
+class BookingCreate(BaseModel):
+    slot_id: int = Field(gt=0)
+
+
+class BookingResponse(BaseModel):
+    id: int
+    parcel_id: int
+    slot_id: int
+    delivery_date: date
+    start_time: time
+    end_time: time
+    status: str
+    booked_at: datetime
+    updated_at: datetime
