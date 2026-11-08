@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timezone
+from datetime import date, datetime, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -7,13 +7,14 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryBooking, DeliverySlot, Parcel
+from app.models import DeliveryBooking, DeliverySlot, Parcel, User
 from app.schemas import (
     BookingCreate,
     BookingResponse,
     DeliverySlotAvailability,
     DeliverySlotCreate,
 )
+from app.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/v1/scheduling", tags=["Scheduling"])
 INDIA_TZ = ZoneInfo("Asia/Kolkata")
@@ -21,6 +22,13 @@ INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 def _local_today() -> date:
     return datetime.now(INDIA_TZ).date()
+
+
+def _get_accessible_parcel(db: Session, parcel_id: int, user: User) -> Parcel:
+    parcel = db.get(Parcel, parcel_id)
+    if parcel is None or (user.role != "admin" and parcel.owner_id != user.id):
+        raise HTTPException(status_code=404, detail="Parcel not found.")
+    return parcel
 
 
 def _booking_response(db: Session, booking: DeliveryBooking) -> BookingResponse:
@@ -75,6 +83,7 @@ def _release_capacity(db: Session, slot_id: int) -> None:
 def create_delivery_slot(
     slot_data: DeliverySlotCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
 ):
     if slot_data.delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Delivery date must be today or in the future.")
@@ -117,12 +126,11 @@ def create_delivery_slot(
 def get_available_slots(
     delivery_date: date = Query(...),
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
     if delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Cannot view availability for a past date.")
 
-    # Return every active slot, including full slots. A remaining_capacity of
-    # zero tells the client that the slot is visible but cannot be booked.
     slots = db.scalars(
         select(DeliverySlot)
         .where(
@@ -151,10 +159,9 @@ def book_parcel(
     parcel_id: int,
     booking_data: BookingCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    parcel = db.get(Parcel, parcel_id)
-    if parcel is None:
-        raise HTTPException(status_code=404, detail="Parcel not found.")
+    parcel = _get_accessible_parcel(db, parcel_id, current_user)
     if parcel.status in {"delivered", "cancelled"}:
         raise HTTPException(status_code=409, detail="This parcel cannot be scheduled.")
 
@@ -191,10 +198,9 @@ def reschedule_parcel(
     parcel_id: int,
     booking_data: BookingCreate,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    parcel = db.get(Parcel, parcel_id)
-    if parcel is None:
-        raise HTTPException(status_code=404, detail="Parcel not found.")
+    parcel = _get_accessible_parcel(db, parcel_id, current_user)
     if parcel.status in {"delivered", "cancelled"}:
         raise HTTPException(status_code=409, detail="This parcel cannot be rescheduled.")
 
@@ -222,11 +228,9 @@ def reschedule_parcel(
 def cancel_booking(
     parcel_id: int,
     db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ):
-    parcel = db.get(Parcel, parcel_id)
-    if parcel is None:
-        raise HTTPException(status_code=404, detail="Parcel not found.")
-
+    parcel = _get_accessible_parcel(db, parcel_id, current_user)
     booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel_id))
     if booking is None or booking.status != "booked":
         raise HTTPException(status_code=404, detail="No active booking exists for this parcel.")
