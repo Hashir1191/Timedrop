@@ -121,12 +121,13 @@ def get_available_slots(
     if delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Cannot view availability for a past date.")
 
+    # Return every active slot, including full slots. A remaining_capacity of
+    # zero tells the client that the slot is visible but cannot be booked.
     slots = db.scalars(
         select(DeliverySlot)
         .where(
             DeliverySlot.delivery_date == delivery_date,
             DeliverySlot.is_active.is_(True),
-            DeliverySlot.booked_count < DeliverySlot.capacity,
         )
         .order_by(DeliverySlot.start_time)
     ).all()
