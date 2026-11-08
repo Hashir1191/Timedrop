@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.config import settings
 from app.database import Base, engine
 from app import models
+from app.routers.auth import router as auth_router
 from app.routers.parcels import router as parcels_router
 from app.routers.scheduling import router as scheduling_router
 
@@ -17,11 +18,12 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(
     title=settings.app_name,
-    version="0.3.0",
+    version="0.4.0",
     description="Backend API for the TimeDrop delivery scheduling pilot.",
     lifespan=lifespan,
 )
 
+app.include_router(auth_router)
 app.include_router(parcels_router)
 app.include_router(scheduling_router)
 
