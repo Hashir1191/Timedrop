@@ -160,3 +160,17 @@ def test_duplicate_slot_window_is_rejected(client):
         },
     )
     assert duplicate.status_code == 409
+
+
+def test_overlapping_slot_window_is_rejected(client):
+    create_slot(client, capacity=2, start="10:00:00", end="12:00:00")
+    overlapping = client.post(
+        "/api/v1/scheduling/slots",
+        json={
+            "delivery_date": future_date(),
+            "start_time": "11:30:00",
+            "end_time": "13:30:00",
+            "capacity": 2,
+        },
+    )
+    assert overlapping.status_code == 409
