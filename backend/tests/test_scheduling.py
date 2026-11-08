@@ -1,4 +1,4 @@
-from datetime import date, datetime, time, timedelta
+from datetime import datetime, timedelta
 
 import pytest
 from fastapi.testclient import TestClient
@@ -8,6 +8,8 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
+from app.models import User
+from app.security import hash_password
 
 
 @pytest.fixture()
@@ -20,16 +22,37 @@ def client():
     TestingSessionLocal = sessionmaker(bind=test_engine, autoflush=False, autocommit=False)
     Base.metadata.create_all(bind=test_engine)
 
+    db = TestingSessionLocal()
+    admin = User(
+        email="ops@example.com",
+        full_name="Test Operations",
+        password_hash=hash_password("StrongTestPassword123!"),
+        role="admin",
+        is_active=True,
+    )
+    db.add(admin)
+    db.commit()
+    db.close()
+
     def override_get_db():
-        db = TestingSessionLocal()
+        session = TestingSessionLocal()
         try:
-            yield db
+            yield session
         finally:
-            db.close()
+            session.close()
 
     app.dependency_overrides[get_db] = override_get_db
     with TestClient(app) as test_client:
+        login = test_client.post(
+            "/api/v1/auth/login",
+            json={"email": "ops@example.com", "password": "StrongTestPassword123!"},
+        )
+        assert login.status_code == 200
+        test_client.headers.update(
+            {"Authorization": f"Bearer {login.json()['access_token']}"}
+        )
         yield test_client
+
     app.dependency_overrides.clear()
     Base.metadata.drop_all(bind=test_engine)
     test_engine.dispose()
