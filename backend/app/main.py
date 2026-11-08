@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from app.config import settings
 from app.database import Base, engine
 from app import models
+from app.migrations import upgrade_legacy_parcel_table
 from app.routers.auth import router as auth_router
 from app.routers.parcels import router as parcels_router
 from app.routers.scheduling import router as scheduling_router
@@ -13,6 +14,7 @@ from app.routers.scheduling import router as scheduling_router
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     Base.metadata.create_all(bind=engine)
+    upgrade_legacy_parcel_table()
     yield
 
 
