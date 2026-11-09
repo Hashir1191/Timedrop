@@ -123,6 +123,34 @@ The command interactively asks for the email of an existing active admin and a n
 
 Run this command only from the repository root, where the correct local `.env` and `timedrop.db` are located. It does not print passwords, password hashes, or the new secret. Keep `.env` private and never commit it.
 
+## Verify the customer parcel workflow in Swagger
+
+Use synthetic recipient details only. Start the API, open http://127.0.0.1:8000/docs, and follow this sequence:
+
+1. Register a customer with `POST /api/v1/auth/register`.
+2. Log in as that customer with `POST /api/v1/auth/login`; copy the returned `access_token`.
+3. Click **Authorize** in Swagger and provide the bearer token. Protected GET and POST requests will otherwise return `401`.
+4. Create a parcel with `POST /api/v1/parcels/` using a payload like:
+
+```json
+{
+  "tracking_number": "TD-DEMO-001",
+  "recipient_name": "Synthetic Recipient",
+  "phone": "9876543210",
+  "address_line": "12 Example Test Street",
+  "city": "Prayagraj",
+  "state": "Uttar Pradesh",
+  "pincode": "211001",
+  "delivery_instructions": "Synthetic test parcel only"
+}
+```
+
+5. Call `GET /api/v1/parcels/` and `GET /api/v1/parcels/{parcel_id}` while authorized as the customer. The customer should see only parcels they own.
+6. Log in as an operations admin, replace the Swagger authorization with the admin token, and call `GET /api/v1/parcels/` again. The admin should see all parcels.
+7. A second customer should receive `404` when requesting another customer's parcel by ID; this intentionally avoids revealing whether another user's parcel exists.
+
+The automated test `test_customer_parcel_create_list_and_admin_visibility_workflow` covers customer registration, login, parcel creation, customer listing/detail retrieval, and admin visibility.
+
 ## Run tests
 
 ```powershell
