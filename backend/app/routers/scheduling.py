@@ -202,6 +202,20 @@ def list_bookings(
     ]
 
 
+@router.get("/parcels/{parcel_id}/bookings", response_model=BookingResponse)
+def get_parcel_booking(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Return the current booking for a parcel the caller is allowed to access."""
+    _get_accessible_parcel(db, parcel_id, current_user)
+    booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel_id))
+    if booking is None or booking.status != "booked":
+        raise HTTPException(status_code=404, detail="No active booking exists for this parcel.")
+    return _booking_response(db, booking)
+
+
 @router.post("/parcels/{parcel_id}/bookings", response_model=BookingResponse, status_code=201)
 def book_parcel(
     parcel_id: int,
