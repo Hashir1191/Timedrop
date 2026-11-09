@@ -1,4 +1,4 @@
-import type { AdminBooking, Booking, DeliverySlot, Parcel, User } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -68,3 +68,23 @@ export const getAdminBookings = (
   const query = params.toString();
   return request<AdminBooking[]>(`/scheduling/bookings${query ? `?${query}` : ""}`, token);
 };
+
+export const register = (data: { email: string; full_name: string; password: string }) =>
+  fetch(`${API_BASE}/auth/register`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  }).then(async (response) => {
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}));
+      throw new ApiError(body.detail || "Unable to create account.", response.status);
+    }
+    return response.json() as Promise<User>;
+  });
+
+export const createParcel = (token: string, data: ParcelCreate) =>
+  request<Parcel>("/parcels/", token, { method: "POST", body: JSON.stringify(data) });
+export const getParcelBooking = (token: string, parcelId: number) =>
+  request<Booking>(`/scheduling/parcels/${parcelId}/bookings`, token);
+export const bookParcel = (token: string, parcelId: number, slotId: number) =>
+  request<Booking>(`/scheduling/parcels/${parcelId}/bookings`, token, { method: "POST", body: JSON.stringify({ slot_id: slotId }) });

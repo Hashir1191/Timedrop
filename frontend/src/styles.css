@@ -12,3 +12,39 @@
 .booking-status .status-badge{width:max-content}
 .booking-actions select{max-width:280px}
 @media(max-width:900px){.booking-card{align-items:flex-start;flex-direction:column}.booking-main{width:100%}.booking-details{padding-left:49px}.booking-actions{width:100%;flex-wrap:wrap}.booking-actions select{max-width:100%;flex:1}}
+
+/* Customer portal */
+.customer-shell .sidebar-bottom{margin-top:auto}
+.customer-stats{grid-template-columns:repeat(3,minmax(0,1fr))}
+.customer-parcel-panel{margin-top:20px}
+.customer-help-note{display:flex;align-items:center;gap:12px;margin-top:16px;padding:15px 17px;border:1px solid #e4ebf5;background:#f7f9fd;border-radius:10px;color:#75849a;font-size:11px}
+.customer-help-note svg{color:#477bd1;flex-shrink:0}
+.customer-help-note strong{display:block;color:#35465f;margin-bottom:3px}
+.customer-form-panel{max-width:850px;padding:22px}
+.customer-form-panel .panel-heading h2{display:flex;align-items:center;gap:9px}
+.customer-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:18px}
+.customer-form label,.slot-date-field{display:grid;gap:7px;color:#65738a;font-size:11px;font-weight:600}
+.customer-form input,.customer-form textarea,.slot-date-field input{width:100%;border:1px solid #e1e6ee;border-radius:7px;padding:11px 12px;color:#34445b;background:#fff;font:inherit;font-weight:400;outline:0}
+.customer-form input:focus,.customer-form textarea:focus,.slot-date-field input:focus{border-color:#6b95e5;box-shadow:0 0 0 3px #eaf1ff}
+.customer-form textarea{resize:vertical}
+.customer-form .span-two{grid-column:span 2}
+.customer-form-actions{grid-column:span 2;display:flex;align-items:center;justify-content:space-between;gap:15px;margin-top:5px}
+.customer-form-actions>span,.schedule-submit-row>span{font-size:10px;color:#929eae}
+.auth-mode-toggle{border:0;background:transparent;color:#477bd1;font-size:11px;font-weight:650;cursor:pointer;margin-top:17px;padding:8px}
+.schedule-current{display:grid;grid-template-columns:1.2fr 1fr;gap:20px;padding:22px;margin-bottom:18px}
+.schedule-current h2{font-size:17px;color:#2d3e56;margin:8px 0}
+.schedule-current p{font-size:11px;color:#8793a5;margin:0 0 13px}
+.current-booking{border-left:1px solid #edf0f4;padding-left:22px;display:flex;flex-direction:column;align-items:flex-start;gap:8px}
+.current-booking>span{font-size:9px;letter-spacing:1px;color:#8e9bad;font-weight:700}
+.current-booking>strong{font-size:13px;color:#34445b}
+.cancel-booking{margin-top:5px;color:#b95a5a}
+.slot-picker-panel{padding:22px}
+.slot-date-field{max-width:240px;margin:18px 0}
+.customer-slot-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.customer-slot{border:1px solid #e1e8f2;background:#fff;border-radius:9px;padding:15px;text-align:left;display:grid;gap:8px;cursor:pointer;color:#34445b}
+.customer-slot strong{font-size:12px}
+.customer-slot span{font-size:10px;color:#75869d}
+.customer-slot.selected{border-color:#477bd1;background:#f1f6ff;box-shadow:0 0 0 2px #dce8fc}
+.customer-slot.unavailable{opacity:.5;cursor:not-allowed;background:#f6f7f9}
+.schedule-submit-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:20px;padding-top:17px;border-top:1px solid #edf0f4}
+@media(max-width:700px){.customer-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.customer-form{grid-template-columns:1fr}.customer-form .span-two,.customer-form-actions{grid-column:span 1}.customer-form-actions{align-items:stretch;flex-direction:column}.schedule-current{grid-template-columns:1fr}.current-booking{border-left:0;border-top:1px solid #edf0f4;padding:17px 0 0}.customer-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-submit-row{align-items:stretch;flex-direction:column}.customer-form-panel,.slot-picker-panel{padding:16px}}

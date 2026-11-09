@@ -55,3 +55,15 @@ export type AdminBooking = {
   parcel: Parcel;
   slot: { id: number; delivery_date: string; start_time: string; end_time: string; capacity: number; booked_count: number; is_active: boolean };
 };
+
+export type ParcelCreate = {
+  tracking_number: string;
+  recipient_name: string;
+  phone: string;
+  address_line: string;
+  city: string;
+  state: string;
+  pincode: string;
+  delivery_instructions?: string;
+  preferred_delivery_date?: string;
+};

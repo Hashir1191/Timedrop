@@ -9,6 +9,8 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 - FastAPI application with Swagger/OpenAPI documentation
 - SQLAlchemy + SQLite persistence for local development
 - Customer registration and JWT login
+- Separate role-based customer and operations web portals
+- Customer parcel creation, personal parcel list, and delivery booking management
 - Argon2 password hashing
 - Customer/admin role-based access control
 - Parcel ownership checks
@@ -46,6 +48,7 @@ Public registration always creates a `customer`. A customer cannot assign themse
 | PATCH | `/api/v1/parcels/{parcel_id}/status` | Admin |
 | POST | `/api/v1/scheduling/slots` | Admin |
 | GET | `/api/v1/scheduling/slots?delivery_date=YYYY-MM-DD` | Authenticated |
+| GET | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
 | POST | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
 | PATCH | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
 | DELETE | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
@@ -93,7 +96,7 @@ Open Swagger UI at http://127.0.0.1:8000/docs.
 
 ## Run the frontend operations dashboard
 
-The frontend is a React + Vite + TypeScript application in `frontend/`. It provides an admin-only sign-in, operations overview, parcel search/status updates, delivery-slot creation/availability, and an operations booking register backed by the actual booking records. The booking register shows parcel and reserved-slot details, supports active/cancelled/all filters and delivery-date filtering, and allows active bookings to be cancelled or rescheduled.
+The frontend is a React + Vite + TypeScript application in `frontend/`. It provides role-based sign-in and separate customer and operations portals. Customers can register, create parcels, view their own parcel list, inspect delivery-slot availability, book a slot, reschedule, and cancel. Operations admins retain the overview, parcel search/status updates, delivery-slot creation/availability, and detailed booking register. The customer portal uses owner-protected API endpoints and cannot access operations-only pages.
 
 In a **new PowerShell terminal** from the repository root:
 
@@ -104,7 +107,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Keep the FastAPI server running separately at http://127.0.0.1:8000. Sign in using an existing operations administrator account. The frontend uses the API base URL from `frontend/.env`; change `VITE_API_BASE_URL` if your backend runs elsewhere.
+Open http://localhost:5173. Keep the FastAPI server running separately at http://127.0.0.1:8000. Open the sign-in page. Customers can create an account from the registration link; operations administrators sign in with their provisioned credentials. The app routes each role to its own portal. The frontend uses the API base URL from `frontend/.env`; change `VITE_API_BASE_URL` if your backend runs elsewhere.
 
 Before sharing the dashboard outside local development, configure HTTPS, restrict allowed frontend origins in the backend CORS policy, and move beyond browser localStorage token storage to a production-grade session design.
 

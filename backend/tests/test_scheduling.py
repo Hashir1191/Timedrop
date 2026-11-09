@@ -246,3 +246,62 @@ def test_customer_cannot_access_admin_booking_list(client):
         headers={"Authorization": f"Bearer {login.json()['access_token']}"},
     )
     assert response.status_code == 403
+
+
+
+def test_customer_can_read_only_their_own_active_booking(client):
+    registered = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "booking-owner@example.com",
+            "full_name": "Booking Owner",
+            "password": "CustomerPassword123!",
+        },
+    )
+    assert registered.status_code == 201
+    token = client.post(
+        "/api/v1/auth/login",
+        json={"email": "booking-owner@example.com", "password": "CustomerPassword123!"},
+    ).json()["access_token"]
+    headers = {"Authorization": f"Bearer {token}"}
+
+    parcel = client.post(
+        "/api/v1/parcels/",
+        headers=headers,
+        json=parcel_payload("TD-CUSTOMER-BOOKING"),
+    )
+    assert parcel.status_code == 201
+    parcel_id = parcel.json()["id"]
+    slot_id = create_slot(client, capacity=2)
+    booked = client.post(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=headers,
+        json={"slot_id": slot_id},
+    )
+    assert booked.status_code == 201
+
+    current = client.get(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=headers,
+    )
+    assert current.status_code == 200
+    assert current.json()["slot_id"] == slot_id
+
+    other = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "different-owner@example.com",
+            "full_name": "Different Owner",
+            "password": "CustomerPassword123!",
+        },
+    )
+    assert other.status_code == 201
+    other_token = client.post(
+        "/api/v1/auth/login",
+        json={"email": "different-owner@example.com", "password": "CustomerPassword123!"},
+    ).json()["access_token"]
+    hidden = client.get(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers={"Authorization": f"Bearer {other_token}"},
+    )
+    assert hidden.status_code == 404

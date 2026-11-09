@@ -4,19 +4,22 @@ import { getMe } from "./api";
 import { AuthContext, type AuthState } from "./auth";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
+import CustomerLayout from "./components/CustomerLayout";
 import Dashboard from "./pages/Dashboard";
 import Parcels from "./pages/Parcels";
 import Slots from "./pages/Slots";
 import Bookings from "./pages/Bookings";
+import CustomerDashboard from "./pages/CustomerDashboard";
+import CustomerParcels from "./pages/CustomerParcels";
+import NewParcel from "./pages/NewParcel";
+import ScheduleParcel from "./pages/ScheduleParcel";
 
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ token: localStorage.getItem("timedrop_token"), user: null, loading: true });
   useEffect(() => {
-    if (!auth.token) { setAuth({ token: null, user: null, loading: false }); return; }
-    getMe(auth.token).then((user) => {
-      if (user.role !== "admin") throw new Error("This dashboard is for operations administrators.");
-      setAuth({ token: auth.token, user, loading: false });
-    }).catch(() => {
+    const token = auth.token;
+    if (!token) { setAuth({ token: null, user: null, loading: false }); return; }
+    getMe(token).then((user) => setAuth({ token, user, loading: false })).catch(() => {
       localStorage.removeItem("timedrop_token");
       setAuth({ token: null, user: null, loading: false });
     });
@@ -26,15 +29,23 @@ export default function App() {
     setAuth({ token: null, user: null, loading: false });
   };
   if (auth.loading) return <div className="screen-center"><div className="loader" /></div>;
+  const admin = auth.user?.role === "admin";
   return (
     <AuthContext.Provider value={{ ...auth, setAuth, logout }}>
       <Routes>
         <Route path="/login" element={auth.user ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/" element={auth.user ? <Layout /> : <Navigate to="/login" replace />}>
-          <Route index element={<Dashboard />} />
-          <Route path="parcels" element={<Parcels />} />
-          <Route path="slots" element={<Slots />} />
-          <Route path="bookings" element={<Bookings />} />
+        <Route path="/" element={auth.user ? (admin ? <Layout /> : <CustomerLayout />) : <Navigate to="/login" replace />}>
+          {admin ? <>
+            <Route index element={<Dashboard />} />
+            <Route path="parcels" element={<Parcels />} />
+            <Route path="slots" element={<Slots />} />
+            <Route path="bookings" element={<Bookings />} />
+          </> : <>
+            <Route index element={<CustomerDashboard />} />
+            <Route path="my-parcels" element={<CustomerParcels />} />
+            <Route path="new-parcel" element={<NewParcel />} />
+            <Route path="schedule/:parcelId" element={<ScheduleParcel />} />
+          </>}
         </Route>
         <Route path="*" element={<Navigate to={auth.user ? "/" : "/login"} replace />} />
       </Routes>
