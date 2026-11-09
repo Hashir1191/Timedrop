@@ -44,3 +44,14 @@ export type Booking = {
   booked_at: string;
   updated_at: string;
 };
+
+export type AdminBooking = {
+  id: number;
+  parcel_id: number;
+  slot_id: number;
+  status: "booked" | "cancelled";
+  booked_at: string;
+  updated_at: string;
+  parcel: Parcel;
+  slot: DeliverySlot & { is_active: boolean };
+};
