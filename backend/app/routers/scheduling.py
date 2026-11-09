@@ -14,6 +14,8 @@ from app.schemas import (
     AdminBookingResponse,
     DeliverySlotAvailability,
     DeliverySlotCreate,
+    ParcelResponse,
+    DeliverySlotResponse,
 )
 from app.security import get_current_user, require_admin
 
@@ -152,6 +154,51 @@ def get_available_slots(
             remaining_capacity=slot.capacity - slot.booked_count,
         )
         for slot in slots
+    ]
+
+
+
+
+@router.get("/bookings", response_model=list[AdminBookingResponse])
+def list_bookings(
+    booking_status: str | None = Query(default=None, alias="status", pattern="^(booked|cancelled)$"),
+    delivery_date: date | None = Query(default=None),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=500),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    """List booking records with their parcel and delivery-slot details for operations."""
+    statement = (
+        select(DeliveryBooking, Parcel, DeliverySlot)
+        .join(Parcel, Parcel.id == DeliveryBooking.parcel_id)
+        .join(DeliverySlot, DeliverySlot.id == DeliveryBooking.slot_id)
+    )
+    if booking_status is not None:
+        statement = statement.where(DeliveryBooking.status == booking_status)
+    if delivery_date is not None:
+        statement = statement.where(DeliverySlot.delivery_date == delivery_date)
+
+    rows = db.execute(
+        statement.order_by(
+            DeliverySlot.delivery_date.desc(),
+            DeliverySlot.start_time,
+            DeliveryBooking.id.desc(),
+        ).offset(skip).limit(limit)
+    ).all()
+
+    return [
+        AdminBookingResponse(
+            id=booking.id,
+            parcel_id=booking.parcel_id,
+            slot_id=booking.slot_id,
+            status=booking.status,
+            booked_at=booking.booked_at,
+            updated_at=booking.updated_at,
+            parcel=ParcelResponse.model_validate(parcel),
+            slot=DeliverySlotResponse.model_validate(slot),
+        )
+        for booking, parcel, slot in rows
     ]
 
 
