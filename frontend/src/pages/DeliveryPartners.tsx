@@ -3,6 +3,7 @@ import { Plus, RefreshCw, Truck } from "lucide-react";
 import { createDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
+import DeliveryTimeline from "../components/DeliveryTimeline";
 import StatusBadge from "../components/StatusBadge";
 import type { DeliveryAssignment, DeliveryPartner, Parcel } from "../types";
 
