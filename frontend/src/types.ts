@@ -53,5 +53,5 @@ export type AdminBooking = {
   booked_at: string;
   updated_at: string;
   parcel: Parcel;
-  slot: DeliverySlot & { is_active: boolean };
+  slot: { id: number; delivery_date: string; start_time: string; end_time: string; capacity: number; booked_count: number; is_active: boolean };
 };
