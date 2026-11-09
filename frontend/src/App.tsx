@@ -13,42 +13,22 @@ import CustomerDashboard from "./pages/CustomerDashboard";
 import CustomerParcels from "./pages/CustomerParcels";
 import NewParcel from "./pages/NewParcel";
 import ScheduleParcel from "./pages/ScheduleParcel";
-
-export default function App() {
-  const [auth, setAuth] = useState<AuthState>({ token: localStorage.getItem("timedrop_token"), user: null, loading: true });
-  useEffect(() => {
-    const token = auth.token;
-    if (!token) { setAuth({ token: null, user: null, loading: false }); return; }
-    getMe(token).then((user) => setAuth({ token, user, loading: false })).catch(() => {
-      localStorage.removeItem("timedrop_token");
-      setAuth({ token: null, user: null, loading: false });
-    });
-  }, []);
-  const logout = () => {
-    localStorage.removeItem("timedrop_token");
-    setAuth({ token: null, user: null, loading: false });
-  };
-  if (auth.loading) return <div className="screen-center"><div className="loader" /></div>;
-  const admin = auth.user?.role === "admin";
-  return (
-    <AuthContext.Provider value={{ ...auth, setAuth, logout }}>
-      <Routes>
-        <Route path="/login" element={auth.user ? <Navigate to="/" replace /> : <Login />} />
-        <Route path="/" element={auth.user ? (admin ? <Layout /> : <CustomerLayout />) : <Navigate to="/login" replace />}>
-          {admin ? <>
-            <Route index element={<Dashboard />} />
-            <Route path="parcels" element={<Parcels />} />
-            <Route path="slots" element={<Slots />} />
-            <Route path="bookings" element={<Bookings />} />
-          </> : <>
-            <Route index element={<CustomerDashboard />} />
-            <Route path="my-parcels" element={<CustomerParcels />} />
-            <Route path="new-parcel" element={<NewParcel />} />
-            <Route path="schedule/:parcelId" element={<ScheduleParcel />} />
-          </>}
-        </Route>
-        <Route path="*" element={<Navigate to={auth.user ? "/" : "/login"} replace />} />
-      </Routes>
-    </AuthContext.Provider>
-  );
+import DeliveryPartners from "./pages/DeliveryPartners";
+import PartnerDashboard from "./pages/PartnerDashboard";
+export default function App(){
+ const [auth,setAuth]=useState<AuthState>({token:localStorage.getItem("timedrop_token"),user:null,loading:true});
+ useEffect(()=>{const token=auth.token;if(!token){setAuth({token:null,user:null,loading:false});return;}getMe(token).then(user=>setAuth({token,user,loading:false})).catch(()=>{localStorage.removeItem("timedrop_token");setAuth({token:null,user:null,loading:false});});},[]);
+ const logout=()=>{localStorage.removeItem("timedrop_token");setAuth({token:null,user:null,loading:false});};
+ if(auth.loading)return <div className="screen-center"><div className="loader"/></div>;
+ const role=auth.user?.role;
+ return <AuthContext.Provider value={{...auth,setAuth,logout}}><Routes>
+  <Route path="/login" element={auth.user?<Navigate to="/" replace/>:<Login/>}/>
+  <Route path="/" element={auth.user?(role==="admin"?<Layout/>:role==="delivery_partner"?<CustomerLayout/>:<CustomerLayout/>):<Navigate to="/login" replace/>}>
+   {role==="admin"?<>
+    <Route index element={<Dashboard/>}/><Route path="parcels" element={<Parcels/>}/><Route path="slots" element={<Slots/>}/><Route path="bookings" element={<Bookings/>}/><Route path="delivery-partners" element={<DeliveryPartners/>}/>
+   </>:role==="delivery_partner"?<Route index element={<PartnerDashboard/>}/>:<>
+    <Route index element={<CustomerDashboard/>}/><Route path="my-parcels" element={<CustomerParcels/>}/><Route path="new-parcel" element={<NewParcel/>}/><Route path="schedule/:parcelId" element={<ScheduleParcel/>}/>
+   </>}
+  </Route><Route path="*" element={<Navigate to={auth.user?"/":"/login"} replace/>}/>
+ </Routes></AuthContext.Provider>;
 }
