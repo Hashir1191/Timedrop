@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { CalendarDays, Plus, RefreshCw } from "lucide-react";
 import { createSlot, getSlots } from "../api";
 import { useAuth } from "../auth";
