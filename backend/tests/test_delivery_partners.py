@@ -158,3 +158,57 @@ def test_failed_delivery_requires_and_persists_reason(client):
     )
     assert failed.status_code == 200
     assert failed.json()["failure_reason"] == "Recipient unavailable"
+
+
+def test_customer_cannot_change_booking_after_active_partner_assignment(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "locked-owner@example.com",
+        "full_name": "Booking Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "locked-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-PARTNER-LOCK-001")
+    book_parcel(client, customer, parcel_id)
+
+    partner_response = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "locked-rider@example.com",
+        "full_name": "Locked Rider",
+        "password": "StrongRiderPassword123!",
+        "phone": "9876543210",
+    })
+    assert partner_response.status_code == 201
+    assigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner_response.json()["id"]},
+    )
+    assert assigned.status_code == 201
+
+    cancelled = client.delete(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=customer,
+    )
+    assert cancelled.status_code == 409
+
+    replacement_slot = client.post(
+        "/api/v1/scheduling/slots",
+        headers=admin,
+        json={
+            "delivery_date": (datetime.now().date() + timedelta(days=4)).isoformat(),
+            "start_time": "13:00:00",
+            "end_time": "15:00:00",
+            "capacity": 5,
+        },
+    )
+    assert replacement_slot.status_code == 201
+    rescheduled = client.patch(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=customer,
+        json={"slot_id": replacement_slot.json()["id"]},
+    )
+    assert rescheduled.status_code == 409
+
+    active = client.get("/api/v1/delivery/assignments", headers=admin)
+    assert active.status_code == 200
+    assert any(item["parcel_id"] == parcel_id and item["status"] == "assigned" for item in active.json())
