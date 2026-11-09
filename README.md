@@ -105,6 +105,24 @@ Remove-Item Env:TIMEDROP_ADMIN_NAME
 Remove-Item Env:TIMEDROP_ADMIN_PASSWORD
 ```
 
+## Secure an existing admin account
+
+If an admin password or access token has been exposed, pull the latest code and run this from the repository root with the API server stopped:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m app.secure_admin
+```
+
+The command interactively asks for the email of an existing active admin and a new password (the password is not echoed). It then:
+
+- Replaces that admin's password hash using Argon2.
+- Deactivates the known placeholder account `your-email@example.com`, if it exists.
+- Rotates the `SECRET_KEY` entry in the local `.env` file, removing duplicate entries.
+- Invalidates previously issued JWT access tokens. Restart the API server after the command completes.
+
+Run this command only from the repository root, where the correct local `.env` and `timedrop.db` are located. It does not print passwords, password hashes, or the new secret. Keep `.env` private and never commit it.
+
 ## Run tests
 
 ```powershell
@@ -127,6 +145,7 @@ timedrop/
 │   │   │   ├── parcels.py
 │   │   │   └── scheduling.py
 │   │   ├── create_admin.py
+│   │   ├── secure_admin.py
 │   │   ├── migrations.py
 │   │   ├── models.py
 │   │   ├── schemas.py
