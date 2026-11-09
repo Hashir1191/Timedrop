@@ -85,6 +85,23 @@ python -m uvicorn app.main:app --reload --app-dir backend
 
 Open Swagger UI at http://127.0.0.1:8000/docs.
 
+## Run the frontend operations dashboard
+
+The frontend is a React + Vite + TypeScript application in `frontend/`. It currently provides an admin-only sign-in, operations overview, parcel search/status updates, delivery-slot creation/availability, and basic scheduled-parcel booking actions.
+
+In a **new PowerShell terminal** from the repository root:
+
+```powershell
+cd frontend
+Copy-Item .env.example .env
+npm install
+npm run dev
+```
+
+Open http://localhost:5173. Keep the FastAPI server running separately at http://127.0.0.1:8000. Sign in using an existing operations administrator account. The frontend uses the API base URL from `frontend/.env`; change `VITE_API_BASE_URL` if your backend runs elsewhere.
+
+Before sharing the dashboard outside local development, configure HTTPS, restrict allowed frontend origins in the backend CORS policy, and move beyond browser localStorage token storage to a production-grade session design.
+
 ## Create the first operations administrator
 
 In a separate PowerShell terminal, from the repository root:
@@ -183,6 +200,15 @@ timedrop/
 │       ├── test_auth.py
 │       ├── test_health.py
 │       └── test_scheduling.py
+├── frontend/
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── api.ts
+│   │   ├── auth.ts
+│   │   └── main.tsx
+│   ├── .env.example
+│   └── package.json
 ├── .env.example
 └── README.md
 ```
