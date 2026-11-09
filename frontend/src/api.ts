@@ -1,0 +1,58 @@
+import type { Booking, DeliverySlot, Parcel, User } from "./types";
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.status = status;
+  }
+}
+
+async function request<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    ...init,
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+      ...init.headers,
+    },
+  });
+  if (!response.ok) {
+    let message = `Request failed (${response.status})`;
+    try {
+      const body = await response.json();
+      message = body.detail || message;
+    } catch { /* response had no JSON body */ }
+    throw new ApiError(message, response.status);
+  }
+  if (response.status === 204) return undefined as T;
+  return response.json() as Promise<T>;
+}
+
+export async function login(email: string, password: string) {
+  const response = await fetch(`${API_BASE}/auth/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, password }),
+  });
+  if (!response.ok) {
+    const body = await response.json().catch(() => ({}));
+    throw new ApiError(body.detail || "Unable to sign in.", response.status);
+  }
+  return response.json() as Promise<{ access_token: string; token_type: string }>;
+}
+
+export const getMe = (token: string) => request<User>("/auth/me", token);
+export const getParcels = (token: string) => request<Parcel[]>("/parcels/?skip=0&limit=100", token);
+export const updateParcelStatus = (token: string, id: number, status: string) =>
+  request<Parcel>(`/parcels/${id}/status`, token, { method: "PATCH", body: JSON.stringify({ status }) });
+export const getSlots = (token: string, date: string) =>
+  request<DeliverySlot[]>(`/scheduling/slots?delivery_date=${date}`, token);
+export const createSlot = (token: string, data: { delivery_date: string; start_time: string; end_time: string; capacity: number }) =>
+  request<DeliverySlot>("/scheduling/slots", token, { method: "POST", body: JSON.stringify(data) });
+export const cancelBooking = (token: string, parcelId: number) =>
+  request<void>(`/scheduling/parcels/${parcelId}/bookings`, token, { method: "DELETE" });
+export const rescheduleBooking = (token: string, parcelId: number, slotId: number) =>
+  request<Booking>(`/scheduling/parcels/${parcelId}/bookings`, token, { method: "PATCH", body: JSON.stringify({ slot_id: slotId }) });
