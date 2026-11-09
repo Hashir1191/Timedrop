@@ -3,6 +3,7 @@ import { CheckCircle2, MapPin, Package, RefreshCw, Truck } from "lucide-react";
 import { getMyAssignments, updateAssignmentStatus } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
+import DeliveryTimeline from "../components/DeliveryTimeline";
 import StatusBadge from "../components/StatusBadge";
 import type { DeliveryAssignment } from "../types";
 
@@ -32,6 +33,7 @@ export default function PartnerDashboard() {
       <div className="partner-job-head"><div><div className="tracking">{item.tracking_number}</div><strong>{item.recipient_name}</strong></div><StatusBadge status={item.status}/></div>
       <div className="partner-address"><MapPin size={16}/><div><strong>{item.address_line}</strong><span>{item.city}, {item.state} · {item.pincode}</span><span>{item.phone}</span></div></div>
       <div className="partner-window">Delivery window: <strong>{new Date(item.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}</strong> · {item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</div>
+      <details className="delivery-history"><summary>Delivery history</summary>{token && <DeliveryTimeline token={token} assignmentId={item.id}/>}</details>
       {item.status==="assigned"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"accepted")}>Accept assignment</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Cannot deliver</button></div>}
       {item.status==="accepted"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"out_for_delivery")}>Start delivery</button></div>}
       {item.status==="out_for_delivery"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"delivered")}>Mark delivered</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Delivery failed</button></div>}
