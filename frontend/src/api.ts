@@ -1,4 +1,4 @@
-import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent } from "./types";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 export class ApiError extends Error { status:number; constructor(message:string,status:number){super(message);this.status=status;} }
 async function request<T>(path:string,token:string,init:RequestInit={}):Promise<T>{
@@ -25,3 +25,5 @@ export const getDeliveryAssignments=(token:string)=>request<DeliveryAssignment[]
 export const assignParcel=(token:string,parcelId:number,partnerId:number)=>request<DeliveryAssignment>(`/delivery/parcels/${parcelId}/assignments`,token,{method:"POST",body:JSON.stringify({partner_id:partnerId})});
 export const getMyAssignments=(token:string)=>request<DeliveryAssignment[]>("/delivery/my-assignments",token);
 export const updateAssignmentStatus=(token:string,id:number,data:{status:"accepted"|"out_for_delivery"|"delivered"|"failed";failure_reason?:string})=>request<DeliveryAssignment>(`/delivery/assignments/${id}/status`,token,{method:"PATCH",body:JSON.stringify(data)});
+
+export const getAssignmentEvents=(token:string,assignmentId:number)=>request<DeliveryEvent[]>(`/delivery/assignments/${assignmentId}/events`,token);
