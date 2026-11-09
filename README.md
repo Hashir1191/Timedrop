@@ -57,7 +57,7 @@ All delivery dates and slot times are interpreted as India Standard Time (Asia/K
 
 ### Admin booking register
 
-`GET /api/v1/scheduling/bookings` is restricted to operations admins. It returns booking records joined with the associated parcel and delivery slot, including recipient/tracking details, delivery address summary, reserved date/time, slot capacity, booking status, and timestamps. Optional query parameters are `status=booked|cancelled`, `delivery_date=YYYY-MM-DD`, `skip`, and `limit` (maximum 500). Omitting `status` returns both active and cancelled booking records. The frontend defaults to active bookings and lets operations view cancelled history or all records.
+`GET /api/v1/scheduling/bookings` is restricted to operations admins. It returns booking records joined with the associated parcel and delivery slot, including recipient/tracking details, delivery address summary, reserved date/time, slot capacity, booking status, and timestamps. Optional query parameters are `status=booked|cancelled`, `delivery_date=YYYY-MM-DD`, `skip`, and `limit` (maximum 500). Omitting `status` returns both active and cancelled booking records. The frontend defaults to active bookings and lets operations view cancelled records or all records. The current data model keeps one booking row per parcel, so booking a previously cancelled parcel reactivates that row rather than creating a separate historical event.
 
 ## Scheduling rules
 
