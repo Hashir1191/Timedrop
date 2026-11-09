@@ -143,7 +143,7 @@ export default function Bookings() {
                   <span>Slot #{slot.id} · {slot.booked_count}/{slot.capacity} booked</span>
                 </div>
                 <div className="booking-status">
-                  <span className={isActive ? "status-badge status-scheduled" : "status-badge status-cancelled"}>{booking.status}</span>
+                  <span className={isActive ? "status-badge status-scheduled" : "status-badge status-cancelled"}><span />{booking.status}</span>
                   <StatusBadge status={parcel.status} />
                 </div>
                 {isActive && (
