@@ -212,3 +212,81 @@ def test_customer_cannot_change_booking_after_active_partner_assignment(client):
     active = client.get("/api/v1/delivery/assignments", headers=admin)
     assert active.status_code == 200
     assert any(item["parcel_id"] == parcel_id and item["status"] == "assigned" for item in active.json())
+
+
+def test_delivery_event_history_is_ordered_and_access_controlled(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    assert client.post("/api/v1/auth/register", json={
+        "email": "history-owner@example.com", "full_name": "History Owner",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    assert client.post("/api/v1/auth/register", json={
+        "email": "history-other@example.com", "full_name": "Other Customer",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    customer = auth(client, "history-owner@example.com", "CustomerPassword123!")
+    other = auth(client, "history-other@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-HISTORY-001")
+    book_parcel(client, customer, parcel_id)
+    partner_response = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "history-rider@example.com", "full_name": "History Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    })
+    assert partner_response.status_code == 201
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner_response.json()["id"]},
+    )
+    assert assignment.status_code == 201
+    assignment_id = assignment.json()["id"]
+    path = f"/api/v1/delivery/assignments/{assignment_id}/events"
+    rider = auth(client, "history-rider@example.com", "StrongRiderPassword123!")
+    assert client.get(path, headers=other).status_code == 404
+    assert client.get(path).status_code in (401, 403)
+    for state in ("accepted", "out_for_delivery", "delivered"):
+        response = client.patch(
+            f"/api/v1/delivery/assignments/{assignment_id}/status",
+            headers=rider, json={"status": state},
+        )
+        assert response.status_code == 200
+    for headers in (admin, customer, rider):
+        response = client.get(path, headers=headers)
+        assert response.status_code == 200
+        events = response.json()
+        assert [event["to_status"] for event in events] == [
+            "assigned", "accepted", "out_for_delivery", "delivered",
+        ]
+        assert events[0]["actor_name"] == "Ops"
+        assert events[-1]["actor_name"] == "History Rider"
+        assert all(event["parcel_id"] == parcel_id for event in events)
+
+
+def test_delivery_failure_reason_is_preserved_in_event_history(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    assert client.post("/api/v1/auth/register", json={
+        "email": "event-fail-owner@example.com", "full_name": "Event Owner",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    customer = auth(client, "event-fail-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-HISTORY-FAIL")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "event-fail-rider@example.com", "full_name": "Event Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    })
+    assert partner.status_code == 201
+    assigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner.json()["id"]},
+    )
+    assert assigned.status_code == 201
+    rider = auth(client, "event-fail-rider@example.com", "StrongRiderPassword123!")
+    assignment_id = assigned.json()["id"]
+    response = client.patch(
+        f"/api/v1/delivery/assignments/{assignment_id}/status",
+        headers=rider, json={"status": "failed", "failure_reason": "Recipient unavailable"},
+    )
+    assert response.status_code == 200
+    events = client.get(f"/api/v1/delivery/assignments/{assignment_id}/events", headers=customer)
+    assert events.status_code == 200
+    assert events.json()[-1]["note"] == "Recipient unavailable"
