@@ -1,4 +1,4 @@
-import type { Booking, DeliverySlot, Parcel, User } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, User } from "./types";
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 
@@ -56,3 +56,15 @@ export const cancelBooking = (token: string, parcelId: number) =>
   request<void>(`/scheduling/parcels/${parcelId}/bookings`, token, { method: "DELETE" });
 export const rescheduleBooking = (token: string, parcelId: number, slotId: number) =>
   request<Booking>(`/scheduling/parcels/${parcelId}/bookings`, token, { method: "PATCH", body: JSON.stringify({ slot_id: slotId }) });
+
+export const getAdminBookings = (
+  token: string,
+  status: "booked" | "cancelled" | "all" = "booked",
+  deliveryDate = "",
+) => {
+  const params = new URLSearchParams();
+  if (status !== "all") params.set("status", status);
+  if (deliveryDate) params.set("delivery_date", deliveryDate);
+  const query = params.toString();
+  return request<AdminBooking[]>(`/scheduling/bookings${query ? `?${query}` : ""}`, token);
+};
