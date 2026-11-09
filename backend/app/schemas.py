@@ -134,3 +134,14 @@ class BookingResponse(BaseModel):
     status: str
     booked_at: datetime
     updated_at: datetime
+
+
+class AdminBookingResponse(BaseModel):
+    id: int
+    parcel_id: int
+    slot_id: int
+    status: str
+    booked_at: datetime
+    updated_at: datetime
+    parcel: ParcelResponse
+    slot: DeliverySlotResponse
