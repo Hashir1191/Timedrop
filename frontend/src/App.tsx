@@ -5,6 +5,7 @@ import { AuthContext, type AuthState } from "./auth";
 import Login from "./pages/Login";
 import Layout from "./components/Layout";
 import CustomerLayout from "./components/CustomerLayout";
+import PartnerLayout from "./components/PartnerLayout";
 import Dashboard from "./pages/Dashboard";
 import Parcels from "./pages/Parcels";
 import Slots from "./pages/Slots";
@@ -23,7 +24,7 @@ export default function App(){
  const role=auth.user?.role;
  return <AuthContext.Provider value={{...auth,setAuth,logout}}><Routes>
   <Route path="/login" element={auth.user?<Navigate to="/" replace/>:<Login/>}/>
-  <Route path="/" element={auth.user?(role==="admin"?<Layout/>:role==="delivery_partner"?<CustomerLayout/>:<CustomerLayout/>):<Navigate to="/login" replace/>}>
+  <Route path="/" element={auth.user?(role==="admin"?<Layout/>:role==="delivery_partner"?<PartnerLayout/>:<CustomerLayout/>):<Navigate to="/login" replace/>}>
    {role==="admin"?<>
     <Route index element={<Dashboard/>}/><Route path="parcels" element={<Parcels/>}/><Route path="slots" element={<Slots/>}/><Route path="bookings" element={<Bookings/>}/><Route path="delivery-partners" element={<DeliveryPartners/>}/>
    </>:role==="delivery_partner"?<Route index element={<PartnerDashboard/>}/>:<>
