@@ -10,6 +10,7 @@ from app.migrations import upgrade_legacy_parcel_table
 from app.routers.auth import router as auth_router
 from app.routers.parcels import router as parcels_router
 from app.routers.scheduling import router as scheduling_router
+from app.routers.delivery import router as delivery_router
 
 
 @asynccontextmanager
@@ -19,33 +20,21 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(
-    title=settings.app_name,
-    version="0.4.0",
-    description="Backend API for the TimeDrop delivery scheduling pilot.",
-    lifespan=lifespan,
-)
-
+app = FastAPI(title=settings.app_name, version="0.5.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
 )
-
 app.include_router(auth_router)
 app.include_router(parcels_router)
 app.include_router(scheduling_router)
+app.include_router(delivery_router)
 
 
 @app.get("/", tags=["General"])
 def root() -> dict[str, str]:
-    return {
-        "message": "Welcome to TimeDrop API",
-        "docs": "/docs",
-        "health": "/health",
-    }
+    return {"message": "Welcome to TimeDrop API", "docs": "/docs", "health": "/health"}
 
 
 @app.get("/health", tags=["General"])
