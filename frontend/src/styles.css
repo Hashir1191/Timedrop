@@ -48,3 +48,17 @@
 .customer-slot.unavailable{opacity:.5;cursor:not-allowed;background:#f6f7f9}
 .schedule-submit-row{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-top:20px;padding-top:17px;border-top:1px solid #edf0f4}
 @media(max-width:700px){.customer-stats{grid-template-columns:repeat(3,minmax(0,1fr))}.customer-form{grid-template-columns:1fr}.customer-form .span-two,.customer-form-actions{grid-column:span 1}.customer-form-actions{align-items:stretch;flex-direction:column}.schedule-current{grid-template-columns:1fr}.current-booking{border-left:0;border-top:1px solid #edf0f4;padding:17px 0 0}.customer-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.schedule-submit-row{align-items:stretch;flex-direction:column}.customer-form-panel,.slot-picker-panel{padding:16px}}
+
+/* Delivery partner portal */
+.partner-job{display:grid;gap:15px}
+.partner-job-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.partner-job-head>div{display:grid;gap:5px}
+.partner-job-head>div>strong{font-size:13px;color:#34445b}
+.partner-address{display:flex;gap:10px;align-items:flex-start;color:#477bd1}
+.partner-address>div{display:grid;gap:4px}
+.partner-address strong{font-size:11px;color:#34445b}
+.partner-address span{font-size:10px;color:#8793a5}
+.partner-window{font-size:10px;color:#8793a5;padding-top:12px;border-top:1px solid #edf0f4}
+.partner-window strong{color:#34445b}
+.customer-form select{width:100%;border:1px solid #e1e6ee;border-radius:7px;padding:11px 12px;color:#34445b;background:#fff;font:inherit;font-weight:400}
+@media(max-width:700px){.partner-job-head{align-items:flex-start}}
