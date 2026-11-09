@@ -29,6 +29,7 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
         phone=parcel.phone, address_line=parcel.address_line, city=parcel.city,
         state=parcel.state, pincode=parcel.pincode, delivery_date=slot.delivery_date,
         start_time=slot.start_time, end_time=slot.end_time, partner_name=partner_user.full_name,
+        failure_reason=assignment.failure_reason,
     )
 
 
@@ -147,6 +148,7 @@ def update_assignment_status(
     if data.status.value not in allowed.get(assignment.status, set()):
         raise HTTPException(status_code=409, detail=f"Cannot change assignment from {assignment.status} to {data.status.value}.")
     assignment.status = data.status.value
+    assignment.failure_reason = data.failure_reason if data.status.value == "failed" else None
     assignment.updated_at = datetime.now(timezone.utc)
     parcel = db.get(Parcel, assignment.parcel_id)
     parcel.status = data.status.value
