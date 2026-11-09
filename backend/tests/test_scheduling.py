@@ -197,3 +197,52 @@ def test_overlapping_slot_window_is_rejected(client):
         },
     )
     assert overlapping.status_code == 409
+
+
+def test_admin_booking_list_includes_parcel_and_slot_details_and_filters(client):
+    parcel_id = create_parcel(client, "TD-TEST-BOOKING-LIST")
+    slot_id = create_slot(client, capacity=2)
+    created = client.post(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        json={"slot_id": slot_id},
+    )
+    assert created.status_code == 201
+
+    listed = client.get("/api/v1/scheduling/bookings?status=booked")
+    assert listed.status_code == 200
+    assert len(listed.json()) == 1
+    item = listed.json()[0]
+    assert item["parcel"]["tracking_number"] == "TD-TEST-BOOKING-LIST"
+    assert item["parcel"]["recipient_name"] == "Test Recipient"
+    assert item["slot"]["id"] == slot_id
+    assert item["slot"]["delivery_date"] == future_date()
+    assert item["status"] == "booked"
+
+    cancelled = client.delete(f"/api/v1/scheduling/parcels/{parcel_id}/bookings")
+    assert cancelled.status_code == 204
+    assert client.get("/api/v1/scheduling/bookings?status=booked").json() == []
+    history = client.get("/api/v1/scheduling/bookings?status=cancelled")
+    assert history.status_code == 200
+    assert history.json()[0]["status"] == "cancelled"
+
+
+def test_customer_cannot_access_admin_booking_list(client):
+    registered = client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "booking-customer@example.com",
+            "full_name": "Booking Customer",
+            "password": "CustomerPassword123!",
+        },
+    )
+    assert registered.status_code == 201
+    login = client.post(
+        "/api/v1/auth/login",
+        json={"email": "booking-customer@example.com", "password": "CustomerPassword123!"},
+    )
+    assert login.status_code == 200
+    response = client.get(
+        "/api/v1/scheduling/bookings",
+        headers={"Authorization": f"Bearer {login.json()['access_token']}"},
+    )
+    assert response.status_code == 403
