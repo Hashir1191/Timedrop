@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryBooking, DeliverySlot, Parcel, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliverySlot, Parcel, User
 from app.schemas import (
     BookingCreate,
     BookingResponse,
@@ -70,6 +70,20 @@ def _reserve_capacity(db: Session, slot_id: int) -> DeliverySlot:
     db.flush()
     db.refresh(slot)
     return slot
+
+
+def _ensure_no_active_assignment(db: Session, parcel_id: int) -> None:
+    assignment = db.scalar(
+        select(DeliveryAssignment).where(
+            DeliveryAssignment.parcel_id == parcel_id,
+            DeliveryAssignment.status.in_(["assigned", "accepted", "out_for_delivery"]),
+        )
+    )
+    if assignment is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This parcel has an active delivery assignment. Contact operations to change its booking.",
+        )
 
 
 def _release_capacity(db: Session, slot_id: int) -> None:
@@ -269,6 +283,7 @@ def reschedule_parcel(
     booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel_id))
     if booking is None or booking.status != "booked":
         raise HTTPException(status_code=404, detail="No active booking exists for this parcel.")
+    _ensure_no_active_assignment(db, parcel_id)
     if booking.slot_id == booking_data.slot_id:
         return _booking_response(db, booking)
 
@@ -296,6 +311,7 @@ def cancel_booking(
     booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel_id))
     if booking is None or booking.status != "booked":
         raise HTTPException(status_code=404, detail="No active booking exists for this parcel.")
+    _ensure_no_active_assignment(db, parcel_id)
 
     try:
         _release_capacity(db, booking.slot_id)
