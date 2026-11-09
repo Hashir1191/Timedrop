@@ -162,3 +162,48 @@ def test_customer_cannot_view_another_customers_parcel(client):
 
     assert client.get(f"/api/v1/parcels/{parcel_id}", headers=owner_headers).status_code == 200
     assert client.get(f"/api/v1/parcels/{parcel_id}", headers=other_headers).status_code == 404
+
+
+def test_customer_parcel_create_list_and_admin_visibility_workflow(client):
+    register(client, "workflow-customer@example.com")
+    customer_headers = login(
+        client, "workflow-customer@example.com", "StrongCustomerPassword123!"
+    )
+    admin_headers = login(client, "admin@example.com", "StrongAdminPassword123!")
+
+    parcel_payload = {
+        "tracking_number": "TD-WORKFLOW-001",
+        "recipient_name": "Synthetic Recipient",
+        "phone": "9876543210",
+        "address_line": "12 Example Test Street",
+        "city": "Prayagraj",
+        "state": "Uttar Pradesh",
+        "pincode": "211001",
+        "delivery_instructions": "Synthetic test parcel only",
+    }
+
+    create_response = client.post(
+        "/api/v1/parcels/", headers=customer_headers, json=parcel_payload
+    )
+    assert create_response.status_code == 201
+    created_parcel = create_response.json()
+    assert created_parcel["tracking_number"] == parcel_payload["tracking_number"]
+    assert created_parcel["status"] == "registered"
+
+    customer_list = client.get("/api/v1/parcels/", headers=customer_headers)
+    assert customer_list.status_code == 200
+    assert [item["tracking_number"] for item in customer_list.json()] == [
+        "TD-WORKFLOW-001"
+    ]
+
+    customer_detail = client.get(
+        f"/api/v1/parcels/{created_parcel['id']}", headers=customer_headers
+    )
+    assert customer_detail.status_code == 200
+
+    admin_list = client.get("/api/v1/parcels/", headers=admin_headers)
+    assert admin_list.status_code == 200
+    assert "TD-WORKFLOW-001" in [
+        item["tracking_number"] for item in admin_list.json()
+    ]
+
