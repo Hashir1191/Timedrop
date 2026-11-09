@@ -30,7 +30,7 @@ All endpoints are under `/api/v1/delivery`.
 | GET | `/my-assignments` | Delivery partner |
 | PATCH | `/assignments/{assignment_id}/status` | Assigned delivery partner |
 
-Operations creates partner accounts; public registration always creates customers. Assignments require an active booking and an active, available partner. A partner can only see and update their own assignments. The allowed lifecycle is assigned → accepted → out_for_delivery → delivered, with failed as an allowed terminal outcome from assigned, accepted, or out_for_delivery. Failed updates require a reason in the request; the current prototype stores the status but does not yet persist a structured failure-reason or proof-of-delivery record.
+Operations creates partner accounts; public registration always creates customers. Assignments require an active booking and an active, available partner. A partner can only see and update their own assignments. The allowed lifecycle is assigned → accepted → out_for_delivery → delivered, with failed as an allowed terminal outcome from assigned, accepted, or out_for_delivery. Failed updates require a reason, which is persisted on the assignment. Proof-of-delivery media and a full delivery event history are not yet included.
 
 ## Run on Windows PowerShell
 
