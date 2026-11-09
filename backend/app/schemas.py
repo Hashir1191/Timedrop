@@ -209,3 +209,4 @@ class DeliveryAssignmentResponse(BaseModel):
     start_time: time
     end_time: time
     partner_name: str
+    failure_reason: str | None = None
