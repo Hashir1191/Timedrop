@@ -1,4 +1,5 @@
-import { FormEvent, useState } from "react";
+import { useState } from "react";
+import type { FormEvent } from "react";
 import { Navigate } from "react-router-dom";
 import { Activity, ArrowRight, LockKeyhole } from "lucide-react";
 import { getMe, login } from "../api";
