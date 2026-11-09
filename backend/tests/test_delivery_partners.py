@@ -131,3 +131,30 @@ def test_partner_cannot_update_another_partners_assignment(client):
     other = auth(client, "other@example.com", "StrongOtherPassword123!")
     response = client.patch(f"/api/v1/delivery/assignments/{assignment['id']}/status", headers=other, json={"status": "accepted"})
     assert response.status_code == 404
+
+def test_failed_delivery_requires_and_persists_reason(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={"email": "failure-owner@example.com", "full_name": "Owner", "password": "CustomerPassword123!"})
+    customer = auth(client, "failure-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-PARTNER-FAIL-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "failure-rider@example.com", "full_name": "Failure Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    }).json()
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner["id"]},
+    ).json()
+    rider = auth(client, "failure-rider@example.com", "StrongRiderPassword123!")
+    missing_reason = client.patch(
+        f"/api/v1/delivery/assignments/{assignment['id']}/status",
+        headers=rider, json={"status": "failed"},
+    )
+    assert missing_reason.status_code == 422
+    failed = client.patch(
+        f"/api/v1/delivery/assignments/{assignment['id']}/status",
+        headers=rider, json={"status": "failed", "failure_reason": "Recipient unavailable"},
+    )
+    assert failed.status_code == 200
+    assert failed.json()["failure_reason"] == "Recipient unavailable"
