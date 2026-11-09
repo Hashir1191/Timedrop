@@ -5,6 +5,8 @@ import { ArrowRight, Package } from "lucide-react";
 import { createParcel } from "../api";
 import { useAuth } from "../auth";
 
+function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
+
 export default function NewParcel() {
  const {token}=useAuth(); const navigate=useNavigate(); const [busy,setBusy]=useState(false); const [error,setError]=useState("");
  const [form,setForm]=useState({tracking_number:"",recipient_name:"",phone:"",address_line:"",city:"",state:"",pincode:"",delivery_instructions:"",preferred_delivery_date:""});
@@ -21,7 +23,7 @@ export default function NewParcel() {
   <label>City<input required value={form.city} onChange={e=>update("city",e.target.value)} placeholder="City"/></label>
   <label>State<input required value={form.state} onChange={e=>update("state",e.target.value)} placeholder="State"/></label>
   <label>PIN code<input required pattern="[1-9][0-9]{5}" maxLength={6} value={form.pincode} onChange={e=>update("pincode",e.target.value)} placeholder="6-digit PIN code"/></label>
-  <label>Preferred delivery date<input type="date" min={new Date().toISOString().slice(0,10)} value={form.preferred_delivery_date} onChange={e=>update("preferred_delivery_date",e.target.value)}/></label>
+  <label>Preferred delivery date<input type="date" min={todayLocal()} value={form.preferred_delivery_date} onChange={e=>update("preferred_delivery_date",e.target.value)}/></label>
   <label className="span-two">Delivery instructions (optional)<textarea rows={3} maxLength={500} value={form.delivery_instructions} onChange={e=>update("delivery_instructions",e.target.value)} placeholder="Landmark, gate code, or delivery notes"/></label>
   <div className="customer-form-actions"><span>After registration, you can select an available delivery slot.</span><button className="primary-button" disabled={busy}>{busy?"Saving parcel...":"Create and continue"} <ArrowRight size={16}/></button></div>
  </form></section>
