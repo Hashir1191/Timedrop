@@ -79,5 +79,6 @@ class DeliveryAssignment(Base):
     parcel_id: Mapped[int] = mapped_column(ForeignKey("parcels.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
     partner_id: Mapped[int] = mapped_column(ForeignKey("delivery_partners.id", ondelete="RESTRICT"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(24), default="assigned", nullable=False)
+    failure_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
