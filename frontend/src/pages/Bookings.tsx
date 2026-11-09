@@ -179,7 +179,7 @@ export default function Bookings() {
         </div>
       )}
       <p className="page-footnote">
-        Booking records come directly from the delivery_bookings table. Cancelled records remain available in history; active bookings show the exact reserved delivery date and time.
+        Booking records come directly from the delivery_bookings table. A cancelled row remains visible until that parcel is booked again; the current one-booking-per-parcel model reuses that row on rebooking.
       </p>
     </>
   );
