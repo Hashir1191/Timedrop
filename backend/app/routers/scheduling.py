@@ -11,6 +11,7 @@ from app.models import DeliveryBooking, DeliverySlot, Parcel, User
 from app.schemas import (
     BookingCreate,
     BookingResponse,
+    AdminBookingResponse,
     DeliverySlotAvailability,
     DeliverySlotCreate,
 )
