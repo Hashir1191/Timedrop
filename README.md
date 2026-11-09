@@ -15,6 +15,7 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 - Delivery-slot creation and availability lookup
 - Capacity-aware parcel booking with overbooking protection
 - Parcel rescheduling and booking cancellation
+- Admin booking register with parcel and delivery-slot details, status/date filters, and cancelled-booking history
 - Pytest coverage for authentication, authorization, and scheduling
 
 ## Roles and permissions
@@ -48,10 +49,15 @@ Public registration always creates a `customer`. A customer cannot assign themse
 | POST | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
 | PATCH | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
 | DELETE | `/api/v1/scheduling/parcels/{parcel_id}/bookings` | Owner or admin |
+| GET | `/api/v1/scheduling/bookings` | Admin |
 
 Login returns a bearer access token. In Swagger UI, click **Authorize** and enter the token using the Bearer authentication scheme.
 
 All delivery dates and slot times are interpreted as India Standard Time (Asia/Kolkata).
+
+### Admin booking register
+
+`GET /api/v1/scheduling/bookings` is restricted to operations admins. It returns booking records joined with the associated parcel and delivery slot, including recipient/tracking details, delivery address summary, reserved date/time, slot capacity, booking status, and timestamps. Optional query parameters are `status=booked|cancelled`, `delivery_date=YYYY-MM-DD`, `skip`, and `limit` (maximum 500). Omitting `status` returns both active and cancelled booking records. The frontend defaults to active bookings and lets operations view cancelled history or all records.
 
 ## Scheduling rules
 
@@ -87,7 +93,7 @@ Open Swagger UI at http://127.0.0.1:8000/docs.
 
 ## Run the frontend operations dashboard
 
-The frontend is a React + Vite + TypeScript application in `frontend/`. It currently provides an admin-only sign-in, operations overview, parcel search/status updates, delivery-slot creation/availability, and basic scheduled-parcel booking actions.
+The frontend is a React + Vite + TypeScript application in `frontend/`. It provides an admin-only sign-in, operations overview, parcel search/status updates, delivery-slot creation/availability, and an operations booking register backed by the actual booking records. The booking register shows parcel and reserved-slot details, supports active/cancelled/all filters and delivery-date filtering, and allows active bookings to be cancelled or rescheduled.
 
 In a **new PowerShell terminal** from the repository root:
 
