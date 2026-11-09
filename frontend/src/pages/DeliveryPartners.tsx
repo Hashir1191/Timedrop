@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { Plus, RefreshCw, Truck } from "lucide-react";
 import { createDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel } from "../api";
 import { useAuth } from "../auth";
