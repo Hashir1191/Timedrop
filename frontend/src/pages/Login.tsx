@@ -1,12 +1,15 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Navigate } from "react-router-dom";
-import { Activity, ArrowRight, LockKeyhole } from "lucide-react";
-import { getMe, login } from "../api";
+import { Navigate, useNavigate } from "react-router-dom";
+import { Activity, ArrowRight, LockKeyhole, UserPlus } from "lucide-react";
+import { getMe, login, register } from "../api";
 import { useAuth } from "../auth";
 
 export default function Login() {
   const { user, setAuth } = useAuth();
+  const navigate = useNavigate();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -15,13 +18,28 @@ export default function Login() {
   async function submit(event: FormEvent) {
     event.preventDefault(); setError(""); setBusy(true);
     try {
+      if (mode === "register") await register({ email, full_name: name, password });
       const tokenResponse = await login(email, password);
-      const user = await getMe(tokenResponse.access_token);
-      if (user.role !== "admin") throw new Error("This sign-in is restricted to operations administrators.");
+      const currentUser = await getMe(tokenResponse.access_token);
       localStorage.setItem("timedrop_token", tokenResponse.access_token);
-      setAuth({ token: tokenResponse.access_token, user, loading: false });
-    } catch (err) { setError(err instanceof Error ? err.message : "Sign-in failed."); }
+      setAuth({ token: tokenResponse.access_token, user: currentUser, loading: false });
+      navigate("/", { replace: true });
+    } catch (err) { setError(err instanceof Error ? err.message : "Unable to continue."); }
     finally { setBusy(false); }
   }
-  return <div className="login-screen"><div className="login-panel"><div className="login-brand"><div className="brand-mark"><Activity size={22} /></div><span>time<span className="brand-accent">drop</span></span></div><div className="login-eyebrow">OPERATIONS PORTAL</div><h1>Welcome back.</h1><p className="login-subtitle">Sign in to manage your delivery operations.</p><form onSubmit={submit} className="login-form"><label>Email address</label><input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@company.com" required autoComplete="username" /><label>Password</label><input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Enter your password" required autoComplete="current-password" />{error && <div className="form-error">{error}</div>}<button className="primary-button login-submit" disabled={busy}>{busy ? "Signing in..." : "Sign in"}<ArrowRight size={17} /></button></form><div className="login-security"><LockKeyhole size={14} /> Secure access for authorized operations staff</div></div><div className="login-aside"><div className="aside-orb orb-one" /><div className="aside-orb orb-two" /><div className="aside-content"><div className="aside-kicker">DELIVERY, IN SYNC.</div><h2>Every parcel.<br />Every promise.<br /><span>On time.</span></h2><p>One clear view of your delivery operations, from first scan to final doorstep.</p><div className="aside-footer">BUILT FOR BETTER LAST-MILE OPERATIONS</div></div></div></div>;
+  return <div className="login-screen"><div className="login-panel">
+    <div className="login-brand"><div className="brand-mark"><Activity size={22} /></div><span>time<span className="brand-accent">drop</span></span></div>
+    <div className="login-eyebrow">{mode === "login" ? "CUSTOMER & OPERATIONS PORTAL" : "CREATE YOUR ACCOUNT"}</div>
+    <h1>{mode === "login" ? "Welcome back." : "Let's get started."}</h1>
+    <p className="login-subtitle">{mode === "login" ? "Sign in to manage your deliveries or operations." : "Create a customer account to register and schedule parcels."}</p>
+    <form onSubmit={submit} className="login-form">
+      {mode === "register" && <><label>Full name</label><input value={name} onChange={e=>setName(e.target.value)} placeholder="Your full name" required minLength={2} autoComplete="name"/></>}
+      <label>Email address</label><input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" required autoComplete="username"/>
+      <label>Password</label><input type="password" value={password} onChange={e=>setPassword(e.target.value)} placeholder={mode==="register"?"At least 8 characters":"Enter your password"} required minLength={mode==="register"?8:1} autoComplete={mode==="register"?"new-password":"current-password"}/>
+      {error && <div className="form-error">{error}</div>}
+      <button className="primary-button login-submit" disabled={busy}>{busy ? "Please wait..." : mode==="login"?"Sign in":"Create account"}{mode==="login"?<ArrowRight size={17}/>:<UserPlus size={17}/>}</button>
+    </form>
+    <button type="button" className="auth-mode-toggle" onClick={()=>{setMode(mode==="login"?"register":"login");setError("");}}>{mode==="login"?"New to TimeDrop? Create a customer account":"Already registered? Sign in"}</button>
+    <div className="login-security"><LockKeyhole size={14}/> Secure sign-in with your TimeDrop account</div>
+  </div><div className="login-aside"><div className="aside-orb orb-one"/><div className="aside-orb orb-two"/><div className="aside-content"><div className="aside-kicker">DELIVERY, IN SYNC.</div><h2>Every parcel.<br/>Every promise.<br/><span>On time.</span></h2><p>One clear view of your delivery journey, from parcel registration to the doorstep.</p><div className="aside-footer">BUILT FOR BETTER LAST-MILE OPERATIONS</div></div></div></div>;
 }
