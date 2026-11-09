@@ -1,6 +1,6 @@
 import { useEffect,useState } from "react";
 import { Link,useParams } from "react-router-dom";
-import { ArrowLeft,CalendarClock,CheckCircle2,RefreshCw } from "lucide-react";
+import { ArrowLeft,CalendarClock,RefreshCw } from "lucide-react";
 import { bookParcel,cancelBooking,getParcelBooking,getParcels,getSlots,rescheduleBooking } from "../api";
 import { useAuth } from "../auth";
 import type { Booking,DeliverySlot,Parcel } from "../types";
