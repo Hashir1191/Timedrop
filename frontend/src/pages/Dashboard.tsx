@@ -36,7 +36,7 @@ export default function Dashboard() {
   const recent = parcels.slice(0, 5);
   const capacity = slots.reduce((sum, slot) => sum + slot.capacity, 0);
   const booked = slots.reduce((sum, slot) => sum + slot.booked_count, 0);
-  return <><div className="page-heading"><div><div className="eyebrow">MONDAY — OPERATIONS OVERVIEW</div><h1>Good to see you.</h1><p>Here's what's happening across your deliveries today.</p></div><button className="secondary-button" onClick={() => void refresh()}><RefreshCw size={15} /> Refresh</button></div>
+  return <><div className="page-heading"><div><div className="eyebrow">{new Date().toLocaleDateString("en-IN", { weekday: "long" }).toUpperCase()} — OPERATIONS OVERVIEW</div><h1>Good to see you.</h1><p>Here's what's happening across your deliveries today.</p></div><button className="secondary-button" onClick={() => void refresh()}><RefreshCw size={15} /> Refresh</button></div>
     {error && <div className="alert-error">{error}</div>}
     <div className="stats-grid">
       <Stat icon={Package} label="Total parcels" value={loading ? "—" : counts.total} note="All parcels in your system" tone="blue" />
