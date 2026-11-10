@@ -210,6 +210,8 @@ class DeliveryAssignmentResponse(BaseModel):
     end_time: time
     partner_name: str
     failure_reason: str | None = None
+    delivered_at: datetime | None = None
+    proof_recipient_name: str | None = None
 
 
 class DeliveryEventResponse(BaseModel):
