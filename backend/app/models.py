@@ -80,6 +80,11 @@ class DeliveryAssignment(Base):
     partner_id: Mapped[int] = mapped_column(ForeignKey("delivery_partners.id", ondelete="RESTRICT"), nullable=False, index=True)
     status: Mapped[str] = mapped_column(String(24), default="assigned", nullable=False)
     failure_reason: Mapped[str | None] = mapped_column(String(300), nullable=True)
+    delivery_code_hash: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    delivery_code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    delivery_code_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    proof_recipient_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
 
