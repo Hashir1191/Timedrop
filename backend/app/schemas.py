@@ -225,3 +225,18 @@ class DeliveryEventResponse(BaseModel):
     to_status: str
     note: str | None
     created_at: datetime
+
+
+class DeliveryCodeResponse(BaseModel):
+    code: str
+    expires_at: datetime
+
+
+class DeliveryProofSubmit(BaseModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
+    recipient_name: str = Field(min_length=2, max_length=120)
+
+    @field_validator("recipient_name")
+    @classmethod
+    def normalize_recipient_name(cls, value: str) -> str:
+        return " ".join(value.split())
