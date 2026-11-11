@@ -100,7 +100,39 @@ Stop containers and permanently delete the Compose database volume (destructive;
 docker compose down -v
 ```
 
-**SQLite data is not copied into the Compose PostgreSQL database.** The two databases are separate. Keep using SQLite for your existing pilot data until the dedicated SQLite-to-PostgreSQL export/import utility has been implemented and verified. Do not run `docker compose down -v` if you need to preserve PostgreSQL data.
+**SQLite data is not copied automatically into PostgreSQL.** The two databases are separate. Keep using SQLite for your existing pilot data until you are ready to perform a planned migration. Do not run `docker compose down -v` if you need to preserve PostgreSQL data.
+
+#### Optional: transfer existing SQLite data to PostgreSQL
+
+This is a deliberate, separate operation. First stop the API and any process that can write to SQLite, and make a backup:
+
+```powershell
+Copy-Item .\timedrop.db .\timedrop-before-postgres-migration.db
+```
+
+Start the Compose database and API so the PostgreSQL schema is created:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Run a read-only preflight (replace the example password with the value in your local `.env`):
+
+```powershell
+$env:PYTHONPATH = "backend"
+python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop"
+```
+
+The preflight checks that both databases have the same Alembic revision, the same business tables and columns, and that every PostgreSQL business table is empty. It prints the source row counts and changes no data.
+
+Only after reviewing a successful preflight, repeat the command with `--execute`:
+
+```powershell
+python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop" --execute
+```
+
+The utility reads SQLite in read-only mode, copies rows in foreign-key dependency order, preserves primary keys, updates PostgreSQL integer sequences, and writes all copied rows in one PostgreSQL transaction. It refuses to overwrite a non-empty target or proceed when schema/revision checks fail. Keep the SQLite backup until you have separately verified the PostgreSQL data and application behavior. Use a URL-safe password in the connection URL; percent-encode reserved URL characters.
 
 Run tests after the development phase is complete:
 
