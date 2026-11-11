@@ -109,7 +109,13 @@ def test_assignment_requires_booking_and_partner_can_update_only_own_delivery(cl
     assert accepted.status_code == 200
     out = client.patch(f"/api/v1/delivery/assignments/{assigned.json()['id']}/status", headers=rider, json={"status": "out_for_delivery"})
     assert out.status_code == 200
-    delivered = client.patch(f"/api/v1/delivery/assignments/{assigned.json()['id']}/status", headers=rider, json={"status": "delivered"})
+    issued = client.post(f"/api/v1/delivery/parcels/{parcel_id}/delivery-code", headers=customer)
+    assert issued.status_code == 200
+    delivered = client.post(
+        f"/api/v1/delivery/assignments/{assigned.json()['id']}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "Owner"},
+    )
     assert delivered.status_code == 200
     assert delivered.json()["status"] == "delivered"
     assert client.get(f"/api/v1/delivery/assignments", headers=rider).status_code == 403
@@ -243,18 +249,29 @@ def test_delivery_event_history_is_ordered_and_access_controlled(client):
     rider = auth(client, "history-rider@example.com", "StrongRiderPassword123!")
     assert client.get(path, headers=other).status_code == 404
     assert client.get(path).status_code in (401, 403)
-    for state in ("accepted", "out_for_delivery", "delivered"):
+    for state in ("accepted", "out_for_delivery"):
         response = client.patch(
             f"/api/v1/delivery/assignments/{assignment_id}/status",
             headers=rider, json={"status": state},
         )
         assert response.status_code == 200
+    issued = client.post(f"/api/v1/delivery/parcels/{parcel_id}/delivery-code", headers=customer)
+    assert issued.status_code == 200
+    delivered = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "History Owner"},
+    )
+    assert delivered.status_code == 200
     for headers in (admin, customer, rider):
         response = client.get(path, headers=headers)
         assert response.status_code == 200
         events = response.json()
+        assert [event["event_type"] for event in events] == [
+            "assigned", "status_changed", "status_changed", "delivery_code_issued", "proof_of_delivery",
+        ]
         assert [event["to_status"] for event in events] == [
-            "assigned", "accepted", "out_for_delivery", "delivered",
+            "assigned", "accepted", "out_for_delivery", "out_for_delivery", "delivered",
         ]
         assert events[0]["actor_name"] == "Ops"
         assert events[-1]["actor_name"] == "History Rider"
