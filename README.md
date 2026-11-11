@@ -7,7 +7,8 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 ## Current milestone
 
 - FastAPI application with Swagger/OpenAPI documentation
-- SQLAlchemy + SQLite persistence for local development
+- SQLAlchemy persistence with SQLite for local development and PostgreSQL support
+- Alembic versioned database migrations, including a non-destructive baseline adoption migration for existing pilot databases
 - Customer registration and JWT login
 - Separate role-based customer and operations web portals
 - Customer parcel creation, personal parcel list, and delivery booking management
@@ -50,7 +51,24 @@ python -m pip install -r backend\requirements-dev.txt
 
 Copy `.env.example` to `.env`. Local development uses SQLite by default. The API also supports PostgreSQL through `DATABASE_URL`; for example, use `postgresql+psycopg://timedrop_user:your_password@localhost:5432/timedrop`. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
 
-Start the API:
+### Apply database migrations
+
+Run this from the repository root after activating the virtual environment:
+
+```powershell
+$env:PYTHONPATH = "backend"
+alembic -c backend\alembic.ini upgrade head
+```
+
+This command is required for a new database and after each future schema migration. The first migration creates missing tables and conditionally adds the ownership, delivery-failure, and proof-of-delivery fields introduced in earlier pilot versions. It is designed to preserve existing rows; it does not delete or recreate the database.
+
+Check the current migration revision:
+
+```powershell
+alembic -c backend\alembic.ini current
+```
+
+Start the API only after migrations have completed:
 
 ```powershell
 $env:PYTHONPATH = "backend"
@@ -83,7 +101,8 @@ Open http://localhost:5173. Keep the API running in a separate terminal.
 - Never commit `.env` or share passwords/access tokens.
 - Configure HTTPS and set `CORS_ORIGINS` to only the trusted frontend origins before external use.
 - Configure `DATABASE_URL` for PostgreSQL in deployed environments; SQLite remains the local-development default.
-- The PostgreSQL driver is installed from `backend/requirements.txt`.
+- The PostgreSQL driver and Alembic are installed from `backend/requirements.txt`.
+- Apply database migrations as a deployment step before starting new application instances; the API intentionally does not mutate the schema at startup.
+- Back up the database before applying migrations to any environment containing important data.
 - Replace localStorage token storage with a production-grade session design before production.
-- Replace the prototype SQLite compatibility approach with versioned Alembic migrations and PostgreSQL before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
