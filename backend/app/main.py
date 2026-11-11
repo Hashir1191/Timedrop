@@ -15,6 +15,7 @@ from app.routers.delivery import router as delivery_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    settings.validate_for_startup()
     Base.metadata.create_all(bind=engine)
     upgrade_legacy_parcel_table()
     upgrade_delivery_assignment_table()
@@ -22,11 +23,13 @@ async def lifespan(app: FastAPI):
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.5.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version="0.6.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(auth_router)
 app.include_router(parcels_router)
