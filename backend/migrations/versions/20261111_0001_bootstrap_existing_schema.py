@@ -6,7 +6,7 @@ Create Date: 2026-11-11
 """
 import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect
+from sqlalchemy import inspect, text
 
 from app.database import Base
 from app import models  # noqa: F401 - register all current tables
@@ -37,12 +37,11 @@ def upgrade() -> None:
         parcel_columns = _columns("parcels")
         if "owner_id" not in parcel_columns:
             if bind.dialect.name == "sqlite":
-                # SQLite needs a batch table rebuild to add a foreign-key constraint.
-                with op.batch_alter_table("parcels") as batch_op:
-                    batch_op.add_column(sa.Column("owner_id", sa.Integer(), nullable=True))
-                    batch_op.create_foreign_key(
-                        "fk_parcels_owner_id_users", "users", ["owner_id"], ["id"], ondelete="SET NULL"
-                    )
+                # SQLite supports this nullable REFERENCES column via ALTER TABLE.
+                op.execute(text(
+                    "ALTER TABLE parcels ADD COLUMN owner_id INTEGER "
+                    "REFERENCES users(id) ON DELETE SET NULL"
+                ))
             else:
                 op.add_column("parcels", sa.Column("owner_id", sa.Integer(), nullable=True))
                 op.create_foreign_key(
