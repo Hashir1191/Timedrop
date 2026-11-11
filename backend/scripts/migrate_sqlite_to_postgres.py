@@ -149,6 +149,16 @@ def copy_rows(
                     total += len(rows)
             copied[name] = total
 
+        # Verify persisted row counts before the transaction is allowed to commit.
+        for name, expected_count in copied.items():
+            actual_count = target_connection.execute(
+                select(func.count()).select_from(target_meta.tables[name])
+            ).scalar_one()
+            if actual_count != expected_count:
+                raise RuntimeError(
+                    f"Verification failed for {name}: expected {expected_count}, found {actual_count}."
+                )
+
         # Preserve explicit integer primary keys and advance PostgreSQL sequences.
         for name in order:
             table = target_meta.tables[name]
