@@ -15,6 +15,7 @@ import sys
 from pathlib import Path
 
 from sqlalchemy import MetaData, create_engine, func, inspect, select, text
+from sqlalchemy.engine import URL
 from sqlalchemy.engine import Engine
 
 
@@ -217,7 +218,14 @@ def main() -> int:
         print(f"SQLite source file does not exist: {source_path}", file=sys.stderr)
         return 2
 
-    source_url = f"sqlite:///{source_path.as_posix()}?mode=ro&uri=true"
+    # Build a proper SQLite file URI. On Windows, embedding a drive-letter path
+    # directly in a SQLAlchemy URL can be parsed incorrectly (e.g. C: as a URI
+    # scheme/authority). URL.create preserves the URI as the SQLite database name.
+    source_url = URL.create(
+        "sqlite",
+        database=source_path.as_uri(),
+        query={"mode": "ro", "uri": "true"},
+    )
     source_engine = create_engine(source_url, connect_args={"check_same_thread": False})
     target_engine = create_engine(args.target_url, pool_pre_ping=True)
 
