@@ -23,19 +23,23 @@ def add_notification(
     if user is None or not user.is_active:
         return
     notification = Notification(
-        user_id=user_id, parcel_id=parcel_id, event_type=event_type,
-        title=title, message=message,
+        user_id=user_id,
+        parcel_id=parcel_id,
+        event_type=event_type,
+        title=title,
+        message=message,
     )
     db.add(notification)
     db.flush()
+    # Do not create undeliverable jobs when the provider is not configured.
     if settings.resend_api_key:
         db.add(NotificationDelivery(
             notification_id=notification.id,
-        channel="email",
-        recipient=user.email,
-        subject=title,
-        body=f"<p>{escape(message)}</p><p>TimeDrop delivery updates</p>",
-        idempotency_key=f"notification-email-{notification.id}",
-        status="pending",
+            channel="email",
+            recipient=user.email,
+            subject=title,
+            body=f"<p>{escape(message)}</p><p>TimeDrop delivery updates</p>",
+            idempotency_key=f"notification-email-{notification.id}",
+            status="pending",
             next_attempt_at=datetime.now(timezone.utc),
         ))
