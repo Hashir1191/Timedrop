@@ -182,3 +182,10 @@ Authenticated API endpoints:
 - `POST /api/v1/notifications/read-all` — mark all of the signed-in user's notifications as read.
 
 Notification records are created in the same database transaction as the booking or delivery change. This prevents a notification from being stored when its underlying operation rolls back. The current implementation is in-app only; email and SMS delivery require a separately configured provider and are not yet enabled.
+
+
+### Transactional email delivery
+
+In-app notifications can also be delivered by the standalone email outbox worker. Configure `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` in your local `.env` file (never commit secrets), then start the stack with `docker compose up --build -d`. The API writes email jobs to `notification_deliveries` in the same transaction as the in-app notification. The separate worker sends pending jobs through Resend, uses an idempotency key, retries transient failures with backoff, and marks exhausted jobs as failed. Configure a verified sending domain/address in Resend before production use.
+
+SMS provider settings are reserved for MSG91, but SMS dispatch is deliberately not enabled yet. Customer parcel phone numbers and admin-entered partner phone numbers are not verified or consented contact points in the current data model. Do not send delivery notifications to those numbers until TimeDrop adds an explicit phone-verification and SMS-consent flow and the required Indian DLT entity/header/template setup is completed. MSG91 requires an approved Flow/template; see the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [DLT template setup](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
