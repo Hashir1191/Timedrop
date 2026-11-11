@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
+from app.notifications import add_notification
 from app.schemas import (
     DeliveryCodeResponse, DeliveryProofSubmit,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
@@ -111,6 +112,22 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
         assignment_id=assignment.id, parcel_id=parcel_id, actor_id=admin.id,
         event_type="assigned", from_status=None, to_status="assigned",
     ))
+    add_notification(
+        db,
+        user_id=parcel.owner_id,
+        parcel_id=parcel.id,
+        event_type="delivery_partner_assigned",
+        title="Delivery partner assigned",
+        message=f"A delivery partner has been assigned to parcel {parcel.tracking_number}.",
+    )
+    add_notification(
+        db,
+        user_id=user.id,
+        parcel_id=parcel.id,
+        event_type="new_delivery_assignment",
+        title="New delivery assigned",
+        message=f"Parcel {parcel.tracking_number} has been assigned to you.",
+    )
     try:
         db.commit()
         db.refresh(assignment)
@@ -168,6 +185,20 @@ def update_assignment_status(
     assignment.updated_at = datetime.now(timezone.utc)
     parcel = db.get(Parcel, assignment.parcel_id)
     parcel.status = data.status.value
+    status_messages = {
+        "accepted": ("Delivery partner accepted", f"The delivery partner accepted parcel {parcel.tracking_number}."),
+        "out_for_delivery": ("Your parcel is out for delivery", f"Parcel {parcel.tracking_number} is on its way to you."),
+        "failed": ("Delivery attempt unsuccessful", f"The delivery attempt for parcel {parcel.tracking_number} was unsuccessful. Reason: {data.failure_reason}."),
+    }
+    title, message = status_messages[data.status.value]
+    add_notification(
+        db,
+        user_id=parcel.owner_id,
+        parcel_id=parcel.id,
+        event_type=f"delivery_{data.status.value}",
+        title=title,
+        message=message,
+    )
     db.commit()
     db.refresh(assignment)
     return _assignment_response(db, assignment)
@@ -296,6 +327,14 @@ def confirm_delivery_proof(
         from_status=previous_status, to_status="delivered",
         note=f"Delivery verified. Received by {data.recipient_name}.",
     ))
+    add_notification(
+        db,
+        user_id=parcel.owner_id,
+        parcel_id=parcel.id,
+        event_type="delivery_completed",
+        title="Parcel delivered",
+        message=f"Parcel {parcel.tracking_number} was successfully delivered and received by {data.recipient_name}.",
+    )
     db.commit()
     db.refresh(assignment)
     return _assignment_response(db, assignment)
