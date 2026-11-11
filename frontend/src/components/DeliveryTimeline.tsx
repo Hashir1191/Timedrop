@@ -16,7 +16,7 @@ export default function DeliveryTimeline({ token, assignmentId }: { token: strin
   if (!events.length) return <p className="muted-copy">No recorded events yet.</p>;
   return <ol className="delivery-timeline">{events.map(event =>
     <li key={event.id}>
-      <strong>{event.to_status.replaceAll("_", " ")}</strong>
+      <strong>{event.to_status.replace(/_/g, " ")}</strong>
       <span>{event.actor_name} · {new Date(event.created_at).toLocaleString("en-IN")}</span>
       {event.note && <p>{event.note}</p>}
     </li>
