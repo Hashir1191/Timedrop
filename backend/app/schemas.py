@@ -25,7 +25,6 @@ class LoginRequest(BaseModel):
 
 class UserResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     email: str
     full_name: str
@@ -62,7 +61,6 @@ class ParcelCreate(BaseModel):
 
 class ParcelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     tracking_number: str
     recipient_name: str
@@ -96,7 +94,6 @@ class DeliverySlotCreate(BaseModel):
 
 class DeliverySlotResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
-
     id: int
     delivery_date: date
     start_time: time
@@ -145,3 +142,71 @@ class AdminBookingResponse(BaseModel):
     updated_at: datetime
     parcel: ParcelResponse
     slot: DeliverySlotResponse
+
+
+class DeliveryPartnerCreate(BaseModel):
+    email: str = Field(min_length=5, max_length=255)
+    full_name: str = Field(min_length=2, max_length=120)
+    password: str = Field(min_length=12, max_length=128)
+    phone: str = Field(min_length=10, max_length=20)
+    vehicle_type: str = Field(default="two_wheeler", min_length=2, max_length=40)
+
+    @field_validator("email")
+    @classmethod
+    def normalize_email(cls, value: str) -> str:
+        return value.strip().lower()
+
+
+class DeliveryPartnerResponse(BaseModel):
+    id: int
+    user_id: int
+    full_name: str
+    email: str
+    phone: str
+    vehicle_type: str
+    is_available: bool
+    is_active: bool
+    active_assignments: int
+
+
+class DeliveryAssignmentCreate(BaseModel):
+    partner_id: int = Field(gt=0)
+
+
+class DeliveryAssignmentStatus(str, Enum):
+    ACCEPTED = "accepted"
+    OUT_FOR_DELIVERY = "out_for_delivery"
+    DELIVERED = "delivered"
+    FAILED = "failed"
+
+
+class DeliveryAssignmentStatusUpdate(BaseModel):
+    status: DeliveryAssignmentStatus
+    failure_reason: str | None = Field(default=None, min_length=3, max_length=300)
+
+    @model_validator(mode="after")
+    def require_failure_reason(self):
+        if self.status == DeliveryAssignmentStatus.FAILED and not self.failure_reason:
+            raise ValueError("failure_reason is required when delivery fails.")
+        return self
+
+
+class DeliveryAssignmentResponse(BaseModel):
+    id: int
+    parcel_id: int
+    partner_id: int
+    status: str
+    assigned_at: datetime
+    updated_at: datetime
+    tracking_number: str
+    recipient_name: str
+    phone: str
+    address_line: str
+    city: str
+    state: str
+    pincode: str
+    delivery_date: date
+    start_time: time
+    end_time: time
+    partner_name: str
+    failure_reason: str | None = None

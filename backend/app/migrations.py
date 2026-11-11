@@ -25,3 +25,14 @@ def upgrade_legacy_parcel_table() -> None:
             connection.execute(
                 text("CREATE INDEX IF NOT EXISTS ix_parcels_owner_id ON parcels (owner_id)")
             )
+
+
+def upgrade_delivery_assignment_table() -> None:
+    """Add delivery failure details to databases created before this field existed."""
+    inspector = inspect(engine)
+    if "delivery_assignments" not in inspector.get_table_names():
+        return
+    columns = {column["name"] for column in inspector.get_columns("delivery_assignments")}
+    if "failure_reason" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text("ALTER TABLE delivery_assignments ADD COLUMN failure_reason VARCHAR(300)"))
