@@ -48,7 +48,7 @@ python -m pip install --upgrade pip
 python -m pip install -r backend\requirements-dev.txt
 ```
 
-Copy `.env.example` to `.env` and set a long, random `SECRET_KEY`. Do not commit `.env`.
+Copy `.env.example` to `.env`. Local development uses SQLite by default. The API also supports PostgreSQL through `DATABASE_URL`; for example, use `postgresql+psycopg://timedrop_user:your_password@localhost:5432/timedrop`. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
 
 Start the API:
 
@@ -81,7 +81,9 @@ Open http://localhost:5173. Keep the API running in a separate terminal.
 ## Security and operations
 
 - Never commit `.env` or share passwords/access tokens.
-- Configure HTTPS and restrict CORS before external use.
+- Configure HTTPS and set `CORS_ORIGINS` to only the trusted frontend origins before external use.
+- Configure `DATABASE_URL` for PostgreSQL in deployed environments; SQLite remains the local-development default.
+- The PostgreSQL driver is installed from `backend/requirements.txt`.
 - Replace localStorage token storage with a production-grade session design before production.
 - Replace the prototype SQLite compatibility approach with versioned Alembic migrations and PostgreSQL before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
