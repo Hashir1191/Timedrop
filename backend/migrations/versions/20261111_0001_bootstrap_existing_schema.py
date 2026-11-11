@@ -4,8 +4,9 @@ Revision ID: 20261111_0001
 Revises:
 Create Date: 2026-11-11
 """
+import sqlalchemy as sa
 from alembic import op
-from sqlalchemy import inspect, text
+from sqlalchemy import inspect
 
 from app.database import Base
 from app import models  # noqa: F401 - register all current tables
@@ -24,10 +25,9 @@ def _columns(table_name: str) -> set[str]:
 def upgrade() -> None:
     """Create missing tables, then add fields introduced by earlier app versions.
 
-    This is a one-time baseline/adoption migration. It deliberately uses the
-    current SQLAlchemy metadata to create tables that do not exist, while leaving
-    existing tables and their rows untouched. The conditional ALTER statements
-    bring older SQLite pilot databases up to the current model shape.
+    This one-time baseline/adoption migration creates tables that do not exist,
+    while leaving existing tables and rows in place. It then conditionally adds
+    the known columns introduced by earlier pilot releases.
     """
     bind = op.get_bind()
     Base.metadata.create_all(bind=bind)
@@ -36,10 +36,18 @@ def upgrade() -> None:
     if "parcels" in tables:
         parcel_columns = _columns("parcels")
         if "owner_id" not in parcel_columns:
-            op.execute(text(
-                "ALTER TABLE parcels ADD COLUMN owner_id INTEGER "
-                "REFERENCES users(id) ON DELETE SET NULL"
-            ))
+            if bind.dialect.name == "sqlite":
+                # SQLite needs a batch table rebuild to add a foreign-key constraint.
+                with op.batch_alter_table("parcels") as batch_op:
+                    batch_op.add_column(sa.Column("owner_id", sa.Integer(), nullable=True))
+                    batch_op.create_foreign_key(
+                        "fk_parcels_owner_id_users", "users", ["owner_id"], ["id"], ondelete="SET NULL"
+                    )
+            else:
+                op.add_column("parcels", sa.Column("owner_id", sa.Integer(), nullable=True))
+                op.create_foreign_key(
+                    "fk_parcels_owner_id_users", "parcels", "users", ["owner_id"], ["id"], ondelete="SET NULL"
+                )
         parcel_indexes = {index["name"] for index in inspect(bind).get_indexes("parcels")}
         if "ix_parcels_owner_id" not in parcel_indexes:
             op.create_index("ix_parcels_owner_id", "parcels", ["owner_id"], unique=False)
@@ -47,25 +55,18 @@ def upgrade() -> None:
     if "delivery_assignments" in tables:
         assignment_columns = _columns("delivery_assignments")
         additions = {
-            "failure_reason": "VARCHAR(300)",
-            "delivery_code_hash": "VARCHAR(255)",
-            "delivery_code_expires_at": "DATETIME",
-            "delivery_code_attempts": "INTEGER NOT NULL DEFAULT 0",
-            "delivered_at": "DATETIME",
-            "proof_recipient_name": "VARCHAR(120)",
+            "failure_reason": sa.Column("failure_reason", sa.String(length=300), nullable=True),
+            "delivery_code_hash": sa.Column("delivery_code_hash", sa.String(length=255), nullable=True),
+            "delivery_code_expires_at": sa.Column("delivery_code_expires_at", sa.DateTime(), nullable=True),
+            "delivery_code_attempts": sa.Column("delivery_code_attempts", sa.Integer(), nullable=False, server_default="0"),
+            "delivered_at": sa.Column("delivered_at", sa.DateTime(), nullable=True),
+            "proof_recipient_name": sa.Column("proof_recipient_name", sa.String(length=120), nullable=True),
         }
-        for column_name, sql_type in additions.items():
+        for column_name, column in additions.items():
             if column_name not in assignment_columns:
-                op.execute(text(
-                    f"ALTER TABLE delivery_assignments ADD COLUMN {column_name} {sql_type}"
-                ))
+                op.add_column("delivery_assignments", column)
 
 
 def downgrade() -> None:
-    """Do not drop application data in a baseline adoption migration.
-
-    This revision may be stamped onto a database containing live pilot records.
-    A destructive downgrade would be unsafe; forward-only schema evolution is
-    intentional for this bootstrap revision.
-    """
+    """Keep this adoption revision forward-only to protect existing pilot data."""
     pass
