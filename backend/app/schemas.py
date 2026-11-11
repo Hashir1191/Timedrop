@@ -210,3 +210,18 @@ class DeliveryAssignmentResponse(BaseModel):
     end_time: time
     partner_name: str
     failure_reason: str | None = None
+
+
+class DeliveryEventResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    assignment_id: int
+    parcel_id: int
+    actor_id: int
+    actor_name: str
+    event_type: str
+    from_status: str | None
+    to_status: str
+    note: str | None
+    created_at: datetime

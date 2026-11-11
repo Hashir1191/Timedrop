@@ -15,6 +15,7 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 - Delivery partner accounts provisioned by operations admins
 - Parcel assignment to active delivery partners (only after a delivery slot is booked)
 - Partner-only assignment inbox and controlled delivery status transitions
+- Append-only delivery event history with actor, timestamps, status changes and failure notes
 - Argon2 password hashing and role-based access control
 
 ## Delivery partner API
@@ -29,8 +30,9 @@ All endpoints are under `/api/v1/delivery`.
 | GET | `/assignments` | Admin |
 | GET | `/my-assignments` | Delivery partner |
 | PATCH | `/assignments/{assignment_id}/status` | Assigned delivery partner |
+| GET | `/assignments/{assignment_id}/events` | Admin, assigned partner, or parcel owner |
 
-Operations creates partner accounts; public registration always creates customers. Assignments require an active booking and an active, available partner. A partner can only see and update their own assignments. The allowed lifecycle is assigned → accepted → out_for_delivery → delivered, with failed as an allowed terminal outcome from assigned, accepted, or out_for_delivery. Failed updates require a reason, which is persisted on the assignment. Proof-of-delivery media and a full delivery event history are not yet included.
+Operations creates partner accounts; public registration always creates customers. Assignments require an active booking and an active, available partner. A partner can only see and update their own assignments. The allowed lifecycle is assigned → accepted → out_for_delivery → delivered, with failed as an allowed terminal outcome from assigned, accepted, or out_for_delivery. Failed updates require a reason, which is persisted on the assignment. Delivery events are written when operations assigns a parcel and when a partner changes delivery status. The operations and partner portals display the event timeline. This is an append-only application event history, not a tamper-proof audit log; proof-of-delivery media and live GPS tracking are not included.
 
 ## Run on Windows PowerShell
 

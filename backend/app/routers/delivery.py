@@ -6,10 +6,10 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryPartner, DeliverySlot, Parcel, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
 from app.schemas import (
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
-    DeliveryPartnerCreate, DeliveryPartnerResponse,
+    DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
 )
 from app.security import get_current_user, hash_password, require_admin, require_delivery_partner
 
@@ -102,6 +102,11 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
         assignment = DeliveryAssignment(parcel_id=parcel_id, partner_id=partner.id)
         db.add(assignment)
     parcel.status = "scheduled"
+    db.flush()
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id, parcel_id=parcel_id, actor_id=admin.id,
+        event_type="assigned", from_status=None, to_status="assigned",
+    ))
     try:
         db.commit()
         db.refresh(assignment)
@@ -147,7 +152,14 @@ def update_assignment_status(
     }
     if data.status.value not in allowed.get(assignment.status, set()):
         raise HTTPException(status_code=409, detail=f"Cannot change assignment from {assignment.status} to {data.status.value}.")
+    previous_status = assignment.status
     assignment.status = data.status.value
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id, parcel_id=assignment.parcel_id,
+        actor_id=partner_user.id, event_type="status_changed",
+        from_status=previous_status, to_status=data.status.value,
+        note=data.failure_reason.strip() if data.failure_reason and data.status.value == "failed" else None,
+    ))
     assignment.failure_reason = data.failure_reason if data.status.value == "failed" else None
     assignment.updated_at = datetime.now(timezone.utc)
     parcel = db.get(Parcel, assignment.parcel_id)
@@ -155,3 +167,39 @@ def update_assignment_status(
     db.commit()
     db.refresh(assignment)
     return _assignment_response(db, assignment)
+
+
+@router.get("/assignments/{assignment_id}/events", response_model=list[DeliveryEventResponse])
+def get_assignment_events(
+    assignment_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """History is visible only to operations, the assigned partner, or the parcel owner."""
+    assignment = db.get(DeliveryAssignment, assignment_id)
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    parcel = db.get(Parcel, assignment.parcel_id)
+    partner = db.get(DeliveryPartner, assignment.partner_id)
+    authorized = (
+        current_user.role == "admin"
+        or (current_user.role == "customer" and parcel.owner_id == current_user.id)
+        or (current_user.role == "delivery_partner" and partner.user_id == current_user.id)
+    )
+    if not authorized:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    rows = db.execute(
+        select(DeliveryEvent, User.full_name)
+        .join(User, User.id == DeliveryEvent.actor_id)
+        .where(DeliveryEvent.assignment_id == assignment_id)
+        .order_by(DeliveryEvent.created_at, DeliveryEvent.id)
+    ).all()
+    return [
+        DeliveryEventResponse(
+            id=event.id, assignment_id=event.assignment_id, parcel_id=event.parcel_id,
+            actor_id=event.actor_id, actor_name=name, event_type=event.event_type,
+            from_status=event.from_status, to_status=event.to_status,
+            note=event.note, created_at=event.created_at,
+        )
+        for event, name in rows
+    ]
