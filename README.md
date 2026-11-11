@@ -163,3 +163,22 @@ Open http://localhost:5173. Keep the API running in a separate terminal. For the
 - Back up the database before applying migrations to any environment containing important data.
 - Replace localStorage token storage with a production-grade session design before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
+
+
+## In-app notifications
+
+TimeDrop stores user-scoped in-app notifications for key booking and delivery events. The inbox is available to customers, delivery partners, and operations users in the application header.
+
+Current notification events include:
+- Booking created, rescheduled, and cancelled (parcel owner).
+- Delivery partner assigned (parcel owner and assigned partner).
+- Assignment accepted, parcel out for delivery, and delivery failed (parcel owner).
+- Delivery completed after proof-of-delivery verification (parcel owner).
+
+Authenticated API endpoints:
+- `GET /api/v1/notifications/` — list the signed-in user's latest notifications; supports `unread_only=true` and `limit`.
+- `GET /api/v1/notifications/unread-count` — get the user's unread count.
+- `PATCH /api/v1/notifications/{id}/read` — mark one of the signed-in user's notifications as read.
+- `POST /api/v1/notifications/read-all` — mark all of the signed-in user's notifications as read.
+
+Notification records are created in the same database transaction as the booking or delivery change. This prevents a notification from being stored when its underlying operation rolls back. The current implementation is in-app only; email and SMS delivery require a separately configured provider and are not yet enabled.
