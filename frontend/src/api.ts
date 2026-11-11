@@ -1,4 +1,4 @@
-import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem } from "./types";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 export class ApiError extends Error { status:number; constructor(message:string,status:number){super(message);this.status=status;} }
 async function request<T>(path:string,token:string,init:RequestInit={}):Promise<T>{
@@ -30,3 +30,8 @@ export const getAssignmentEvents=(token:string,assignmentId:number)=>request<Del
 
 export const issueDeliveryCode=(token:string,parcelId:number)=>request<{code:string;expires_at:string}>(`/delivery/parcels/${parcelId}/delivery-code`,token,{method:"POST"});
 export const submitDeliveryProof=(token:string,assignmentId:number,data:{code:string;recipient_name:string})=>request<DeliveryAssignment>(`/delivery/assignments/${assignmentId}/proof`,token,{method:"POST",body:JSON.stringify(data)});
+
+export const getNotifications=(token:string)=>request<NotificationItem[]>("/notifications/?limit=30",token);
+export const getUnreadNotificationCount=(token:string)=>request<{unread_count:number}>("/notifications/unread-count",token);
+export const markNotificationRead=(token:string,id:number)=>request<NotificationItem>(`/notifications/${id}/read`,token,{method:"PATCH"});
+export const markAllNotificationsRead=(token:string)=>request<{updated_count:number}>("/notifications/read-all",token,{method:"POST"});
