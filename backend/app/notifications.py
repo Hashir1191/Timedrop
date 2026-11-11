@@ -3,6 +3,7 @@ from html import escape
 
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.models import Notification, NotificationDelivery, User
 
 
@@ -27,13 +28,14 @@ def add_notification(
     )
     db.add(notification)
     db.flush()
-    db.add(NotificationDelivery(
-        notification_id=notification.id,
+    if settings.resend_api_key:
+        db.add(NotificationDelivery(
+            notification_id=notification.id,
         channel="email",
         recipient=user.email,
         subject=title,
         body=f"<p>{escape(message)}</p><p>TimeDrop delivery updates</p>",
         idempotency_key=f"notification-email-{notification.id}",
         status="pending",
-        next_attempt_at=datetime.now(timezone.utc),
-    ))
+            next_attempt_at=datetime.now(timezone.utc),
+        ))
