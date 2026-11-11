@@ -9,6 +9,7 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 - FastAPI application with Swagger/OpenAPI documentation
 - SQLAlchemy persistence with SQLite for local development and PostgreSQL support
 - Alembic versioned database migrations, including a non-destructive baseline adoption migration for existing pilot databases
+- Docker Compose development environment with PostgreSQL 16 and a non-root FastAPI container
 - Customer registration and JWT login
 - Separate role-based customer and operations web portals
 - Customer parcel creation, personal parcel list, and delivery booking management
@@ -49,26 +50,21 @@ python -m pip install --upgrade pip
 python -m pip install -r backend\requirements-dev.txt
 ```
 
-Copy `.env.example` to `.env`. Local development uses SQLite by default. The API also supports PostgreSQL through `DATABASE_URL`; for example, use `postgresql+psycopg://timedrop_user:your_password@localhost:5432/timedrop`. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
+Copy `.env.example` to `.env`. Local non-Docker development uses SQLite by default. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
 
-### Apply database migrations
+### Option A: Run with SQLite (existing local workflow)
 
-Run this from the repository root after activating the virtual environment:
+Apply database migrations from the repository root:
 
 ```powershell
 $env:PYTHONPATH = "backend"
-alembic -c backend\alembic.ini upgrade head
+python -m alembic -c backend\alembic.ini upgrade head
+python -m alembic -c backend\alembic.ini current
 ```
 
-This command is required for a new database and after each future schema migration. The first migration creates missing tables and conditionally adds the ownership, delivery-failure, and proof-of-delivery fields introduced in earlier pilot versions. It is designed to preserve existing rows; it does not delete or recreate the database.
+The first migration creates missing tables and conditionally adds the ownership, delivery-failure, and proof-of-delivery fields introduced in earlier pilot versions. It is designed to preserve existing rows; it does not delete or recreate the database.
 
-Check the current migration revision:
-
-```powershell
-alembic -c backend\alembic.ini current
-```
-
-Start the API only after migrations have completed:
+Start the API after migrations:
 
 ```powershell
 $env:PYTHONPATH = "backend"
@@ -77,7 +73,36 @@ python -m uvicorn app.main:app --reload --app-dir backend
 
 Open Swagger UI at http://127.0.0.1:8000/docs.
 
-Run tests:
+### Option B: Run the API and PostgreSQL with Docker Compose
+
+Install and start Docker Desktop, then run these commands from the repository root:
+
+```powershell
+docker compose config
+docker compose up --build -d
+docker compose ps
+docker compose logs -f api
+```
+
+Compose starts PostgreSQL 16 with a persistent named volume, waits for its health check, builds the API image, applies Alembic migrations, and then starts FastAPI. The API is available at http://localhost:8000 and Swagger UI at http://localhost:8000/docs. PostgreSQL is exposed on localhost:5432 for database tools. The frontend can continue running locally with the steps in the Frontend section.
+
+For the local Compose environment, the defaults are intentionally development-only. Override `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `SECRET_KEY`, and ports through the root `.env` file before sharing the environment or exposing it beyond your machine. Use a URL-safe PostgreSQL password; if it contains reserved URL characters, percent-encode it when constructing a connection URL.
+
+Stop containers while retaining the database volume:
+
+```powershell
+docker compose down
+```
+
+Stop containers and permanently delete the Compose database volume (destructive; only for disposable local data):
+
+```powershell
+docker compose down -v
+```
+
+**SQLite data is not copied into the Compose PostgreSQL database.** The two databases are separate. Keep using SQLite for your existing pilot data until the dedicated SQLite-to-PostgreSQL export/import utility has been implemented and verified. Do not run `docker compose down -v` if you need to preserve PostgreSQL data.
+
+Run tests after the development phase is complete:
 
 ```powershell
 $env:PYTHONPATH = "backend"
@@ -94,15 +119,15 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Keep the API running in a separate terminal.
+Open http://localhost:5173. Keep the API running in a separate terminal. For the Docker Compose backend, the frontend still runs locally and calls the API at localhost:8000.
 
 ## Security and operations
 
 - Never commit `.env` or share passwords/access tokens.
 - Configure HTTPS and set `CORS_ORIGINS` to only the trusted frontend origins before external use.
-- Configure `DATABASE_URL` for PostgreSQL in deployed environments; SQLite remains the local-development default.
+- Configure `DATABASE_URL` for PostgreSQL in deployed environments; SQLite remains the local non-Docker development default.
 - The PostgreSQL driver and Alembic are installed from `backend/requirements.txt`.
-- Apply database migrations as a deployment step before starting new application instances; the API intentionally does not mutate the schema at startup.
+- Apply database migrations as a deployment step before starting new application instances; the API intentionally does not mutate the schema at startup. The Compose command applies migrations for this single-instance local development setup.
 - Back up the database before applying migrations to any environment containing important data.
 - Replace localStorage token storage with a production-grade session design before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
