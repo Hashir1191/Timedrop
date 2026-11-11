@@ -19,3 +19,8 @@ export type DeliveryEvent = {
   id:number; assignment_id:number; parcel_id:number; actor_id:number; actor_name:string;
   event_type:string; from_status:string|null; to_status:string; note:string|null; created_at:string;
 };
+
+export type NotificationItem = {
+  id:number; user_id:number; parcel_id:number|null; event_type:string;
+  title:string; message:string; created_at:string; read_at:string|null;
+};
