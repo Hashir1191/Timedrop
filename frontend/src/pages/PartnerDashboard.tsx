@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, MapPin, Package, RefreshCw, Truck } from "lucide-react";
-import { getMyAssignments, updateAssignmentStatus } from "../api";
+import { getMyAssignments, updateAssignmentStatus, submitDeliveryProof } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import DeliveryTimeline from "../components/DeliveryTimeline";
@@ -12,6 +12,7 @@ export default function PartnerDashboard() {
   const [items,setItems] = useState<DeliveryAssignment[]>([]);
   const [error,setError] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
+  const [proof,setProof] = useState<Record<number,{code:string;recipient_name:string}>>({});
   async function load(){ if(!token)return; setError(""); try{setItems(await getMyAssignments(token));}catch(e){setError(e instanceof Error?e.message:"Unable to load your assignments.");}}
   useEffect(()=>{void load();},[token]);
   async function update(id:number,status:"accepted"|"out_for_delivery"|"delivered"|"failed"){
@@ -23,6 +24,7 @@ export default function PartnerDashboard() {
     catch(e){setError(e instanceof Error?e.message:"Unable to update delivery status.");}
     finally{setBusy(null);}
   }
+  async function confirmProof(id:number){if(!token)return;const data=proof[id];if(!data||!/^\d{6}$/.test(data.code)||data.recipient_name.trim().length<2){setError("Enter the six-digit code and recipient name.");return;}setBusy(id);setError("");try{await submitDeliveryProof(token,id,{code:data.code,recipient_name:data.recipient_name.trim()});setProof(current=>({...current,[id]:{code:"",recipient_name:""}}));await load();}catch(e){setError(e instanceof Error?e.message:"Unable to verify delivery.");}finally{setBusy(null);}}
   const active=items.filter(i=>["assigned","accepted","out_for_delivery"].includes(i.status));
   return <>
     <div className="page-heading"><div><div className="eyebrow">DELIVERY PARTNER PORTAL</div><h1>My deliveries</h1><p>View your assigned parcels and keep delivery progress up to date.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={14}/> Refresh</button></div>
@@ -36,7 +38,7 @@ export default function PartnerDashboard() {
       <details className="delivery-history"><summary>Delivery history</summary>{token && <DeliveryTimeline token={token} assignmentId={item.id}/>}</details>
       {item.status==="assigned"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"accepted")}>Accept assignment</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Cannot deliver</button></div>}
       {item.status==="accepted"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"out_for_delivery")}>Start delivery</button></div>}
-      {item.status==="out_for_delivery"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"delivered")}>Mark delivered</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Delivery failed</button></div>}
+      {item.status==="out_for_delivery"&&<div className="proof-form"><strong>Verify recipient handover</strong><label>Recipient name<input value={proof[item.id]?.recipient_name||""} onChange={e=>setProof(current=>({...current,[item.id]:{code:current[item.id]?.code||"",recipient_name:e.target.value}}))} placeholder="Name of person receiving parcel"/></label><label>6-digit customer code<input inputMode="numeric" maxLength={6} value={proof[item.id]?.code||""} onChange={e=>setProof(current=>({...current,[item.id]:{code:e.target.value.replace(/\D/g,"").slice(0,6),recipient_name:current[item.id]?.recipient_name||""}}))} placeholder="Enter delivery code"/></label><div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void confirmProof(item.id)}>Verify & mark delivered</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Delivery failed</button></div></div>}
     </article>)}</div>}
   </>;
 }

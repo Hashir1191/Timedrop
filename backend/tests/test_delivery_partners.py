@@ -109,7 +109,13 @@ def test_assignment_requires_booking_and_partner_can_update_only_own_delivery(cl
     assert accepted.status_code == 200
     out = client.patch(f"/api/v1/delivery/assignments/{assigned.json()['id']}/status", headers=rider, json={"status": "out_for_delivery"})
     assert out.status_code == 200
-    delivered = client.patch(f"/api/v1/delivery/assignments/{assigned.json()['id']}/status", headers=rider, json={"status": "delivered"})
+    issued = client.post(f"/api/v1/delivery/parcels/{parcel_id}/delivery-code", headers=customer)
+    assert issued.status_code == 200
+    delivered = client.post(
+        f"/api/v1/delivery/assignments/{assigned.json()['id']}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "Owner"},
+    )
     assert delivered.status_code == 200
     assert delivered.json()["status"] == "delivered"
     assert client.get(f"/api/v1/delivery/assignments", headers=rider).status_code == 403
@@ -243,18 +249,29 @@ def test_delivery_event_history_is_ordered_and_access_controlled(client):
     rider = auth(client, "history-rider@example.com", "StrongRiderPassword123!")
     assert client.get(path, headers=other).status_code == 404
     assert client.get(path).status_code in (401, 403)
-    for state in ("accepted", "out_for_delivery", "delivered"):
+    for state in ("accepted", "out_for_delivery"):
         response = client.patch(
             f"/api/v1/delivery/assignments/{assignment_id}/status",
             headers=rider, json={"status": state},
         )
         assert response.status_code == 200
+    issued = client.post(f"/api/v1/delivery/parcels/{parcel_id}/delivery-code", headers=customer)
+    assert issued.status_code == 200
+    delivered = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "History Owner"},
+    )
+    assert delivered.status_code == 200
     for headers in (admin, customer, rider):
         response = client.get(path, headers=headers)
         assert response.status_code == 200
         events = response.json()
+        assert [event["event_type"] for event in events] == [
+            "assigned", "status_changed", "status_changed", "delivery_code_issued", "proof_of_delivery",
+        ]
         assert [event["to_status"] for event in events] == [
-            "assigned", "accepted", "out_for_delivery", "delivered",
+            "assigned", "accepted", "out_for_delivery", "out_for_delivery", "delivered",
         ]
         assert events[0]["actor_name"] == "Ops"
         assert events[-1]["actor_name"] == "History Rider"
@@ -290,3 +307,125 @@ def test_delivery_failure_reason_is_preserved_in_event_history(client):
     events = client.get(f"/api/v1/delivery/assignments/{assignment_id}/events", headers=customer)
     assert events.status_code == 200
     assert events.json()[-1]["note"] == "Recipient unavailable"
+
+
+def test_delivery_requires_customer_code_and_records_proof(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "pod-owner@example.com", "full_name": "Parcel Owner",
+        "password": "CustomerPassword123!",
+    })
+    client.post("/api/v1/auth/register", json={
+        "email": "pod-other@example.com", "full_name": "Other Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "pod-owner@example.com", "CustomerPassword123!")
+    other = auth(client, "pod-other@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-POD-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "pod-rider@example.com", "full_name": "POD Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    }).json()
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner["id"]},
+    ).json()
+    rider = auth(client, "pod-rider@example.com", "StrongRiderPassword123!")
+    assignment_id = assignment["id"]
+
+    premature = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider, json={"code": "123456", "recipient_name": "Parcel Owner"},
+    )
+    assert premature.status_code == 409
+
+    for state in ("accepted", "out_for_delivery"):
+        response = client.patch(
+            f"/api/v1/delivery/assignments/{assignment_id}/status",
+            headers=rider, json={"status": state},
+        )
+        assert response.status_code == 200
+
+    code_path = f"/api/v1/delivery/parcels/{parcel_id}/delivery-code"
+    assert client.post(code_path, headers=other).status_code == 404
+    issued = client.post(code_path, headers=customer)
+    assert issued.status_code == 200
+    assert len(issued.json()["code"]) == 6
+    assert "delivery_code_hash" not in issued.json()
+
+    bypass = client.patch(
+        f"/api/v1/delivery/assignments/{assignment_id}/status",
+        headers=rider, json={"status": "delivered"},
+    )
+    assert bypass.status_code == 409
+
+    wrong = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider, json={"code": "000000", "recipient_name": "Parcel Owner"},
+    )
+    if issued.json()["code"] != "000000":
+        assert wrong.status_code == 400
+
+    verified = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "Parcel Owner"},
+    )
+    assert verified.status_code == 200
+    assert verified.json()["status"] == "delivered"
+
+    duplicate = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider,
+        json={"code": issued.json()["code"], "recipient_name": "Parcel Owner"},
+    )
+    assert duplicate.status_code == 409
+
+    history = client.get(
+        f"/api/v1/delivery/assignments/{assignment_id}/events",
+        headers=customer,
+    )
+    assert history.status_code == 200
+    assert history.json()[-1]["event_type"] == "proof_of_delivery"
+    assert "Parcel Owner" in history.json()[-1]["note"]
+
+
+def test_delivery_code_locks_after_five_incorrect_attempts(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "pod-lock-owner@example.com", "full_name": "Lock Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "pod-lock-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-POD-LOCK")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "pod-lock-rider@example.com", "full_name": "Lock Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    }).json()
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner["id"]},
+    ).json()
+    rider = auth(client, "pod-lock-rider@example.com", "StrongRiderPassword123!")
+    assignment_id = assignment["id"]
+    for state in ("accepted", "out_for_delivery"):
+        assert client.patch(
+            f"/api/v1/delivery/assignments/{assignment_id}/status",
+            headers=rider, json={"status": state},
+        ).status_code == 200
+    issued = client.post(f"/api/v1/delivery/parcels/{parcel_id}/delivery-code", headers=customer)
+    assert issued.status_code == 200
+    wrong_code = "000000" if issued.json()["code"] != "000000" else "999999"
+    for attempt in range(5):
+        response = client.post(
+            f"/api/v1/delivery/assignments/{assignment_id}/proof",
+            headers=rider, json={"code": wrong_code, "recipient_name": "Lock Owner"},
+        )
+        assert response.status_code == 400
+    blocked = client.post(
+        f"/api/v1/delivery/assignments/{assignment_id}/proof",
+        headers=rider, json={"code": issued.json()["code"], "recipient_name": "Lock Owner"},
+    )
+    assert blocked.status_code == 409

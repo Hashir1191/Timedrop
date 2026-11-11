@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy import func, select
@@ -8,10 +9,11 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
 from app.schemas import (
+    DeliveryCodeResponse, DeliveryProofSubmit,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
 )
-from app.security import get_current_user, hash_password, require_admin, require_delivery_partner
+from app.security import get_current_user, hash_password, verify_password, require_admin, require_delivery_partner
 
 router = APIRouter(prefix="/api/v1/delivery", tags=["Delivery partners"])
 
@@ -30,6 +32,8 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
         state=parcel.state, pincode=parcel.pincode, delivery_date=slot.delivery_date,
         start_time=slot.start_time, end_time=slot.end_time, partner_name=partner_user.full_name,
         failure_reason=assignment.failure_reason,
+        delivered_at=assignment.delivered_at,
+        proof_recipient_name=assignment.proof_recipient_name,
     )
 
 
@@ -148,7 +152,7 @@ def update_assignment_status(
     allowed = {
         "assigned": {"accepted", "failed"},
         "accepted": {"out_for_delivery", "failed"},
-        "out_for_delivery": {"delivered", "failed"},
+        "out_for_delivery": {"failed"},
     }
     if data.status.value not in allowed.get(assignment.status, set()):
         raise HTTPException(status_code=409, detail=f"Cannot change assignment from {assignment.status} to {data.status.value}.")
@@ -203,3 +207,95 @@ def get_assignment_events(
         )
         for event, name in rows
     ]
+
+
+@router.post("/parcels/{parcel_id}/delivery-code", response_model=DeliveryCodeResponse)
+def issue_delivery_code(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    """Issue a short-lived one-time code to the parcel owner for handover verification."""
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Only the parcel owner can request a delivery code.")
+    parcel = db.get(Parcel, parcel_id)
+    if parcel is None or parcel.owner_id != customer.id:
+        raise HTTPException(status_code=404, detail="Parcel not found.")
+    assignment = db.scalar(select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel_id))
+    if assignment is None or assignment.status != "out_for_delivery":
+        raise HTTPException(status_code=409, detail="A delivery code is available only while the parcel is out for delivery.")
+    if assignment.delivered_at is not None:
+        raise HTTPException(status_code=409, detail="This parcel has already been delivered.")
+    code = f"{secrets.randbelow(1_000_000):06d}"
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=30)
+    assignment.delivery_code_hash = hash_password(code)
+    assignment.delivery_code_expires_at = expires_at
+    assignment.delivery_code_attempts = 0
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id, parcel_id=parcel_id, actor_id=customer.id,
+        event_type="delivery_code_issued", from_status="out_for_delivery",
+        to_status="out_for_delivery", note="A one-time delivery code was issued to the parcel owner.",
+    ))
+    db.commit()
+    return DeliveryCodeResponse(code=code, expires_at=expires_at)
+
+
+@router.post("/assignments/{assignment_id}/proof", response_model=DeliveryAssignmentResponse)
+def confirm_delivery_proof(
+    assignment_id: int,
+    data: DeliveryProofSubmit,
+    db: Session = Depends(get_db),
+    partner_user: User = Depends(require_delivery_partner),
+):
+    """Confirm handover using the parcel owner's unexpired one-time code."""
+    partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
+    assignment = db.get(DeliveryAssignment, assignment_id)
+    if partner is None or assignment is None or assignment.partner_id != partner.id:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    if assignment.status != "out_for_delivery" or assignment.delivered_at is not None:
+        raise HTTPException(status_code=409, detail="Only an active out-for-delivery assignment can be completed.")
+    if not assignment.delivery_code_hash or not assignment.delivery_code_expires_at:
+        raise HTTPException(status_code=409, detail="Ask the recipient to generate a delivery verification code.")
+    now = datetime.now(timezone.utc)
+    expires_at = assignment.delivery_code_expires_at
+    if expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+    if now >= expires_at:
+        assignment.delivery_code_hash = None
+        assignment.delivery_code_expires_at = None
+        assignment.delivery_code_attempts = 0
+        db.commit()
+        raise HTTPException(status_code=410, detail="The delivery code has expired. Ask the recipient to generate a new one.")
+    if assignment.delivery_code_attempts >= 5:
+        assignment.delivery_code_hash = None
+        assignment.delivery_code_expires_at = None
+        assignment.delivery_code_attempts = 0
+        db.commit()
+        raise HTTPException(status_code=429, detail="Too many incorrect attempts. Ask the recipient to generate a new code.")
+    if not verify_password(data.code, assignment.delivery_code_hash):
+        assignment.delivery_code_attempts += 1
+        if assignment.delivery_code_attempts >= 5:
+            assignment.delivery_code_hash = None
+            assignment.delivery_code_expires_at = None
+            assignment.delivery_code_attempts = 0
+        db.commit()
+        raise HTTPException(status_code=400, detail="Incorrect delivery verification code.")
+    previous_status = assignment.status
+    assignment.status = "delivered"
+    assignment.delivered_at = now
+    assignment.proof_recipient_name = data.recipient_name
+    assignment.delivery_code_hash = None
+    assignment.delivery_code_expires_at = None
+    assignment.delivery_code_attempts = 0
+    assignment.updated_at = now
+    parcel = db.get(Parcel, assignment.parcel_id)
+    parcel.status = "delivered"
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id, parcel_id=assignment.parcel_id,
+        actor_id=partner_user.id, event_type="proof_of_delivery",
+        from_status=previous_status, to_status="delivered",
+        note=f"Delivery verified. Received by {data.recipient_name}.",
+    ))
+    db.commit()
+    db.refresh(assignment)
+    return _assignment_response(db, assignment)

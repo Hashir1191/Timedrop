@@ -27,3 +27,6 @@ export const getMyAssignments=(token:string)=>request<DeliveryAssignment[]>("/de
 export const updateAssignmentStatus=(token:string,id:number,data:{status:"accepted"|"out_for_delivery"|"delivered"|"failed";failure_reason?:string})=>request<DeliveryAssignment>(`/delivery/assignments/${id}/status`,token,{method:"PATCH",body:JSON.stringify(data)});
 
 export const getAssignmentEvents=(token:string,assignmentId:number)=>request<DeliveryEvent[]>(`/delivery/assignments/${assignmentId}/events`,token);
+
+export const issueDeliveryCode=(token:string,parcelId:number)=>request<{code:string;expires_at:string}>(`/delivery/parcels/${parcelId}/delivery-code`,token,{method:"POST"});
+export const submitDeliveryProof=(token:string,assignmentId:number,data:{code:string;recipient_name:string})=>request<DeliveryAssignment>(`/delivery/assignments/${assignmentId}/proof`,token,{method:"POST",body:JSON.stringify(data)});
