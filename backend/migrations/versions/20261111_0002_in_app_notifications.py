@@ -32,6 +32,8 @@ def upgrade() -> None:
             sa.Column("read_at", sa.DateTime(timezone=True), nullable=True),
         )
     indexes = {index["name"] for index in inspect(bind).get_indexes("notifications")}
+    if "ix_notifications_id" not in indexes:
+        op.create_index("ix_notifications_id", "notifications", ["id"], unique=False)
     if "ix_notifications_user_id" not in indexes:
         op.create_index("ix_notifications_user_id", "notifications", ["user_id"], unique=False)
     if "ix_notifications_created_at" not in indexes:
@@ -39,6 +41,6 @@ def upgrade() -> None:
 
 
 def downgrade() -> None:
-    op.drop_index("ix_notifications_created_at", table_name="notifications")
-    op.drop_index("ix_notifications_user_id", table_name="notifications")
-    op.drop_table("notifications")
+    # Notifications are user-visible history; keep this migration forward-only
+    # rather than deleting records during a rollback.
+    pass
