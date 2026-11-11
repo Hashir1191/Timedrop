@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Bell, CheckCheck } from "lucide-react";
-import { getNotifications, markAllNotificationsRead, markNotificationRead } from "../api";
+import { getNotifications, getUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from "../api";
 import { useAuth } from "../auth";
 import type { NotificationItem } from "../types";
 
@@ -17,9 +17,9 @@ export default function NotificationBell() {
     setLoading(true);
     setError("");
     try {
-      const result = await getNotifications(token);
+      const [result, unread] = await Promise.all([getNotifications(token), getUnreadNotificationCount(token)]);
       setItems(result);
-      setUnreadCount(result.filter((item) => !item.read_at).length);
+      setUnreadCount(unread.unread_count);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load notifications.");
     } finally {
