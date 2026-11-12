@@ -255,3 +255,31 @@ class NotificationResponse(BaseModel):
     message: str
     created_at: datetime
     read_at: datetime | None
+
+
+class PhoneVerificationRequest(BaseModel):
+    phone_number: str = Field(min_length=10, max_length=16)
+
+    @field_validator("phone_number")
+    @classmethod
+    def normalize_indian_mobile(cls, value: str) -> str:
+        digits = "".join(ch for ch in value if ch.isdigit())
+        if len(digits) == 10:
+            digits = "91" + digits
+        if len(digits) != 12 or not digits.startswith("91") or digits[2] not in "6789":
+            raise ValueError("Enter a valid 10-digit Indian mobile number, optionally with +91.")
+        return "+" + digits
+
+
+class PhoneVerificationSubmit(BaseModel):
+    code: str = Field(pattern=r"^[0-9]{6}$")
+
+
+class PhoneVerificationStatus(BaseModel):
+    phone_number: str | None
+    phone_verified: bool
+    sms_notifications_consent: bool
+
+
+class SmsConsentUpdate(BaseModel):
+    enabled: bool
