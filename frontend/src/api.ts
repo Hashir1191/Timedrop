@@ -35,3 +35,9 @@ export const getNotifications=(token:string)=>request<NotificationItem[]>("/noti
 export const getUnreadNotificationCount=(token:string)=>request<{unread_count:number}>("/notifications/unread-count",token);
 export const markNotificationRead=(token:string,id:number)=>request<NotificationItem>(`/notifications/${id}/read`,token,{method:"PATCH"});
 export const markAllNotificationsRead=(token:string)=>request<{updated_count:number}>("/notifications/read-all",token,{method:"POST"});
+
+export type PhoneStatus = { phone_number:string|null; phone_verified:boolean; sms_notifications_consent:boolean };
+export const getPhoneStatus=(token:string)=>request<PhoneStatus>("/phone-verification/me",token);
+export const requestPhoneCode=(token:string,phone_number:string)=>request<{message:string;phone_number:string;expires_in_seconds:number;development_code?:string}>("/phone-verification/request",token,{method:"POST",body:JSON.stringify({phone_number})});
+export const verifyPhoneCode=(token:string,code:string)=>request<PhoneStatus>("/phone-verification/verify",token,{method:"POST",body:JSON.stringify({code})});
+export const updateSmsConsent=(token:string,enabled:boolean)=>request<PhoneStatus>("/phone-verification/sms-consent",token,{method:"PUT",body:JSON.stringify({enabled})});
