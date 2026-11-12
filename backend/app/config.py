@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     msg91_auth_key: str = ""
     msg91_flow_template_id: str = ""
     sms_notifications_enabled: bool = False
+    phone_otp_expose_in_development: bool = True
+    phone_otp_expire_minutes: int = 5
+    phone_otp_max_attempts: int = 5
 
     model_config = SettingsConfigDict(
         env_file=".env",
