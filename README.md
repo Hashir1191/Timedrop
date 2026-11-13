@@ -262,3 +262,18 @@ Phone verification uses MSG91's OTP API when the application is not in local dev
 For local development only, set `APP_ENV=development` and `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true` to use the local six-digit OTP response without sending SMS. To exercise MSG91 from a non-production environment, set `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=false` and configure the MSG91 auth key and OTP template ID. Never enable development OTP exposure in production. Production must set `APP_ENV=production`; in that mode the development OTP path is always disabled.
 
 The MSG91 OTP API requires an approved OTP template and configured sender/DLT setup for Indian delivery. See the [MSG91 SendOTP API](https://docs.msg91.com/otp/sendotp), [Verify OTP API](https://docs.msg91.com/en/otp/verify-otp), and [OTP configuration guide](https://msg91.com/help/sendotp/step-by-step-process-to-configure-otp).
+
+
+## Operations parcel intake and custody
+
+Operations administrators can register a parcel at the point it is physically received through **Parcel intake** in the admin portal. Intake captures the tracking number, recipient and destination details, optional link to an existing customer account, source of the parcel, observed package condition, and an optional note.
+
+The authenticated operations API is:
+- `POST /api/v1/operations/intake` — register a parcel and append its initial `received` custody event.
+- `GET /api/v1/operations/intake` — list the latest 100 operations intake records.
+- `GET /api/v1/operations/parcels/{parcel_id}/custody` — retrieve the parcel's append-only custody history.
+- `POST /api/v1/operations/parcels/{parcel_id}/release` — record handover to the assigned delivery partner. A parcel must have an active `assigned` delivery assignment before release.
+
+Every custody event records the acting operations user and timestamp. Intake is limited to existing customer accounts when an account email is supplied; the API does not create customer accounts implicitly. The first release records the assigned partner's name. Repeated release attempts are rejected.
+
+This is an application-level operational event history, not a tamper-proof audit ledger. The pilot should use synthetic parcel details until the workflow, authorization, and retention requirements have been reviewed. Only receive parcels TimeDrop is explicitly authorized to handle.
