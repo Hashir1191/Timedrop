@@ -295,3 +295,115 @@ def test_only_operations_admin_can_record_failed_parcel_return(client):
         json={"package_condition": "intact", "note": "Synthetic return"},
     )
     assert response.status_code == 403
+
+
+def test_warehouse_summary_and_inventory_search_are_admin_only(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json=intake_payload("TD-WAREHOUSE-001"),
+    )
+    assert created.status_code == 201
+
+    summary = client.get("/api/v1/operations/warehouse/summary", headers=admin)
+    assert summary.status_code == 200
+    assert summary.json()["total_parcels"] == 1
+    assert summary.json()["in_custody"] == 1
+    assert summary.json()["awaiting_storage"] == 1
+
+    rows = client.get(
+        "/api/v1/operations/warehouse/parcels?q=TD-WAREHOUSE&parcel_status=registered",
+        headers=admin,
+    )
+    assert rows.status_code == 200
+    assert len(rows.json()) == 1
+    assert rows.json()[0]["tracking_number"] == "TD-WAREHOUSE-001"
+
+    client.post("/api/v1/auth/register", json={
+        "email": "warehouse-customer@example.com",
+        "full_name": "Warehouse Customer",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "warehouse-customer@example.com", "CustomerPassword123!")
+    assert client.get("/api/v1/operations/warehouse/summary", headers=customer).status_code == 403
+    assert client.get("/api/v1/operations/warehouse/parcels", headers=customer).status_code == 403
+
+
+def test_storage_bin_can_only_be_assigned_while_parcel_is_in_operations_custody(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    received = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json=intake_payload("TD-WAREHOUSE-BIN-001"),
+    )
+    assert received.status_code == 201
+    parcel_id = received.json()["id"]
+
+    assigned = client.patch(
+        f"/api/v1/operations/warehouse/parcels/{parcel_id}/location",
+        headers=admin,
+        json={"warehouse_location": "A-01-02"},
+    )
+    assert assigned.status_code == 200
+    assert assigned.json()["warehouse_location"] == "A-01-02"
+
+    summary = client.get("/api/v1/operations/warehouse/summary", headers=admin)
+    assert summary.json()["assigned_to_bins"] == 1
+    assert summary.json()["awaiting_storage"] == 0
+
+    cleared = client.patch(
+        f"/api/v1/operations/warehouse/parcels/{parcel_id}/location",
+        headers=admin,
+        json={"warehouse_location": "  "},
+    )
+    assert cleared.status_code == 200
+    assert cleared.json()["warehouse_location"] is None
+
+
+def test_storage_bin_cannot_be_updated_after_parcel_is_released(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    received = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json=intake_payload("TD-WAREHOUSE-BIN-002"),
+    )
+    parcel_id = received.json()["id"]
+
+    client.post("/api/v1/auth/register", json={
+        "email": "bin-owner@example.com",
+        "full_name": "Bin Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "bin-owner@example.com", "CustomerPassword123!")
+    slot = client.post("/api/v1/scheduling/slots", headers=admin, json={
+        "delivery_date": (datetime.now().date() + timedelta(days=3)).isoformat(),
+        "start_time": "10:00:00", "end_time": "12:00:00", "capacity": 5,
+    })
+    client.post(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=customer,
+        json={"slot_id": slot.json()["id"]},
+    )
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "bin-rider@example.com", "full_name": "Bin Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543213",
+    })
+    client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner.json()["id"]},
+    )
+    released = client.post(
+        f"/api/v1/operations/parcels/{parcel_id}/release",
+        headers=admin,
+        json={},
+    )
+    assert released.status_code == 201
+
+    response = client.patch(
+        f"/api/v1/operations/warehouse/parcels/{parcel_id}/location",
+        headers=admin,
+        json={"warehouse_location": "A-01-03"},
+    )
+    assert response.status_code == 409
