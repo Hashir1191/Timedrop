@@ -179,6 +179,7 @@ def release_parcel(parcel_id: int, data: CustodyReleaseRequest, db: Session = De
     partner_user = db.get(User, partner.user_id) if partner else None
     if partner_user is None:
         raise HTTPException(status_code=409, detail="The assigned delivery partner could not be found.")
+    parcel.warehouse_location = None
     event = ParcelCustodyEvent(
         parcel_id=parcel_id,
         actor_id=admin.id,
@@ -231,6 +232,7 @@ def receive_failed_parcel(
         note=data.note.strip(),
     )
     parcel.status = "returned_to_operations"
+    parcel.warehouse_location = None
     db.add(event)
     db.commit()
     db.refresh(event)
