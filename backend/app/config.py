@@ -11,6 +11,13 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    resend_api_key: str = ""
+    notification_from_email: str = "TimeDrop <onboarding@resend.dev>"
+    notification_worker_poll_seconds: int = 5
+    notification_max_attempts: int = 5
+    msg91_auth_key: str = ""
+    msg91_flow_template_id: str = ""
+    sms_notifications_enabled: bool = False
 
     model_config = SettingsConfigDict(
         env_file=".env",
