@@ -170,6 +170,13 @@ def test_release_records_handover_to_assigned_partner(client):
     )
     assert assigned.status_code == 201
 
+    bin_assignment = client.patch(
+        f"/api/v1/operations/warehouse/parcels/{parcel_id}/location",
+        headers=admin,
+        json={"warehouse_location": "A-01-02"},
+    )
+    assert bin_assignment.status_code == 200
+
     released = client.post(
         f"/api/v1/operations/parcels/{parcel_id}/release",
         headers=admin,
@@ -178,6 +185,11 @@ def test_release_records_handover_to_assigned_partner(client):
     assert released.status_code == 201
     assert released.json()["event_type"] == "released"
     assert released.json()["handed_to"] == "Release Rider"
+    current = client.get(
+        f"/api/v1/operations/warehouse/parcels?q=TD-CUSTODY-RELEASE",
+        headers=admin,
+    )
+    assert current.json()[0]["warehouse_location"] is None
 
     history = client.get(f"/api/v1/operations/parcels/{parcel_id}/custody", headers=admin)
     assert [event["event_type"] for event in history.json()] == ["received", "released"]
