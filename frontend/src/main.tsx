@@ -11,8 +11,7 @@ import "./warehouse-workspace.css";
 import "./parcel-operations.css";
 import "./fleet-scheduling.css";
 import "./customer-booking.css";
-import "./marketing.css";
-import "./customer-booking.css";
+import "./accessibility-polish.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
