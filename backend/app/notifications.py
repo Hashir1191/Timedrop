@@ -16,7 +16,7 @@ def add_notification(
     message: str,
     parcel_id: int | None = None,
 ) -> None:
-    """Create the in-app notification and durable email outbox item atomically."""
+    """Create in-app and eligible external notification jobs atomically."""
     if user_id is None:
         return
     user = db.get(User, user_id)
@@ -31,7 +31,9 @@ def add_notification(
     )
     db.add(notification)
     db.flush()
-    # Do not create undeliverable jobs when the provider is not configured.
+    now = datetime.now(timezone.utc)
+
+    # Email is queued only when the provider is configured at event creation time.
     if settings.resend_api_key:
         db.add(NotificationDelivery(
             notification_id=notification.id,
@@ -41,5 +43,26 @@ def add_notification(
             body=f"<p>{escape(message)}</p><p>TimeDrop delivery updates</p>",
             idempotency_key=f"notification-email-{notification.id}",
             status="pending",
-            next_attempt_at=datetime.now(timezone.utc),
+            next_attempt_at=now,
+        ))
+
+    # Never use parcel/partner contact fields for SMS. Only the account-owned,
+    # verified number with an explicit active consent timestamp is eligible.
+    if (
+        settings.sms_notifications_enabled
+        and settings.msg91_auth_key
+        and settings.msg91_flow_template_id
+        and user.phone_number
+        and user.phone_verified_at is not None
+        and user.sms_consent_at is not None
+    ):
+        db.add(NotificationDelivery(
+            notification_id=notification.id,
+            channel="sms",
+            recipient=user.phone_number,
+            subject=title,
+            body=message,
+            idempotency_key=f"notification-sms-{notification.id}",
+            status="pending",
+            next_attempt_at=now,
         ))

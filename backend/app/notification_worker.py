@@ -4,11 +4,12 @@ import logging
 import time
 
 import httpx
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from app.config import settings
 from app.database import SessionLocal
-from app.models import NotificationDelivery
+from app.models import Notification, NotificationDelivery, User
+from app.providers.msg91 import send_transactional_sms
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("timedrop.notification_worker")
@@ -68,9 +69,34 @@ def process_one() -> bool:
         item = db.get(NotificationDelivery, item_id)
         if item is None:
             return True
+        # Consent may be withdrawn after a job was queued. Re-check eligibility
+        # immediately before dispatch so queued SMS is cancelled after opt-out.
+        if item.channel == "sms":
+            notification = db.get(Notification, item.notification_id) if item.notification_id else None
+            recipient_user = db.get(User, notification.user_id) if notification else None
+            sms_still_allowed = (
+                recipient_user is not None
+                and recipient_user.is_active
+                and settings.sms_notifications_enabled
+                and recipient_user.phone_number == item.recipient
+                and recipient_user.phone_verified_at is not None
+                and recipient_user.sms_consent_at is not None
+            )
+            if not sms_still_allowed:
+                item.status = "cancelled"
+                item.last_error = "SMS skipped because the account is no longer verified, active, or opted in."
+                item.locked_at = None
+                db.commit()
+                return True
         try:
             if item.channel == "email":
                 provider_id = _deliver_email(item)
+            elif item.channel == "sms":
+                provider_id = send_transactional_sms(
+                    recipient=item.recipient,
+                    title=item.subject,
+                    message=item.body,
+                )
             else:
                 raise RuntimeError(f"Unsupported notification channel: {item.channel}")
             item.status = "sent"
