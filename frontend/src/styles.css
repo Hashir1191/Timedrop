@@ -143,3 +143,11 @@
 .performance-good{color:#21835f;font-weight:700}.performance-watch{color:#b57a2b;font-weight:700}
 @media(max-width:900px){.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filters{align-items:stretch}.analytics-range-note{margin-left:0;width:100%;padding:0}}
 @media(max-width:520px){.analytics-stats{grid-template-columns:1fr}.daily-analytics-row{grid-template-columns:45px minmax(70px,1fr) 82px;gap:7px}.daily-counts{font-size:9px}}
+
+
+/* Phase 12: actionable notifications and partner task filters */
+.partner-filters{display:flex;align-items:end;gap:12px;padding:14px 16px;margin-bottom:14px;background:#fff;border:1px solid #e5eaf1;border-radius:10px}
+.partner-filters label{display:grid;gap:6px;font-size:10px;font-weight:700;color:#738096;min-width:180px}
+.partner-filters input,.partner-filters select{border:1px solid #dce3ed;border-radius:7px;padding:9px 11px;background:#fff;color:#34445b;font:inherit;font-weight:400;min-width:220px}
+.notification-target-row{outline:2px solid #7ea6e8;outline-offset:-2px;background:#f2f7ff}
+@media(max-width:600px){.partner-filters{align-items:stretch;flex-direction:column}.partner-filters label,.partner-filters input,.partner-filters select{width:100%;min-width:0}}

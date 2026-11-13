@@ -482,3 +482,35 @@ def test_partner_capacity_is_enforced_and_route_plan_respects_limit(client):
     assert plan.json()["recommended"] == 0
     assert plan.json()["unassigned_without_partner"] == 1
     assert plan.json()["stops"][0]["suggested_partner_id"] is None
+
+
+
+def test_assignment_notifications_have_role_appropriate_action_destinations(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    assert client.post("/api/v1/auth/register", json={
+        "email": "action-owner@example.com", "full_name": "Action Owner",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    customer = auth(client, "action-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-ACTION-LINK-001")
+    book_parcel(client, customer, parcel_id)
+    partner_response = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "action-rider@example.com", "full_name": "Action Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+    })
+    assert partner_response.status_code == 201
+    partner = auth(client, "action-rider@example.com", "StrongRiderPassword123!")
+    assigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin, json={"partner_id": partner_response.json()["id"]},
+    )
+    assert assigned.status_code == 201
+    customer_notifications = client.get("/api/v1/notifications/", headers=customer)
+    partner_notifications = client.get("/api/v1/notifications/", headers=partner)
+    assert customer_notifications.status_code == 200
+    assert partner_notifications.status_code == 200
+    customer_assignment = next(item for item in customer_notifications.json() if item["event_type"] == "delivery_partner_assigned")
+    partner_assignment = next(item for item in partner_notifications.json() if item["event_type"] == "new_delivery_assignment")
+    assert customer_assignment["action_url"] == f"/my-parcels?parcelId={parcel_id}"
+    assert partner_assignment["action_url"] == "/"
+    assert client.patch(f"/api/v1/notifications/{partner_assignment['id']}/read", headers=customer).status_code == 404

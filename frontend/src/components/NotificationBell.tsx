@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Bell, CheckCheck } from "lucide-react";
 import { getNotifications, getUnreadNotificationCount, markAllNotificationsRead, markNotificationRead } from "../api";
 import { useAuth } from "../auth";
@@ -6,6 +7,7 @@ import type { NotificationItem } from "../types";
 
 export default function NotificationBell() {
   const { token } = useAuth();
+  const navigate = useNavigate();
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
   const [open, setOpen] = useState(false);
@@ -31,15 +33,20 @@ export default function NotificationBell() {
     void load();
   }, [token]);
 
-  async function markRead(id: number) {
+  async function openNotification(item: NotificationItem) {
     if (!token) return;
-    try {
-      const updated = await markNotificationRead(token, id);
-      setItems((current) => current.map((item) => item.id === id ? updated : item));
-      setUnreadCount((count) => Math.max(0, count - 1));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update notification.");
+    if (!item.read_at) {
+      try {
+        const updated = await markNotificationRead(token, item.id);
+        setItems((current) => current.map((entry) => entry.id === item.id ? updated : entry));
+        setUnreadCount((count) => Math.max(0, count - 1));
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unable to update notification.");
+        return;
+      }
     }
+    setOpen(false);
+    if (item.action_url && item.action_url.startsWith("/") && !item.action_url.startsWith("//")) navigate(item.action_url);
   }
 
   async function markAllRead() {
@@ -61,7 +68,7 @@ export default function NotificationBell() {
     {open && <section className="notification-popover" aria-label="Notifications">
       <div className="notification-popover-head"><div><strong>Notifications</strong><span>{unreadCount} unread</span></div><button type="button" className="notification-mark-all" onClick={() => void markAllRead()} disabled={unreadCount === 0}><CheckCheck size={14}/> Mark all read</button></div>
       {error && <p className="notification-error">{error}</p>}
-      {loading ? <div className="notification-empty">Loading notifications…</div> : items.length === 0 ? <div className="notification-empty">You're all caught up.</div> : <div className="notification-list">{items.map((item) => <button type="button" key={item.id} className={`notification-item ${item.read_at ? "read" : "unread"}`} onClick={() => !item.read_at && void markRead(item.id)}>
+      {loading ? <div className="notification-empty">Loading notifications…</div> : items.length === 0 ? <div className="notification-empty">You're all caught up.</div> : <div className="notification-list">{items.map((item) => <button type="button" key={item.id} className={`notification-item ${item.read_at ? "read" : "unread"}`} onClick={() => void openNotification(item)}>
         <span className="notification-dot"/><span className="notification-copy"><strong>{item.title}</strong><span>{item.message}</span><small>{new Date(item.created_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</small></span>
       </button>)}</div>}
       <button type="button" className="notification-close" onClick={() => setOpen(false)}>Close</button>

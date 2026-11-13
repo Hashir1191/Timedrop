@@ -28,6 +28,11 @@ def add_notification(
         event_type=event_type,
         title=title,
         message=message,
+        action_url=(
+            f"/my-parcels?parcelId={parcel_id}" if user.role == "customer" and parcel_id is not None
+            else "/" if user.role in {"delivery_partner", "admin"}
+            else None
+        ),
     )
     db.add(notification)
     db.flush()

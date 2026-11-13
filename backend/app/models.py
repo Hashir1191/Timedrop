@@ -145,6 +145,7 @@ class Notification(Base):
     event_type: Mapped[str] = mapped_column(String(50), nullable=False)
     title: Mapped[str] = mapped_column(String(160), nullable=False)
     message: Mapped[str] = mapped_column(String(500), nullable=False)
+    action_url: Mapped[str | None] = mapped_column(String(240), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True)
     read_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 

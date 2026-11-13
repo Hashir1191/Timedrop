@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CheckCircle2, MapPin, Package, RefreshCw, Truck } from "lucide-react";
 import { getMyAssignments, updateAssignmentStatus, submitDeliveryProof, updateDeliveryEta } from "../api";
 import { useAuth } from "../auth";
@@ -14,6 +14,8 @@ export default function PartnerDashboard() {
   const [busy,setBusy] = useState<number|null>(null);
   const [proof,setProof] = useState<Record<number,{code:string;recipient_name:string}>>({});
   const [eta,setEta] = useState<Record<number,{start:string;end:string}>>({});
+  const [filter,setFilter] = useState<"active"|"completed"|"all">("active");
+  const [search,setSearch] = useState("");
   async function load(){ if(!token)return; setError(""); try{setItems(await getMyAssignments(token));}catch(e){setError(e instanceof Error?e.message:"Unable to load your assignments.");}}
   useEffect(()=>{void load();},[token]);
   async function update(id:number,status:"accepted"|"out_for_delivery"|"delivered"|"failed"){
@@ -28,12 +30,20 @@ export default function PartnerDashboard() {
   async function saveEta(id:number){if(!token)return;const value=eta[id];if(!value?.start||!value?.end){setError("Choose both ETA start and end times.");return;}const start=new Date(value.start),end=new Date(value.end);if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||end<=start||end<=new Date()){setError("Choose a future ETA window with the end after the start.");return;}setBusy(id);setError("");try{await updateDeliveryEta(token,id,{estimated_delivery_start:start.toISOString(),estimated_delivery_end:end.toISOString()});await load();}catch(e){setError(e instanceof Error?e.message:"Unable to update ETA.");}finally{setBusy(null);}}
   async function confirmProof(id:number){if(!token)return;const data=proof[id];if(!data||!/^\d{6}$/.test(data.code)||data.recipient_name.trim().length<2){setError("Enter the six-digit code and recipient name.");return;}setBusy(id);setError("");try{await submitDeliveryProof(token,id,{code:data.code,recipient_name:data.recipient_name.trim()});setProof(current=>({...current,[id]:{code:"",recipient_name:""}}));await load();}catch(e){setError(e instanceof Error?e.message:"Unable to verify delivery.");}finally{setBusy(null);}}
   const active=items.filter(i=>["assigned","accepted","out_for_delivery"].includes(i.status));
+  const visibleItems=useMemo(()=>items.filter(item=>{
+    const isActive=["assigned","accepted","out_for_delivery"].includes(item.status);
+    const matchesFilter=filter==="all"||(filter==="active"&&isActive)||(filter==="completed"&&!isActive);
+    const query=search.trim().toLowerCase();
+    const matchesSearch=!query||[item.tracking_number,item.recipient_name,item.city,item.pincode].some(value=>value.toLowerCase().includes(query));
+    return matchesFilter&&matchesSearch;
+  }).sort((a,b)=>a.delivery_date.localeCompare(b.delivery_date)||a.start_time.localeCompare(b.start_time)||a.tracking_number.localeCompare(b.tracking_number)),[items,filter,search]);
   return <>
     <div className="page-heading"><div><div className="eyebrow">DELIVERY PARTNER PORTAL</div><h1>My deliveries</h1><p>View your assigned parcels and keep delivery progress up to date.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={14}/> Refresh</button></div>
     {error&&<div className="alert-error">{error}</div>}
     <div className="stats-grid customer-stats"><div className="stat-card"><div className="stat-icon blue"><Package size={18}/></div><div className="stat-label">Total assigned</div><div className="stat-value">{items.length}</div></div><div className="stat-card"><div className="stat-icon amber"><Truck size={18}/></div><div className="stat-label">In progress</div><div className="stat-value">{active.length}</div></div><div className="stat-card"><div className="stat-icon green"><CheckCircle2 size={18}/></div><div className="stat-label">Delivered</div><div className="stat-value">{items.filter(i=>i.status==="delivered").length}</div></div></div>
-    <div className="section-title-row"><h2>Assigned parcels</h2><span className="result-count">{active.length} active</span></div>
-    {items.length===0?<div className="panel"><EmptyState title="No deliveries assigned" description="Your new delivery assignments will appear here."/></div>:<div className="booking-list">{items.map(item=><article className="panel partner-job" key={item.id}>
+    <div className="section-title-row"><h2>Assigned parcels</h2><span className="result-count">{active.length} active · {items.length} total</span></div>
+    <div className="partner-filters"><label>Search deliveries<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Tracking ID, recipient, city or PIN"/></label><label>Show<select value={filter} onChange={e=>setFilter(e.target.value as "active"|"completed"|"all")}><option value="active">Active deliveries</option><option value="completed">Completed / failed</option><option value="all">All deliveries</option></select></label></div>
+    {items.length===0?<div className="panel"><EmptyState title="No deliveries assigned" description="Your new delivery assignments will appear here."/></div>:visibleItems.length===0?<div className="panel"><EmptyState title="No matching deliveries" description="Try another search or change the delivery filter."/></div>:<div className="booking-list">{visibleItems.map(item=><article className="panel partner-job" key={item.id}>
       <div className="partner-job-head"><div><div className="tracking">{item.tracking_number}</div><strong>{item.recipient_name}</strong></div><StatusBadge status={item.status}/></div>
       <div className="partner-address"><MapPin size={16}/><div><strong>{item.address_line}</strong><span>{item.city}, {item.state} · {item.pincode}</span><span>{item.phone}</span></div></div>
       <div className="partner-window">Booked delivery window: <strong>{new Date(item.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}</strong> · {item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</div>

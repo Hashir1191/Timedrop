@@ -24,7 +24,7 @@ export type DeliveryEvent = {
 
 export type NotificationItem = {
   id:number; user_id:number; parcel_id:number|null; event_type:string;
-  title:string; message:string; created_at:string; read_at:string|null;
+  title:string; message:string; action_url?:string|null; created_at:string; read_at:string|null;
 };
 
 export type ParcelIntake = {

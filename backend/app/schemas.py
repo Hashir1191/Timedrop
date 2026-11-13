@@ -307,6 +307,7 @@ class NotificationResponse(BaseModel):
     event_type: str
     title: str
     message: str
+    action_url: str | None = None
     created_at: datetime
     read_at: datetime | None
 
