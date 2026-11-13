@@ -76,7 +76,7 @@ export default function ScheduleParcel(){
      </button>)}</div>:<div className="customer-no-slots"><CalendarClock size={24}/><strong>No available slots for this date</strong><span>Choose another date to see more delivery windows.</span></div>
    }
    {selectedSlot&&<div className="customer-selected-summary"><span><CheckCircle2 size={16}/> Selected delivery window</span><strong>{formatDate(date)} · {selectedSlot.start_time.slice(0,5)} – {selectedSlot.end_time.slice(0,5)}</strong></div>}
-   <div className="customer-schedule-submit"><div><ShieldCheck size={17}/><span>Your booking is confirmed only after you select and submit an available slot.</span></div><button className="primary-button" disabled={!selected||busy||terminal}>{busy?"Saving booking…":booking?"Confirm reschedule":"Confirm delivery slot"} <CheckCircle2 size={15}/></button></div>
+   <div className="customer-schedule-submit"><div><ShieldCheck size={17}/><span>Your booking is confirmed only after you select and submit an available slot.</span></div><button className="primary-button" disabled={!selected||busy||terminal} onClick={()=>void submit()}>{busy?"Saving booking…":booking?"Confirm reschedule":"Confirm delivery slot"} <CheckCircle2 size={15}/></button></div>
    {terminal&&<p className="page-footnote">This parcel cannot be scheduled because its status is {parcel.status}.</p>}
   </section>
  </div>;
