@@ -1,0 +1,23 @@
+/* Authentication and notification polish — Phase 22 */
+.login-password-control { position: relative; display: flex; align-items: center; }
+.login-password-control input { width: 100%; padding-right: 43px; }
+.login-password-toggle { position: absolute; right: 5px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 34px; height: 34px; border: 0; border-radius: 7px; color: #8290a3; background: transparent; cursor: pointer; }
+.login-password-toggle:hover { color: #426bd0; background: #f2f5fb; }
+.login-password-toggle:focus-visible { outline: 3px solid rgba(66,104,232,.25); outline-offset: 1px; }
+.login-feature-list { display: grid; gap: 11px; margin-top: 28px; }
+.login-feature-list span { display: inline-flex; align-items: center; gap: 9px; color: #c0cee5; font-size: 10px; }
+.login-feature-list svg { color: #8fb1ff; }
+.login-security { gap: 8px; }
+.login-security svg { color: #6c8ac1; }
+.notification-trigger { min-width: 36px; min-height: 36px; }
+.notification-trigger:focus-visible { outline: 3px solid rgba(66,104,232,.25); outline-offset: 2px; }
+.notification-popover { animation: notification-pop-in .14s ease-out; transform-origin: top right; }
+.notification-popover-head { min-height: 61px; }
+.notification-item:focus-visible, .notification-mark-all:focus-visible, .notification-close:focus-visible { outline: 2px solid #6d91e7; outline-offset: -2px; }
+.notification-copy > span { overflow-wrap: anywhere; }
+@keyframes notification-pop-in { from { opacity: 0; transform: translateY(-4px) scale(.99); } to { opacity: 1; transform: translateY(0) scale(1); } }
+@media (prefers-reduced-motion: reduce) { .notification-popover { animation: none; } }
+@media (max-width: 700px) {
+ .login-feature-list { gap: 9px; }
+ .notification-popover { animation: none; }
+}
