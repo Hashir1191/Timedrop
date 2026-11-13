@@ -91,7 +91,7 @@ export default function CustomerParcels() {
     {loading ? <div className="customer-parcel-skeletons">{[1,2,3].map((item) => <div className="customer-parcel-skeleton" key={item}/>)}</div> :
       filtered.length ? <div className="customer-parcel-list">{filtered.map((parcel) => {
         const assignment = trackingByParcel.get(parcel.id);
-        const canManage = !["delivered","cancelled"].includes(parcel.status);
+        const canManage = !["delivered","failed","cancelled"].includes(parcel.status);
         return <article className={`customer-parcel-card ${focusParcelId===parcel.id?"notification-target-row":""}`} key={parcel.id} id={`parcel-${parcel.id}`}>
           <div className="customer-parcel-card-main">
             <div className="customer-parcel-card-top">
