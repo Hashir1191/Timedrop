@@ -13,7 +13,7 @@ export type Booking = { id:number; parcel_id:number; slot_id:number; delivery_da
 export type AdminBooking = { id:number; parcel_id:number; slot_id:number; status:"booked"|"cancelled"; booked_at:string; updated_at:string; parcel:Parcel; slot:{id:number;delivery_date:string;start_time:string;end_time:string;capacity:number;booked_count:number;is_active:boolean} };
 export type ParcelCreate = { tracking_number:string; recipient_name:string; phone:string; address_line:string; city:string; state:string; pincode:string; delivery_instructions?:string; preferred_delivery_date?:string };
 export type DeliveryPartner = { id:number; user_id:number; full_name:string; email:string; phone:string; vehicle_type:string; is_available:boolean; is_active:boolean; active_assignments:number };
-export type DeliveryAssignment = { id:number; parcel_id:number; partner_id:number; status:string; assigned_at:string; updated_at:string; tracking_number:string; recipient_name:string; phone:string; address_line:string; city:string; state:string; pincode:string; delivery_date:string; start_time:string; end_time:string; partner_name:string };
+export type DeliveryAssignment = { id:number; parcel_id:number; partner_id:number; status:string; assigned_at:string; updated_at:string; tracking_number:string; recipient_name:string; phone:string; address_line:string; city:string; state:string; pincode:string; delivery_date:string; start_time:string; end_time:string; partner_name:string; estimated_delivery_start:string|null; estimated_delivery_end:string|null };
 
 export type DeliveryEvent = {
   id:number; assignment_id:number; parcel_id:number; actor_id:number; actor_name:string;

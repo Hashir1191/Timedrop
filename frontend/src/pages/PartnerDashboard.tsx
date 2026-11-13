@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { CheckCircle2, MapPin, Package, RefreshCw, Truck } from "lucide-react";
-import { getMyAssignments, updateAssignmentStatus, submitDeliveryProof } from "../api";
+import { getMyAssignments, updateAssignmentStatus, submitDeliveryProof, updateDeliveryEta } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import DeliveryTimeline from "../components/DeliveryTimeline";
@@ -13,6 +13,7 @@ export default function PartnerDashboard() {
   const [error,setError] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
   const [proof,setProof] = useState<Record<number,{code:string;recipient_name:string}>>({});
+  const [eta,setEta] = useState<Record<number,{start:string;end:string}>>({});
   async function load(){ if(!token)return; setError(""); try{setItems(await getMyAssignments(token));}catch(e){setError(e instanceof Error?e.message:"Unable to load your assignments.");}}
   useEffect(()=>{void load();},[token]);
   async function update(id:number,status:"accepted"|"out_for_delivery"|"delivered"|"failed"){
@@ -24,6 +25,7 @@ export default function PartnerDashboard() {
     catch(e){setError(e instanceof Error?e.message:"Unable to update delivery status.");}
     finally{setBusy(null);}
   }
+  async function saveEta(id:number){if(!token)return;const value=eta[id];if(!value?.start||!value?.end){setError("Choose both ETA start and end times.");return;}const start=new Date(value.start),end=new Date(value.end);if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||end<=start||end<=new Date()){setError("Choose a future ETA window with the end after the start.");return;}setBusy(id);setError("");try{await updateDeliveryEta(token,id,{estimated_delivery_start:start.toISOString(),estimated_delivery_end:end.toISOString()});await load();}catch(e){setError(e instanceof Error?e.message:"Unable to update ETA.");}finally{setBusy(null);}}
   async function confirmProof(id:number){if(!token)return;const data=proof[id];if(!data||!/^\d{6}$/.test(data.code)||data.recipient_name.trim().length<2){setError("Enter the six-digit code and recipient name.");return;}setBusy(id);setError("");try{await submitDeliveryProof(token,id,{code:data.code,recipient_name:data.recipient_name.trim()});setProof(current=>({...current,[id]:{code:"",recipient_name:""}}));await load();}catch(e){setError(e instanceof Error?e.message:"Unable to verify delivery.");}finally{setBusy(null);}}
   const active=items.filter(i=>["assigned","accepted","out_for_delivery"].includes(i.status));
   return <>
@@ -34,7 +36,9 @@ export default function PartnerDashboard() {
     {items.length===0?<div className="panel"><EmptyState title="No deliveries assigned" description="Your new delivery assignments will appear here."/></div>:<div className="booking-list">{items.map(item=><article className="panel partner-job" key={item.id}>
       <div className="partner-job-head"><div><div className="tracking">{item.tracking_number}</div><strong>{item.recipient_name}</strong></div><StatusBadge status={item.status}/></div>
       <div className="partner-address"><MapPin size={16}/><div><strong>{item.address_line}</strong><span>{item.city}, {item.state} · {item.pincode}</span><span>{item.phone}</span></div></div>
-      <div className="partner-window">Delivery window: <strong>{new Date(item.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}</strong> · {item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</div>
+      <div className="partner-window">Booked delivery window: <strong>{new Date(item.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}</strong> · {item.start_time.slice(0,5)}–{item.end_time.slice(0,5)}</div>
+      {item.estimated_delivery_start&&item.estimated_delivery_end&&<div className="partner-window">Current ETA: <strong>{new Date(item.estimated_delivery_start).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})} – {new Date(item.estimated_delivery_end).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</strong></div>}
+      {!["delivered","failed"].includes(item.status)&&<div className="proof-form"><strong>Update estimated arrival</strong><label>ETA start<input type="datetime-local" value={eta[item.id]?.start||""} onChange={e=>setEta(current=>({...current,[item.id]:{start:e.target.value,end:current[item.id]?.end||""}}))}/></label><label>ETA end<input type="datetime-local" value={eta[item.id]?.end||""} onChange={e=>setEta(current=>({...current,[item.id]:{start:current[item.id]?.start||"",end:e.target.value}}))}/></label><div className="booking-actions"><button className="secondary-button" disabled={busy===item.id} onClick={()=>void saveEta(item.id)}>Publish ETA</button></div></div>}
       <details className="delivery-history"><summary>Delivery history</summary>{token && <DeliveryTimeline token={token} assignmentId={item.id}/>}</details>
       {item.status==="assigned"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"accepted")}>Accept assignment</button><button className="danger-button" disabled={busy===item.id} onClick={()=>void update(item.id,"failed")}>Cannot deliver</button></div>}
       {item.status==="accepted"&&<div className="booking-actions"><button className="primary-button" disabled={busy===item.id} onClick={()=>void update(item.id,"out_for_delivery")}>Start delivery</button></div>}

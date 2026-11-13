@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
 from app.notifications import add_notification
 from app.schemas import (
-    DeliveryCodeResponse, DeliveryProofSubmit,
+    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
 )
@@ -34,6 +34,8 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
         start_time=slot.start_time, end_time=slot.end_time, partner_name=partner_user.full_name,
         failure_reason=assignment.failure_reason,
         delivered_at=assignment.delivered_at,
+        estimated_delivery_start=assignment.estimated_delivery_start,
+        estimated_delivery_end=assignment.estimated_delivery_end,
         proof_recipient_name=assignment.proof_recipient_name,
     )
 
@@ -148,6 +150,23 @@ def list_assignments(
     return [_assignment_response(db, item) for item in db.scalars(statement).all()]
 
 
+@router.get("/my-tracking", response_model=list[DeliveryAssignmentResponse])
+def my_delivery_tracking(
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    """Return delivery progress only for parcels owned by the signed-in customer."""
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Customer access is required.")
+    statement = (
+        select(DeliveryAssignment)
+        .join(Parcel, Parcel.id == DeliveryAssignment.parcel_id)
+        .where(Parcel.owner_id == customer.id)
+        .order_by(DeliveryAssignment.updated_at.desc())
+    )
+    return [_assignment_response(db, item) for item in db.scalars(statement).all()]
+
+
 @router.get("/my-assignments", response_model=list[DeliveryAssignmentResponse])
 def my_assignments(db: Session = Depends(get_db), partner_user: User = Depends(require_delivery_partner)):
     partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
@@ -198,6 +217,52 @@ def update_assignment_status(
         event_type=f"delivery_{data.status.value}",
         title=title,
         message=message,
+    )
+    db.commit()
+    db.refresh(assignment)
+    return _assignment_response(db, assignment)
+
+
+@router.patch("/assignments/{assignment_id}/eta", response_model=DeliveryAssignmentResponse)
+def update_delivery_eta(
+    assignment_id: int,
+    data: DeliveryEtaUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Allow operations or the assigned partner to publish a customer-visible ETA window."""
+    assignment = db.get(DeliveryAssignment, assignment_id)
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    if current_user.role == "delivery_partner":
+        partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == current_user.id))
+        if partner is None or assignment.partner_id != partner.id:
+            raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    elif current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only operations or the assigned delivery partner can update ETA.")
+    if assignment.status not in {"assigned", "accepted", "out_for_delivery"}:
+        raise HTTPException(status_code=409, detail="ETA cannot be changed for a completed or failed delivery.")
+    now = datetime.now(timezone.utc)
+    start = data.estimated_delivery_start.astimezone(timezone.utc)
+    end = data.estimated_delivery_end.astimezone(timezone.utc)
+    if end <= now:
+        raise HTTPException(status_code=422, detail="ETA window must be in the future.")
+    assignment.estimated_delivery_start = start
+    assignment.estimated_delivery_end = end
+    assignment.updated_at = now
+    parcel = db.get(Parcel, assignment.parcel_id)
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id, parcel_id=parcel.id, actor_id=current_user.id,
+        event_type="eta_updated", from_status=assignment.status, to_status=assignment.status,
+        note=f"Estimated arrival updated to {start.isoformat()} – {end.isoformat()}.",
+    ))
+    add_notification(
+        db,
+        user_id=parcel.owner_id,
+        parcel_id=parcel.id,
+        event_type="delivery_eta_updated",
+        title="Delivery arrival estimate updated",
+        message=f"Your parcel {parcel.tracking_number} is now estimated to arrive between {start.strftime('%d %b, %I:%M %p')} and {end.strftime('%I:%M %p')} UTC.",
     )
     db.commit()
     db.refresh(assignment)

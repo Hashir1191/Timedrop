@@ -191,6 +191,21 @@ class DeliveryAssignmentStatusUpdate(BaseModel):
         return self
 
 
+class DeliveryEtaUpdate(BaseModel):
+    estimated_delivery_start: datetime
+    estimated_delivery_end: datetime
+
+    @model_validator(mode="after")
+    def validate_eta_window(self):
+        if self.estimated_delivery_start.tzinfo is None or self.estimated_delivery_end.tzinfo is None:
+            raise ValueError("ETA timestamps must include a timezone.")
+        if self.estimated_delivery_start >= self.estimated_delivery_end:
+            raise ValueError("ETA end must be later than ETA start.")
+        if self.estimated_delivery_end <= datetime.now(self.estimated_delivery_end.tzinfo):
+            raise ValueError("ETA window must be in the future.")
+        return self
+
+
 class DeliveryAssignmentResponse(BaseModel):
     id: int
     parcel_id: int
@@ -211,6 +226,8 @@ class DeliveryAssignmentResponse(BaseModel):
     partner_name: str
     failure_reason: str | None = None
     delivered_at: datetime | None = None
+    estimated_delivery_start: datetime | None = None
+    estimated_delivery_end: datetime | None = None
     proof_recipient_name: str | None = None
 
 

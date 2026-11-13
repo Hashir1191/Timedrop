@@ -109,6 +109,8 @@ class DeliveryAssignment(Base):
     delivery_code_expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     delivery_code_attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     delivered_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    estimated_delivery_start: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    estimated_delivery_end: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     proof_recipient_name: Mapped[str | None] = mapped_column(String(120), nullable=True)
     assigned_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), nullable=False)
