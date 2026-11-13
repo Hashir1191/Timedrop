@@ -440,3 +440,10 @@ All parcel creation, booking, rescheduling, cancellation, and slot-availability 
 Notification controls now expose their expanded state and dialog semantics to assistive technology, provide clear accessible labels for individual items, and close with the Escape key. Sign-out controls across the admin, customer, and delivery-partner shells now have explicit accessible names.
 
 The notification visual layer improves keyboard focus, popover presentation, and reduced-motion behavior. Authentication and onboarding refinements are maintained in the preceding Phase 22 experience.
+
+
+## Phase 24 — Route planning visualization
+
+Operations route recommendations are now grouped into partner-specific routes and presented as stop-by-stop timelines rather than a dense table. Each stop shows its sequence, parcel reference, destination, booked window, recommendation, and available road-leg distance/time. When road routing is enabled, each partner route includes a direct OpenStreetMap directions link.
+
+The route planner remains advisory: operations must explicitly apply a suggested assignment. Geocoding, road estimates, partner capacity, availability windows, and assignment rules continue to come from the existing backend services.
