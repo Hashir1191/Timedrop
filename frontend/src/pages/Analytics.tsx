@@ -44,7 +44,7 @@ export default function Analytics() {
     [data],
   );
 
-  return <>
+  return <div className="operations-analytics">
     <div className="page-heading">
       <div>
         <div className="eyebrow">PERFORMANCE & INSIGHTS</div>
@@ -110,7 +110,7 @@ export default function Analytics() {
       </section>
       <p className="page-footnote">Metrics reflect records currently stored in TimeDrop. Success rate excludes active assignments. Failed outcomes are dated using the assignment's last update because a dedicated failure timestamp is not yet stored. Average delivery time is calculated only when a delivered timestamp exists; this is an operational report, not a live tracking feed.</p>
     </>}
-  </>;
+  </div>;
 }
 
 function Metric({icon:Icon,label,value,note}:{icon:typeof Package;label:string;value:string|number;note:string}) {
