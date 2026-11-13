@@ -1,4 +1,4 @@
-import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem, DeliveryRoutePlan } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem, DeliveryRoutePlan, ParcelTimelineEvent } from "./types";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 export class ApiError extends Error { status:number; constructor(message:string,status:number){super(message);this.status=status;} }
 async function request<T>(path:string,token:string,init:RequestInit={}):Promise<T>{
@@ -85,3 +85,5 @@ export const getWarehouseParcels=(token:string,filters:{q?:string;status?:string
 };
 export const updateWarehouseLocation=(token:string,parcelId:number,warehouse_location:string|null)=>
  request<Parcel>(`/operations/warehouse/parcels/${parcelId}/location`,token,{method:"PATCH",body:JSON.stringify({warehouse_location})});
+
+export const getParcelTimeline=(token:string,parcelId:number)=>request<ParcelTimelineEvent[]>(`/parcels/${parcelId}/timeline`,token);

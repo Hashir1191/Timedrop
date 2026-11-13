@@ -335,3 +335,12 @@ class PhoneVerificationStatus(BaseModel):
 
 class SmsConsentUpdate(BaseModel):
     enabled: bool
+
+
+class ParcelTimelineEvent(BaseModel):
+    id: str
+    event_type: str
+    title: str
+    description: str
+    status: str
+    created_at: datetime

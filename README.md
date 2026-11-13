@@ -298,3 +298,13 @@ The operations workspace includes a warehouse inventory page with live parcel co
 - `PATCH /api/v1/operations/warehouse/parcels/{parcel_id}/location` — set or clear a storage-bin code while the latest custody event is `received` or `returned`.
 
 Storage-bin values are operator-entered labels (for example `A-01-02`), not a live warehouse-location or barcode system. The migration adds nullable `parcels.warehouse_location`.
+
+
+## Customer parcel activity timeline
+
+The customer portal's parcel history now combines parcel registration, the current booking state, delivery assignment/status/ETA events, and operations custody handovers into one chronological timeline.
+
+- `GET /api/v1/parcels/{parcel_id}/timeline` — returns a customer-safe activity history for the signed-in parcel owner (or operations admin).
+- The endpoint checks parcel ownership and returns 404 for another customer's parcel.
+- Internal custody notes, raw failure notes, delivery verification codes, and recipient contact details are not included in the timeline.
+- The customer **My parcels** page exposes the unified history under **Full parcel activity**. This is event-based progress, not GPS/live-location tracking.

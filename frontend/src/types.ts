@@ -37,3 +37,8 @@ export type CustodyEvent = {
   package_condition:string|null; received_from:string|null; handed_to:string|null;
   note:string|null; created_at:string;
 };
+
+export type ParcelTimelineEvent = {
+  id: string; event_type: string; title: string; description: string;
+  status: string; created_at: string;
+};
