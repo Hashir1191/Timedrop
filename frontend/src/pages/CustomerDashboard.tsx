@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowUpRight, Package, PlusCircle, Truck, CheckCircle2 } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Clock3, Package, Plus, ShieldCheck, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getParcels } from "../api";
 import { useAuth } from "../auth";
@@ -9,30 +9,81 @@ import type { Parcel } from "../types";
 
 export default function CustomerDashboard() {
   const { token, user } = useAuth();
-  const [parcels,setParcels] = useState<Parcel[]>([]);
-  const [loading,setLoading] = useState(true);
-  const [error,setError] = useState("");
+  const [parcels, setParcels] = useState<Parcel[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
   useEffect(() => {
     if (!token) return;
-    getParcels(token).then(setParcels).catch((e) => setError(e instanceof Error ? e.message : "Unable to load parcels.")).finally(() => setLoading(false));
-  },[token]);
-  const active = parcels.filter(p => !["delivered","cancelled"].includes(p.status)).length;
-  const delivered = parcels.filter(p => p.status === "delivered").length;
-  return <>
-    <div className="page-heading"><div><div className="eyebrow">YOUR DELIVERY SPACE</div><h1>Hello, {user?.full_name?.split(" ")[0] || "there"}.</h1><p>Track your parcels and choose a delivery time that works for you.</p></div><Link className="primary-button" to="/new-parcel"><PlusCircle size={16}/> Create parcel</Link></div>
-    {error && <div className="alert-error">{error}</div>}
-    <div className="stats-grid customer-stats">
-      <CustomerStat icon={Package} label="Total parcels" value={loading ? "—" : parcels.length}/>
-      <CustomerStat icon={Truck} label="In progress" value={loading ? "—" : active}/>
-      <CustomerStat icon={CheckCircle2} label="Delivered" value={loading ? "—" : delivered}/>
-    </div>
-    <section className="panel recent-panel customer-parcel-panel">
-      <div className="panel-heading"><div><h2>Your recent parcels</h2><p>Updates from your delivery list</p></div><Link to="/my-parcels" className="text-link">View all <ArrowUpRight size={15}/></Link></div>
-      {loading ? <div className="table-loading">Loading your parcels...</div> : parcels.length ? <div className="table-wrap"><table><thead><tr><th>TRACKING ID</th><th>RECIPIENT</th><th>DESTINATION</th><th>STATUS</th><th></th></tr></thead><tbody>{parcels.slice(0,6).map(p=><tr key={p.id}><td className="tracking">{p.tracking_number}</td><td>{p.recipient_name}<span className="cell-sub">{p.phone}</span></td><td>{p.city}, {p.state}<span className="cell-sub">{p.pincode}</span></td><td><StatusBadge status={p.status}/></td><td><Link className="text-link" to={`/schedule/${p.id}`}>Manage <ArrowUpRight size={14}/></Link></td></tr>)}</tbody></table></div> : <EmptyState title="No parcels yet" description="Create your first parcel to start arranging a delivery."/>}
+    let active = true;
+    getParcels(token)
+      .then((rows) => { if (active) setParcels(rows); })
+      .catch((err) => { if (active) setError(err instanceof Error ? err.message : "Unable to load parcels."); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token]);
+
+  const active = parcels.filter((parcel) => !["delivered", "failed", "cancelled"].includes(parcel.status)).length;
+  const delivered = parcels.filter((parcel) => parcel.status === "delivered").length;
+  const recent = parcels.slice(0, 4);
+
+  return <div className="customer-dashboard">
+    <section className="customer-hero">
+      <div className="customer-hero-copy">
+        <span className="customer-hero-kicker">YOUR DELIVERY SPACE</span>
+        <h1>Good things are<br/><span>on their way.</span></h1>
+        <p>Welcome back, {user?.full_name?.split(" ")[0] || "there"}. Keep every parcel and delivery plan in one clear place.</p>
+        <div className="customer-hero-actions">
+          <Link className="customer-hero-primary" to="/new-parcel"><Plus size={17}/> Create a parcel</Link>
+          <Link className="customer-hero-secondary" to="/my-parcels">Track my parcels <ArrowRight size={16}/></Link>
+        </div>
+      </div>
+      <div className="customer-hero-art" aria-hidden="true">
+        <div className="customer-orbit orbit-one"/>
+        <div className="customer-orbit orbit-two"/>
+        <div className="customer-package"><Package size={54} strokeWidth={1.25}/></div>
+        <div className="customer-floating-card"><span><CheckCircle2 size={14}/></span><div><strong>Delivery, organized</strong><small>Your parcels at a glance</small></div></div>
+        <div className="customer-floating-dot"/>
+      </div>
+      <div className="customer-hero-foot"><span><ShieldMark/> Secure parcel management</span><span>One place for every delivery</span></div>
     </section>
-    <div className="customer-help-note"><Package size={18}/><span><strong>Good to know</strong> You can book or change a delivery slot whenever operations has made availability available.</span></div>
-  </>;
+
+    {error && <div className="alert-error">{error}</div>}
+
+    <section className="customer-overview">
+      <div className="customer-section-heading">
+        <div><span className="customer-section-kicker">AT A GLANCE</span><h2>Your delivery overview</h2></div>
+        <Link to="/my-parcels" className="customer-subtle-link">View parcel history <ArrowUpRight size={15}/></Link>
+      </div>
+      <div className="customer-metric-grid">
+        <CustomerMetric icon={Package} label="Total parcels" value={loading ? "—" : parcels.length} tone="blue" note="All registered parcels"/>
+        <CustomerMetric icon={Truck} label="In progress" value={loading ? "—" : active} tone="violet" note="Not yet completed"/>
+        <CustomerMetric icon={CheckCircle2} label="Delivered" value={loading ? "—" : delivered} tone="green" note="Successfully completed"/>
+      </div>
+    </section>
+
+    <section className="customer-recent-section">
+      <div className="customer-section-heading">
+        <div><span className="customer-section-kicker">LATEST ACTIVITY</span><h2>Recent parcels</h2><p>Your most recently registered deliveries.</p></div>
+        <Link to="/my-parcels" className="customer-subtle-link">See all <ArrowRight size={15}/></Link>
+      </div>
+      {loading ? <div className="customer-parcel-skeletons">{[1,2,3].map((item) => <div className="customer-parcel-skeleton" key={item}/>)}</div> :
+        recent.length ? <div className="customer-recent-grid">{recent.map((parcel) => <article className="customer-recent-card" key={parcel.id}>
+          <div className="customer-recent-card-top"><span className="customer-parcel-icon"><Package size={18}/></span><StatusBadge status={parcel.status}/></div>
+          <span className="customer-tracking-label">TRACKING NUMBER</span>
+          <strong className="customer-tracking-number">{parcel.tracking_number}</strong>
+          <div className="customer-recent-recipient"><strong>{parcel.recipient_name}</strong><span>{parcel.city}, {parcel.state}</span></div>
+          <div className="customer-recent-card-foot"><span><Clock3 size={13}/> {new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span><Link to={["delivered","failed","cancelled"].includes(parcel.status)?"/my-parcels":`/schedule/${parcel.id}`}>{parcel.status==="delivered"?"View parcel":"Manage delivery"} <ArrowUpRight size={14}/></Link></div>
+        </article>)}</div> : <div className="customer-empty-panel"><EmptyState title="Your parcel space is ready" description="Create your first parcel and start arranging a delivery."/><Link className="primary-button" to="/new-parcel"><Plus size={16}/> Create your first parcel</Link></div>
+      }
+    </section>
+
+    <section className="customer-help-strip"><span className="customer-help-icon"><CalendarClock size={18}/></span><div><strong>Choose a time that suits you</strong><p>When delivery slots are available, you can book or reschedule them from your parcel list.</p></div><Link to="/my-parcels">Manage deliveries <ArrowRight size={15}/></Link></section>
+  </div>;
 }
-function CustomerStat({icon:Icon,label,value}:{icon:typeof Package;label:string;value:number|string}) {
- return <div className="stat-card"><div className="stat-icon blue"><Icon size={19}/></div><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div>;
+
+function CustomerMetric({icon:Icon,label,value,tone,note}:{icon:typeof Package;label:string;value:number|string;tone:string;note:string}) {
+  return <article className="customer-metric-card"><span className={`customer-metric-icon ${tone}`}><Icon size={19}/></span><div className="customer-metric-copy"><span>{label}</span><strong>{value}</strong><small>{note}</small></div></article>;
 }
+
+function ShieldMark() { return <span className="customer-shield-mark"><ShieldCheck size={13}/></span>; }

@@ -13,7 +13,7 @@ const links = [
 export default function CustomerLayout() {
   const { user, logout } = useAuth();
   const location = useLocation();
-  const page = links.find((item) => item.to === location.pathname)?.label || "Delivery";
+  const page = links.find((item) => item.to === location.pathname)?.label || (location.pathname.startsWith("/schedule/") ? "Schedule delivery" : "Delivery");
   return <div className="app-shell customer-shell">
     <aside className="sidebar">
       <div className="brand"><div className="brand-mark"><Activity size={20} /></div><span>time<span className="brand-accent">drop</span></span></div>
