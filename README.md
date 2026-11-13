@@ -405,3 +405,10 @@ The work is presentation-layer only and uses the existing partner APIs. No datab
 The operations landing page now has a branded control-center layout with API-backed parcel metrics, recent parcel activity, and today's delivery-slot utilization. Quick actions lead to parcel intake, parcel register, warehouse inventory, and performance analytics.
 
 The analytics screen now uses the shared operations visual language for its date filters, KPI cards, daily outcome visualization, and partner performance table. The existing date-range limits, metric definitions, and data sources are unchanged; no illustrative or fabricated KPI values are introduced.
+
+
+## Phase 18 — Warehouse inventory experience
+
+The warehouse workspace now uses responsive parcel cards instead of a wide inventory table. Operations can search and filter inventory, inspect each parcel's recipient, destination, status, and storage bin, and edit bin assignments inline without browser prompt dialogs.
+
+The eight warehouse summary metrics remain backed by the existing warehouse summary API. Loading, empty, success, and error states are presented in the page, while the backend continues to enforce physical-custody rules for storage-location changes. No API or database migration is required.
