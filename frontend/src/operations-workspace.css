@@ -113,3 +113,8 @@
  .operations-analytics .analytics-range-note { margin-left: 0; }
 }
 @media (prefers-reduced-motion: reduce) { .operations-loading-row { animation: none; } }
+
+.operations-hero-refresh { display: inline-flex; align-items: center; gap: 7px; padding: 9px 11px; border: 1px solid rgba(220,232,255,.22); border-radius: 9px; color: #dce7ff; background: rgba(255,255,255,.08); font-size: 9px; font-weight: 700; }
+.operations-hero-refresh:hover { background: rgba(255,255,255,.15); }
+.operations-hero-refresh:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 700px) { .operations-hero-actions { flex-wrap: wrap; gap: 12px; } }
