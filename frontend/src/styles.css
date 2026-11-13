@@ -109,3 +109,37 @@
 .notification-error{margin:10px 14px 0;color:#b94f4f;font-size:10px}
 .notification-close{border:0;border-top:1px solid #edf0f4;background:#fff;padding:10px;color:#64748b;font-size:10px;font-weight:650;cursor:pointer}
 @media(max-width:700px){.notification-popover{position:fixed;top:65px;right:12px}}
+
+
+/* Operations analytics */
+.analytics-filters{display:flex;align-items:end;gap:14px;padding:16px 19px;margin-bottom:23px;flex-wrap:wrap}
+.analytics-date-field{display:grid;gap:6px}
+.analytics-date-field label{font-size:10px;font-weight:700;color:#78869a;letter-spacing:.5px}
+.analytics-date-field input{border:1px solid #e0e6ef;border-radius:7px;padding:9px 10px;color:#26364d;font-size:12px;background:#fff}
+.analytics-range-note{font-size:10px;color:#8a96a8;margin-left:auto;padding-bottom:10px}
+.analytics-section-heading{display:flex;align-items:center;justify-content:space-between;margin:5px 0 14px}
+.analytics-section-heading h2{font-size:17px;margin:0;color:#1d2c42}
+.analytics-section-heading p{font-size:11px;color:#8792a2;margin:5px 0 0}
+.analytics-stats{margin-bottom:21px}
+.analytics-panel{margin-bottom:20px;overflow:hidden}
+.analytics-panel .panel-heading{padding:19px 20px 12px}
+.analytics-panel .panel-heading h2{font-size:15px;margin:0;color:#23334a}
+.analytics-panel .panel-heading p{font-size:11px;color:#8792a2;margin:5px 0 0}
+.daily-analytics-list{padding:5px 20px 18px}
+.daily-analytics-row{display:grid;grid-template-columns:55px minmax(100px,1fr) 105px;gap:12px;align-items:center;padding:5px 0}
+.daily-date{font-size:10px;color:#758298}
+.daily-bars{display:grid;gap:3px}
+.daily-bar-track{height:4px;background:#f0f3f7;border-radius:5px;overflow:hidden}
+.daily-bar{height:100%;min-width:0;border-radius:5px}
+.daily-bar.assigned{background:#7e9ac7}
+.daily-bar.delivered{background:#36a47a}
+.daily-bar.failed{background:#dc7777}
+.daily-counts{font-size:10px;color:#738096;text-align:right;font-variant-numeric:tabular-nums}
+.daily-legend{display:flex;gap:17px;align-items:center;padding-top:12px;margin-top:10px;border-top:1px solid #edf0f4;flex-wrap:wrap}
+.daily-legend span{display:flex;align-items:center;gap:6px;font-size:10px;color:#6f7d91}
+.daily-legend small{font-size:9px;color:#9aa4b3;margin-left:auto}
+.legend-dot{display:inline-block;width:7px;height:7px;border-radius:50%}
+.legend-dot.assigned{background:#7e9ac7}.legend-dot.delivered{background:#36a47a}.legend-dot.failed{background:#dc7777}
+.performance-good{color:#21835f;font-weight:700}.performance-watch{color:#b57a2b;font-weight:700}
+@media(max-width:900px){.analytics-stats{grid-template-columns:repeat(2,minmax(0,1fr))}.analytics-filters{align-items:stretch}.analytics-range-note{margin-left:0;width:100%;padding:0}}
+@media(max-width:520px){.analytics-stats{grid-template-columns:1fr}.daily-analytics-row{grid-template-columns:45px minmax(70px,1fr) 82px;gap:7px}.daily-counts{font-size:9px}}
