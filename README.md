@@ -447,3 +447,10 @@ The notification visual layer improves keyboard focus, popover presentation, and
 Operations route recommendations are now grouped into partner-specific routes and presented as stop-by-stop timelines rather than a dense table. Each stop shows its sequence, parcel reference, destination, booked window, recommendation, and available road-leg distance/time. When road routing is enabled, each partner route includes a direct OpenStreetMap directions link.
 
 The route planner remains advisory: operations must explicitly apply a suggested assignment. Geocoding, road estimates, partner capacity, availability windows, and assignment rules continue to come from the existing backend services.
+
+
+## Phase 25 — Communication preferences
+
+The phone and SMS settings page now presents verification and SMS consent as separate account states, with clearer status summaries, accessible labels, one-time-code autocomplete, and responsive verification forms. The notification popover also has a more consistent visual treatment, and individual notification items now expose their content to assistive technology.
+
+Phone verification remains distinct from SMS opt-in, and transactional SMS still depends on the configured provider and DLT requirements. No backend API or database migration changes.
