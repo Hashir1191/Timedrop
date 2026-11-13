@@ -11,6 +11,7 @@ from app.routers.delivery import router as delivery_router
 from app.routers.notifications import router as notifications_router
 from app.routers.phone_verification import router as phone_verification_router
 from app.routers.operations import router as operations_router
+from app.routers.analytics import router as analytics_router
 
 
 @asynccontextmanager
@@ -34,6 +35,7 @@ app.include_router(delivery_router)
 app.include_router(notifications_router)
 app.include_router(phone_verification_router)
 app.include_router(operations_router)
+app.include_router(analytics_router)
 
 
 @app.get("/", tags=["General"])
