@@ -8,6 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.config import settings
+from app.route_planning import enrich_partner_route
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
 from app.notifications import add_notification
 from app.schemas import (
@@ -279,7 +281,16 @@ def generate_route_plan(
             partner_active_jobs=load, zone_key=zone, recommendation=rationale,
         ))
 
-    stops = planned_stops + unassigned
+    # When enabled, geocode and optimize each partner's stop order using OSRM.
+    # Provider failures leave the existing deterministic heuristic untouched.
+    optimized_stops = []
+    grouped_stops = {}
+    for stop in planned_stops:
+        grouped_stops.setdefault(stop.suggested_partner_id, []).append(stop)
+    for partner_id, partner_stops in grouped_stops.items():
+        optimized_stops.extend(enrich_partner_route(db, partner_stops, partner_id))
+
+    stops = optimized_stops + unassigned
     stops.sort(key=lambda stop: (
         stop.suggested_partner_id is None,
         stop.suggested_partner_id or 0,
@@ -293,6 +304,8 @@ def generate_route_plan(
         total_unassigned=len(eligible),
         recommended=len(planned_stops),
         unassigned_without_partner=len(unassigned),
+        mapping_enabled=settings.route_mapping_enabled,
+        routing_provider="nominatim_osrm" if settings.route_mapping_enabled else "pin_prefix_heuristic",
         stops=stops,
     )
 
