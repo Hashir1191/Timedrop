@@ -333,3 +333,12 @@ Delivery partners have an operations-configured **maximum active assignment** li
 - PIN-prefix grouping remains a locality heuristic, not a verified service-zone boundary. Partner capacity and slot compatibility are hard constraints; geographic grouping is a ranking preference.
 
 The migration adds `delivery_partners.max_active_assignments` with a default of 5 for existing partner records. Apply Alembic migrations before using the updated API.
+
+
+## Phase 12 — Actionable notifications and partner task workspace
+
+Notifications now include a safe, same-origin application destination. Selecting a customer parcel notification opens **My parcels** with the related parcel highlighted; selecting a delivery-partner notification opens the partner delivery workspace. Notifications without a supported destination remain readable and can still be marked as read. Existing notification ownership checks remain unchanged.
+
+The partner delivery workspace now defaults to active assignments, supports filtering between active, completed/failed, and all deliveries, and allows searching by tracking ID, recipient name, city, or PIN. Results are ordered by booked delivery date and time to make the next operational tasks easier to scan.
+
+The migration adds nullable `notifications.action_url`; existing notifications remain valid and simply have no destination. Notification destinations are generated server-side from the authenticated recipient role and parcel ID; external URLs are not accepted by the UI navigation handler.
