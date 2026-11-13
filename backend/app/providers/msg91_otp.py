@@ -32,7 +32,12 @@ def send_otp(phone_number: str) -> str:
         json={},
         timeout=20.0,
     )
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise RuntimeError(f"MSG91 OTP send failed with HTTP {exc.response.status_code}") from None
+    except httpx.RequestError:
+        raise RuntimeError("MSG91 OTP service could not be reached") from None
     try:
         payload = response.json()
     except ValueError as exc:
@@ -53,7 +58,12 @@ def verify_otp(phone_number: str, code: str) -> bool:
         headers={"authkey": settings.msg91_auth_key, "accept": "application/json"},
         timeout=20.0,
     )
-    response.raise_for_status()
+    try:
+        response.raise_for_status()
+    except httpx.HTTPStatusError as exc:
+        raise RuntimeError(f"MSG91 OTP verification failed with HTTP {exc.response.status_code}") from None
+    except httpx.RequestError:
+        raise RuntimeError("MSG91 OTP service could not be reached") from None
     try:
         payload = response.json()
     except ValueError as exc:
