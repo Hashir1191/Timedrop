@@ -69,3 +69,19 @@ export const releaseParcelCustody=(token:string,parcelId:number,note?:string)=>r
 export const returnParcelToOperations=(
  token:string,parcelId:number,data:{package_condition:"intact"|"damaged"|"opened";note:string}
 )=>request<CustodyEvent>(`/operations/parcels/${parcelId}/return`,token,{method:"POST",body:JSON.stringify(data)});
+
+export type WarehouseSummary = {
+ total_parcels:number; in_custody:number; assigned_to_bins:number; awaiting_storage:number;
+ damaged_or_opened:number; out_for_delivery:number; delivered:number; failed:number;
+};
+export const getWarehouseSummary=(token:string)=>request<WarehouseSummary>("/operations/warehouse/summary",token);
+export const getWarehouseParcels=(token:string,filters:{q?:string;status?:string;location?:string})=>{
+ const params=new URLSearchParams();
+ if(filters.q)params.set("q",filters.q);
+ if(filters.status)params.set("parcel_status",filters.status);
+ if(filters.location)params.set("location",filters.location);
+ const query=params.toString();
+ return request<Parcel[]>(`/operations/warehouse/parcels${query?`?${query}`:""}`,token);
+};
+export const updateWarehouseLocation=(token:string,parcelId:number,warehouse_location:string|null)=>
+ request<Parcel>(`/operations/warehouse/parcels/${parcelId}/location`,token,{method:"PATCH",body:JSON.stringify({warehouse_location})});

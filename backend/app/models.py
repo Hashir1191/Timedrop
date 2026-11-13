@@ -55,6 +55,7 @@ class Parcel(Base):
     city: Mapped[str] = mapped_column(String(100), nullable=False)
     state: Mapped[str] = mapped_column(String(100), nullable=False)
     pincode: Mapped[str] = mapped_column(String(6), nullable=False)
+    warehouse_location: Mapped[str | None] = mapped_column(String(40), nullable=True, index=True)
     delivery_instructions: Mapped[str | None] = mapped_column(String(500), nullable=True)
     preferred_delivery_date: Mapped[date | None] = mapped_column(Date, nullable=True)
     status: Mapped[str] = mapped_column(String(30), default="registered", nullable=False)
