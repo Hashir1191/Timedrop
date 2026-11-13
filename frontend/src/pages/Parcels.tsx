@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { ArrowUpRight, CalendarDays, MapPin, Package, RefreshCw, Search } from "lucide-react";
+import { CalendarDays, MapPin, Package, RefreshCw, Search } from "lucide-react";
 import { getParcels, updateParcelStatus } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
