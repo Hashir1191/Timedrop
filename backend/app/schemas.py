@@ -69,6 +69,7 @@ class ParcelResponse(BaseModel):
     city: str
     state: str
     pincode: str
+    warehouse_location: str | None = None
     delivery_instructions: str | None
     preferred_delivery_date: date | None
     status: str
