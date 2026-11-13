@@ -398,3 +398,10 @@ The delivery-partner home screen now uses a task-focused layout with an operatio
 - Responsive layouts keep assignment actions and recipient verification usable on smaller screens.
 
 The work is presentation-layer only and uses the existing partner APIs. No database migration is required.
+
+
+## Phase 17 — Operations dashboard and analytics UI
+
+The operations landing page now has a branded control-center layout with API-backed parcel metrics, recent parcel activity, and today's delivery-slot utilization. Quick actions lead to parcel intake, parcel register, warehouse inventory, and performance analytics.
+
+The analytics screen now uses the shared operations visual language for its date filters, KPI cards, daily outcome visualization, and partner performance table. The existing date-range limits, metric definitions, and data sources are unchanged; no illustrative or fabricated KPI values are introduced.
