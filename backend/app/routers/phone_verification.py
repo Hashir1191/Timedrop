@@ -58,7 +58,7 @@ def _request_code(data: PhoneVerificationRequest, db: Session, user: User):
         if not development_mode:
             send_msg91_otp(data.phone_number)
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Unable to send verification code through the SMS provider: {str(exc)[:200]}") from exc
+        raise HTTPException(status_code=502, detail="Unable to send verification code through the SMS provider. Check provider configuration and try again.") from None
 
     user.phone_number = data.phone_number
     user.phone_verified_at = None
@@ -140,7 +140,7 @@ def verify_phone_code(data: PhoneVerificationSubmit, db: Session = Depends(get_d
     except HTTPException:
         raise
     except Exception as exc:
-        raise HTTPException(status_code=502, detail=f"Unable to verify code with the SMS provider: {str(exc)[:200]}") from exc
+        raise HTTPException(status_code=502, detail="Unable to verify the code with the SMS provider. Check provider configuration and try again.") from None
 
     if not valid_code:
         challenge.attempts += 1
