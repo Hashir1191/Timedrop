@@ -23,7 +23,7 @@ export default function CustomerDashboard() {
     return () => { active = false; };
   }, [token]);
 
-  const active = parcels.filter((parcel) => !["delivered", "cancelled"].includes(parcel.status)).length;
+  const active = parcels.filter((parcel) => !["delivered", "failed", "cancelled"].includes(parcel.status)).length;
   const delivered = parcels.filter((parcel) => parcel.status === "delivered").length;
   const recent = parcels.slice(0, 4);
 
