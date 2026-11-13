@@ -45,3 +45,23 @@ export const requestPhoneCode=(token:string,phone_number:string)=>request<{messa
 export const resendPhoneCode=(token:string)=>request<{message:string;phone_number:string;expires_in_seconds:number;delivery_mode:string}>("/phone-verification/resend",token,{method:"POST"});
 export const verifyPhoneCode=(token:string,code:string)=>request<PhoneStatus>("/phone-verification/verify",token,{method:"POST",body:JSON.stringify({code})});
 export const updateSmsConsent=(token:string,enabled:boolean)=>request<PhoneStatus>("/phone-verification/sms-consent",token,{method:"PUT",body:JSON.stringify({enabled})});
+
+export type ParcelIntakeCreate = {
+ tracking_number:string; recipient_name:string; phone:string; address_line:string;
+ city:string; state:string; pincode:string; customer_email?:string;
+ received_from:string; package_condition:"intact"|"damaged"|"opened"; note?:string;
+};
+export type ParcelIntake = {
+ id:number; tracking_number:string; recipient_name:string; city:string; state:string;
+ pincode:string; status:string; received_from:string; package_condition:string;
+ received_at:string; customer_email:string|null;
+};
+export type CustodyEvent = {
+ id:number; parcel_id:number; actor_id:number; event_type:string;
+ package_condition:string|null; received_from:string|null; handed_to:string|null;
+ note:string|null; created_at:string;
+};
+export const createParcelIntake=(token:string,data:ParcelIntakeCreate)=>request<ParcelIntake>("/operations/intake",token,{method:"POST",body:JSON.stringify(data)});
+export const getParcelIntakes=(token:string)=>request<ParcelIntake[]>("/operations/intake",token);
+export const getCustodyHistory=(token:string,parcelId:number)=>request<CustodyEvent[]>(`/operations/parcels/${parcelId}/custody`,token);
+export const releaseParcelCustody=(token:string,parcelId:number,note?:string)=>request<CustodyEvent>(`/operations/parcels/${parcelId}/release`,token,{method:"POST",body:JSON.stringify({note:note||undefined})});
