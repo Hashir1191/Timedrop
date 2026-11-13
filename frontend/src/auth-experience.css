@@ -1,0 +1,43 @@
+/* Phase 22 — accessible sign-in and customer onboarding */
+.auth-experience-screen{background:#fff}
+.auth-experience-panel{width:min(410px,calc(100% - 48px));padding:44px 0}
+.auth-topline{display:flex;align-items:center;justify-content:space-between;margin-bottom:57px}
+.auth-brand-link{margin:0;padding:0;text-decoration:none}
+.auth-back-link{display:inline-flex;align-items:center;gap:6px;color:#8491a4;text-decoration:none;font-size:10px;font-weight:650;transition:color .16s}
+.auth-back-link:hover{color:#4569e8}
+.auth-form-intro .login-eyebrow{margin-bottom:10px}
+.auth-form-intro h1{margin:0;color:#192940;font-size:35px;letter-spacing:-1.5px;font-weight:760}
+.auth-form-intro .login-subtitle{margin:9px 0 26px;line-height:1.65}
+.auth-login-form{gap:15px}
+.auth-field{display:grid;gap:7px}
+.auth-field label{margin:0;color:#53627a;font-size:10px;font-weight:700}
+.auth-field>input,.auth-password-wrap input{width:100%;height:46px;border:1px solid #dfe5ed;border-radius:9px;padding:0 13px;outline:0;color:#34445b;background:#fff;font-size:12px;transition:border-color .16s,box-shadow .16s}
+.auth-field>input:focus,.auth-password-wrap input:focus{border-color:#7897e9;box-shadow:0 0 0 3px #eaf0ff}
+.auth-password-wrap{position:relative}
+.auth-password-wrap input{padding-right:45px}
+.auth-password-toggle{position:absolute;top:5px;right:5px;width:36px;height:36px;display:grid;place-items:center;border:0;border-radius:7px;color:#8996a9;background:transparent;cursor:pointer}
+.auth-password-toggle:hover{color:#4569e8;background:#f2f5fc}
+.auth-field-hint{color:#929eb0;font-size:9px}
+.auth-form-error{margin:0;line-height:1.5}
+.auth-submit{width:100%;height:46px;justify-content:center;margin-top:3px}
+.auth-switch-row{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:5px;margin-top:22px;color:#8793a5;font-size:10px}
+.auth-switch-row .auth-mode-toggle{margin:0;padding:4px;border:0;color:#4569e8;background:transparent;font-size:10px;font-weight:750;cursor:pointer}
+.auth-switch-row .auth-mode-toggle:hover{text-decoration:underline}
+.auth-experience-panel .login-security{margin-top:25px}
+.auth-registration-note{margin:15px 0 0;color:#9aa5b4;text-align:center;font-size:9px;line-height:1.6}
+.auth-experience-aside{background:radial-gradient(circle at 82% 18%,rgba(104,145,255,.22),transparent 28%),radial-gradient(circle at 18% 86%,rgba(56,99,229,.18),transparent 32%),linear-gradient(145deg,#192d50,#101a2d 78%)}
+.auth-experience-aside .aside-content h2{font-size:clamp(39px,4.8vw,58px);line-height:1.08}
+.auth-aside-points{display:grid;gap:10px;margin-top:27px}
+.auth-aside-points span{display:flex;align-items:center;gap:9px;color:#b5c4da;font-size:10px}
+.auth-aside-points svg{color:#91adff}
+.auth-experience-aside .aside-footer{margin-top:52px}
+@media(max-width:700px){
+ .auth-experience-screen{grid-template-columns:1fr}
+ .auth-experience-panel{width:min(430px,calc(100% - 40px));padding:30px 0 42px}
+ .auth-topline{margin-bottom:39px}
+ .auth-form-intro h1{font-size:31px}
+ .auth-experience-aside{display:none}
+}
+@media(prefers-reduced-motion:reduce){
+ .auth-experience-panel *{transition-duration:.01ms!important}
+}
