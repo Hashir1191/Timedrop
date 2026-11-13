@@ -170,6 +170,37 @@ class DeliveryPartnerResponse(BaseModel):
     is_active: bool
     active_assignments: int
     max_active_assignments: int = 5
+    availability_enabled: bool = False
+
+
+class PartnerAvailabilityWindow(BaseModel):
+    weekday: int = Field(ge=0, le=6)
+    start_time: time
+    end_time: time
+    is_active: bool = True
+
+    @model_validator(mode="after")
+    def validate_window(self):
+        if self.end_time <= self.start_time:
+            raise ValueError("Availability end_time must be later than start_time.")
+        return self
+
+
+class PartnerAvailabilitySettings(BaseModel):
+    enabled: bool = False
+    windows: list[PartnerAvailabilityWindow] = Field(default_factory=list, max_length=28)
+
+    @model_validator(mode="after")
+    def validate_non_overlapping_windows(self):
+        by_day: dict[int, list[PartnerAvailabilityWindow]] = {}
+        for window in self.windows:
+            by_day.setdefault(window.weekday, []).append(window)
+        for weekday, windows in by_day.items():
+            ordered = sorted(windows, key=lambda item: item.start_time)
+            for previous, current in zip(ordered, ordered[1:]):
+                if current.start_time < previous.end_time:
+                    raise ValueError(f"Availability windows overlap on weekday {weekday}.")
+        return self
 
 
 class DeliveryRouteStop(BaseModel):

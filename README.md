@@ -342,3 +342,24 @@ Notifications now include a safe, same-origin application destination. Selecting
 The partner delivery workspace now defaults to active assignments, supports filtering between active, completed/failed, and all deliveries, and allows searching by tracking ID, recipient name, city, or PIN. Results are ordered by booked delivery date and time to make the next operational tasks easier to scan.
 
 The migration adds nullable `notifications.action_url`; existing notifications remain valid and simply have no destination. Notification destinations are generated server-side from the authenticated recipient role and parcel ID; external URLs are not accepted by the UI navigation handler.
+
+
+## Phase 13 — Delivery partner weekly availability
+
+Delivery partners can configure recurring weekly working windows using local delivery-slot time. Availability is optional for existing partners: until a partner enables a schedule, the previous availability and assignment behavior is preserved.
+
+- `GET /api/v1/delivery/my-availability` — read the signed-in partner's schedule.
+- `PUT /api/v1/delivery/my-availability` — replace the partner's weekly schedule and enable or disable schedule enforcement.
+- `GET /api/v1/delivery/partners/{partner_id}/availability` — operations-only view of a partner's schedule.
+- Weekdays use Python's ISO-style weekday numbering: Monday `0` through Sunday `6`.
+- Multiple non-overlapping windows can be configured per weekday. A booked delivery slot must fit fully inside one active availability window.
+- Enabling a schedule with no active windows makes the partner unavailable for new assignments. Disabling the schedule restores the legacy behavior without deleting the saved windows.
+- Manual assignment and route-plan recommendations use the same availability rule. Existing active assignments are not cancelled when a partner changes their future availability.
+- The partner can manage only their own schedule; only operations administrators can view another partner's schedule.
+
+Apply the Alembic migration before using this feature:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m alembic -c backend\\alembic.ini upgrade head
+```

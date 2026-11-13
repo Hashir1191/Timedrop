@@ -10,13 +10,14 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import settings
 from app.route_planning import enrich_partner_route
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliveryPartnerAvailability, DeliverySlot, Parcel, ParcelCustodyEvent, User
 from app.notifications import add_notification
 from app.schemas import (
     DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
     DeliveryRoutePlanResponse, DeliveryRouteStop,
+    PartnerAvailabilitySettings,
 )
 from app.security import get_current_user, hash_password, verify_password, require_admin, require_delivery_partner
 
@@ -69,6 +70,7 @@ def create_partner(data: DeliveryPartnerCreate, db: Session = Depends(get_db), a
         phone=partner.phone, vehicle_type=partner.vehicle_type, is_available=partner.is_available,
         is_active=user.is_active, active_assignments=0,
         max_active_assignments=partner.max_active_assignments,
+        availability_enabled=partner.availability_enabled,
     )
 
 
@@ -86,8 +88,95 @@ def list_partners(db: Session = Depends(get_db), admin: User = Depends(require_a
             phone=partner.phone, vehicle_type=partner.vehicle_type, is_available=partner.is_available,
             is_active=user.is_active, active_assignments=count,
             max_active_assignments=partner.max_active_assignments,
+            availability_enabled=partner.availability_enabled,
         ))
     return result
+
+
+def _partner_availability_response(db: Session, partner: DeliveryPartner) -> PartnerAvailabilitySettings:
+    windows = db.scalars(
+        select(DeliveryPartnerAvailability)
+        .where(DeliveryPartnerAvailability.partner_id == partner.id)
+        .order_by(DeliveryPartnerAvailability.weekday, DeliveryPartnerAvailability.start_time)
+    ).all()
+    return PartnerAvailabilitySettings(
+        enabled=partner.availability_enabled,
+        windows=[
+            {
+                "weekday": item.weekday,
+                "start_time": item.start_time,
+                "end_time": item.end_time,
+                "is_active": item.is_active,
+            }
+            for item in windows
+        ],
+    )
+
+
+def _partner_covers_slot(db: Session, partner: DeliveryPartner, slot: DeliverySlot) -> bool:
+    """Unconfigured schedules preserve legacy behavior; enabled schedules are strict."""
+    if not partner.availability_enabled:
+        return True
+    windows = db.scalars(
+        select(DeliveryPartnerAvailability).where(
+            DeliveryPartnerAvailability.partner_id == partner.id,
+            DeliveryPartnerAvailability.weekday == slot.delivery_date.weekday(),
+            DeliveryPartnerAvailability.is_active.is_(True),
+        )
+    ).all()
+    return any(
+        window.start_time <= slot.start_time and window.end_time >= slot.end_time
+        for window in windows
+    )
+
+
+@router.get("/my-availability", response_model=PartnerAvailabilitySettings)
+def get_my_availability(
+    db: Session = Depends(get_db),
+    partner_user: User = Depends(require_delivery_partner),
+):
+    partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
+    if partner is None:
+        raise HTTPException(status_code=403, detail="Delivery partner profile is not configured.")
+    return _partner_availability_response(db, partner)
+
+
+@router.put("/my-availability", response_model=PartnerAvailabilitySettings)
+def update_my_availability(
+    data: PartnerAvailabilitySettings,
+    db: Session = Depends(get_db),
+    partner_user: User = Depends(require_delivery_partner),
+):
+    partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
+    if partner is None:
+        raise HTTPException(status_code=403, detail="Delivery partner profile is not configured.")
+    partner.availability_enabled = data.enabled
+    db.query(DeliveryPartnerAvailability).filter(
+        DeliveryPartnerAvailability.partner_id == partner.id
+    ).delete(synchronize_session=False)
+    for window in data.windows:
+        db.add(DeliveryPartnerAvailability(
+            partner_id=partner.id,
+            weekday=window.weekday,
+            start_time=window.start_time,
+            end_time=window.end_time,
+            is_active=window.is_active,
+        ))
+    db.commit()
+    db.refresh(partner)
+    return _partner_availability_response(db, partner)
+
+
+@router.get("/partners/{partner_id}/availability", response_model=PartnerAvailabilitySettings)
+def get_partner_availability(
+    partner_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    partner = db.get(DeliveryPartner, partner_id)
+    if partner is None:
+        raise HTTPException(status_code=404, detail="Delivery partner not found.")
+    return _partner_availability_response(db, partner)
 
 
 @router.post("/parcels/{parcel_id}/assignments", response_model=DeliveryAssignmentResponse, status_code=status.HTTP_201_CREATED)
@@ -129,6 +218,11 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
             detail=f"This delivery partner has reached their active assignment capacity ({partner.max_active_assignments}).",
         )
     slot = db.get(DeliverySlot, booking.slot_id)
+    if not _partner_covers_slot(db, partner, slot):
+        raise HTTPException(
+            status_code=409,
+            detail="This delivery partner is not available for the full booked delivery window.",
+        )
     overlapping = db.scalar(
         select(DeliveryAssignment.id)
         .join(Parcel, Parcel.id == DeliveryAssignment.parcel_id)
@@ -284,6 +378,9 @@ def generate_route_plan(
         zone = parcel.pincode[:3]
         options = []
         for partner_id, state in partner_state.items():
+            partner_record = db.get(DeliveryPartner, partner_id)
+            if partner_record is None or not _partner_covers_slot(db, partner_record, slot):
+                continue
             if state["load"] >= state["capacity"]:
                 continue
             overlaps = any(

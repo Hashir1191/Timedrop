@@ -514,3 +514,79 @@ def test_assignment_notifications_have_role_appropriate_action_destinations(clie
     assert customer_assignment["action_url"] == f"/my-parcels?parcelId={parcel_id}"
     assert partner_assignment["action_url"] == "/"
     assert client.patch(f"/api/v1/notifications/{partner_assignment['id']}/read", headers=customer).status_code == 404
+
+
+def test_partner_can_manage_own_weekly_availability_and_admin_can_view(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "schedule-rider@example.com", "full_name": "Schedule Rider",
+        "password": "StrongSchedulePassword123!", "phone": "9876543210",
+    })
+    assert created.status_code == 201
+    rider = auth(client, "schedule-rider@example.com", "StrongSchedulePassword123!")
+    weekday = (datetime.now().date() + timedelta(days=3)).weekday()
+    payload = {
+        "enabled": True,
+        "windows": [
+            {"weekday": weekday, "start_time": "09:00:00", "end_time": "13:00:00"},
+            {"weekday": weekday, "start_time": "14:00:00", "end_time": "17:00:00"},
+        ],
+    }
+    saved = client.put("/api/v1/delivery/my-availability", headers=rider, json=payload)
+    assert saved.status_code == 200
+    assert saved.json()["enabled"] is True
+    assert len(saved.json()["windows"]) == 2
+    viewed = client.get(
+        f"/api/v1/delivery/partners/{created.json()['id']}/availability",
+        headers=admin,
+    )
+    assert viewed.status_code == 200
+    assert viewed.json() == saved.json()
+
+
+def test_partner_availability_rejects_overlapping_windows(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "overlap-rider@example.com", "full_name": "Overlap Rider",
+        "password": "StrongOverlapPassword123!", "phone": "9876543210",
+    })
+    rider = auth(client, "overlap-rider@example.com", "StrongOverlapPassword123!")
+    response = client.put("/api/v1/delivery/my-availability", headers=rider, json={
+        "enabled": True,
+        "windows": [
+            {"weekday": 2, "start_time": "09:00:00", "end_time": "12:00:00"},
+            {"weekday": 2, "start_time": "11:00:00", "end_time": "13:00:00"},
+        ],
+    })
+    assert response.status_code == 422
+
+
+def test_assignment_must_fit_inside_enabled_partner_availability(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "schedule-owner@example.com", "full_name": "Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "schedule-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-PARTNER-SCHEDULE-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "restricted-rider@example.com", "full_name": "Restricted Rider",
+        "password": "StrongRestrictedPassword123!", "phone": "9876543210",
+    }).json()
+    rider = auth(client, "restricted-rider@example.com", "StrongRestrictedPassword123!")
+    weekday = (datetime.now().date() + timedelta(days=3)).weekday()
+    configured = client.put("/api/v1/delivery/my-availability", headers=rider, json={
+        "enabled": True,
+        "windows": [
+            {"weekday": weekday, "start_time": "11:00:00", "end_time": "13:00:00"},
+        ],
+    })
+    assert configured.status_code == 200
+    rejected = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner["id"]},
+    )
+    assert rejected.status_code == 409
+    assert "not available" in rejected.json()["detail"]
