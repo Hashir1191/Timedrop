@@ -98,7 +98,7 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
         .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
         .limit(1)
     )
-    if latest_custody is not None and latest_custody.event_type == "released":
+    if latest_custody is not None and latest_custody.event_type == "released" and parcel.status == "failed":
         raise HTTPException(
             status_code=409,
             detail="The parcel must be physically returned to operations before it can be reassigned.",
