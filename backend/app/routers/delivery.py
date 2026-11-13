@@ -162,9 +162,9 @@ def generate_route_plan(
 ):
     """Build a non-binding partner/stop proposal for booked parcels on a delivery date.
 
-    The heuristic balances active workload, groups matching PIN-code prefixes,
-    and avoids overlapping delivery-slot commitments. It does not estimate road
-    distance, traffic, or turn-by-turn navigation.
+    The heuristic balances workload and booked-slot compatibility. When enabled,
+    geocoding and OSRM reorder each partner route and estimate road legs; provider
+    failures fall back to the deterministic heuristic.
     """
     today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     if delivery_date < today:
