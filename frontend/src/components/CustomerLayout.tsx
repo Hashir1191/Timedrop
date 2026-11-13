@@ -26,7 +26,7 @@ export default function CustomerLayout() {
     </aside>
     <main className="main-area">
       <header className="topbar"><div className="mobile-brand">TimeDrop</div><div className="breadcrumb">Customer portal <span>/</span> <strong>{page}</strong></div>
-        <div className="profile"><NotificationBell/><div className="avatar"><UserRound size={16}/></div><div className="profile-copy"><strong>{user?.full_name}</strong><span>Customer account</span></div><button className="icon-button logout-button" onClick={logout} title="Sign out"><LogOut size={17}/></button></div>
+        <div className="profile"><NotificationBell/><div className="avatar"><UserRound size={16}/></div><div className="profile-copy"><strong>{user?.full_name}</strong><span>Customer account</span></div><button className="icon-button logout-button" onClick={logout} title="Sign out" aria-label="Sign out"><LogOut size={17}/></button></div>
       </header>
       <div className="page-content"><Outlet/></div>
     </main>
