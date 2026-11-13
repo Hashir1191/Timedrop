@@ -16,11 +16,13 @@ export default function PhoneSettings() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   async function load() {
     if (!token) return;
     try { const value = await getPhoneStatus(token); setStatus(value); setPhone(value.phone_number || ""); }
     catch (e) { setError(e instanceof Error ? e.message : "Unable to load phone settings."); }
+    finally { setLoading(false); }
   }
   useEffect(() => { void load(); }, [token]);
 
@@ -64,19 +66,23 @@ export default function PhoneSettings() {
     finally { setBusy(false); }
   }
 
-  return <>
+  return <div className="phone-settings-workspace">
     <div className="page-heading"><div><div className="eyebrow">ACCOUNT / CONTACT PREFERENCES</div><h1>Phone & SMS settings</h1><p>Verify your mobile number and choose whether TimeDrop may send delivery updates by SMS.</p></div></div>
-    {error && <div className="alert-error">{error}</div>}{notice && <div className="alert-success">{notice}</div>}
+    <section className="phone-settings-overview">
+      <div className="phone-overview-item"><span className="phone-overview-icon"><Smartphone size={17}/></span><div><small>PHONE VERIFICATION</small><strong>{loading?"Loading…":status?.phone_verified?"Verified":"Not verified"}</strong><span>{status?.phone_number||"No mobile number added"}</span></div><span className={`phone-overview-state ${status?.phone_verified?"verified":""}`}>{status?.phone_verified?"Verified":"Action needed"}</span></div>
+      <div className="phone-overview-item"><span className="phone-overview-icon sms"><ShieldCheck size={17}/></span><div><small>SMS NOTIFICATIONS</small><strong>{status?.sms_notifications_consent?"Enabled":"Disabled"}</strong><span>Optional delivery updates by text</span></div><span className={`phone-overview-state ${status?.sms_notifications_consent?"verified":""}`}>{status?.sms_notifications_consent?"Opted in":"Opted out"}</span></div>
+    </section>
+    {error && <div className="alert-error" role="alert">{error}</div>}{notice && <div className="alert-success" role="status">{notice}</div>}
     <section className="panel customer-form-panel">
       <div className="panel-heading"><div><h2><Smartphone size={17}/> Mobile number</h2><p>Use an Indian mobile number that you control. Verification is separate from SMS notification consent.</p></div></div>
       <form className="customer-form" onSubmit={requestCode}>
-        <label>Mobile number<input required value={phone} onChange={e=>setPhone(e.target.value)} placeholder="9876543210 or +919876543210" /></label>
+        <label htmlFor="phone-number">Mobile number<input id="phone-number" required autoComplete="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="9876543210 or +919876543210" /></label>
         <div className="customer-form-actions"><span>{status?.phone_verified ? "Verified number" : "Request a code to verify this number."}</span><button className="primary-button" disabled={busy || !phone.trim()}>Send verification code</button></div>
       </form>
       {deliveryMode === "msg91" && challengeActive && <div className="cell-sub">A verification code was sent by SMS. Enter the code below. TimeDrop does not store or display the provider-generated OTP.</div>}
       {developmentCode && <div className="alert-success">Development OTP: <strong>{developmentCode}</strong> · No SMS was sent. This is available only in local development.</div>}
       {challengeActive && <form className="customer-form" onSubmit={verify}>
-        <label>6-digit verification code<input required inputMode="numeric" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value)} placeholder="Enter code" /></label>
+        <label htmlFor="phone-verification-code">6-digit verification code<input id="phone-verification-code" required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" maxLength={6} value={code} onChange={e=>setCode(e.target.value)} placeholder="Enter code" /></label>
         <div className="customer-form-actions">
           <span>Code expires after {5} minutes. Up to 5 verification attempts are allowed.</span>
           <div className="button-row"><button type="button" className="secondary-button" disabled={busy} onClick={()=>void resendCode()}>Resend code</button><button className="primary-button" disabled={busy || code.length!==6}>Verify phone</button></div>
@@ -89,5 +95,5 @@ export default function PhoneSettings() {
       <div className="customer-form-actions"><span>{status?.sms_notifications_consent ? "SMS notifications are enabled." : "SMS notifications are disabled."}</span><button className={status?.sms_notifications_consent ? "secondary-button" : "primary-button"} disabled={busy || !status?.phone_verified} onClick={()=>void consent(!status?.sms_notifications_consent)}>{status?.sms_notifications_consent ? "Withdraw consent" : "Enable SMS notifications"}</button></div>
       <p className="cell-sub">Transactional SMS also requires the approved MSG91 Flow and Indian DLT configuration. Phone verification and notification consent remain separate.</p>
     </section>
-  </>;
+  </div>;
 }
