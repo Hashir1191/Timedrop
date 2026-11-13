@@ -10,8 +10,6 @@ import "./operations-workspace.css";
 import "./warehouse-workspace.css";
 import "./parcel-operations.css";
 import "./fleet-scheduling.css";
-import "./parcel-operations.css";
-import "./partner-workspace.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
