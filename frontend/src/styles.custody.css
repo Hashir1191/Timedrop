@@ -1,0 +1,13 @@
+
+
+/* Operations parcel intake and custody history */
+.alert-info{display:flex;align-items:flex-start;gap:10px;padding:13px 16px;margin:0 0 18px;border:1px solid #bfdbfe;border-radius:10px;background:#eff6ff;color:#1e40af;font-size:13px;line-height:1.5}
+.status-pill{display:inline-flex;align-items:center;padding:4px 9px;border-radius:999px;background:#eef2ff;color:#3730a3;font-size:11px;font-weight:700;text-transform:capitalize}
+.status-pill.damaged{background:#fef2f2;color:#b91c1c}
+.status-pill.opened{background:#fff7ed;color:#c2410c}
+.status-pill.intact{background:#ecfdf5;color:#047857}
+.timeline{display:grid;gap:0;padding:8px 4px}
+.timeline-item{display:grid;grid-template-columns:16px 1fr;gap:12px;padding:12px 0;border-bottom:1px solid var(--border,#e5e7eb);font-size:13px}
+.timeline-item:last-child{border-bottom:0}
+.timeline-dot{width:9px;height:9px;margin:5px auto 0;border-radius:50%;background:#2563eb;box-shadow:0 0 0 4px #dbeafe}
+.timeline-item p{margin:5px 0;color:var(--muted,#64748b)}

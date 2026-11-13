@@ -172,3 +172,19 @@ class RouteGeocodeCache(Base):
     longitude: Mapped[float] = mapped_column(nullable=False)
     provider: Mapped[str] = mapped_column(String(40), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ParcelCustodyEvent(Base):
+    """Append-only record of physical parcel receipt and handover."""
+
+    __tablename__ = "parcel_custody_events"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    parcel_id: Mapped[int] = mapped_column(ForeignKey("parcels.id", ondelete="CASCADE"), nullable=False, index=True)
+    actor_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    event_type: Mapped[str] = mapped_column(String(24), nullable=False)
+    package_condition: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    received_from: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    handed_to: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

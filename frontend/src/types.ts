@@ -26,3 +26,14 @@ export type NotificationItem = {
   id:number; user_id:number; parcel_id:number|null; event_type:string;
   title:string; message:string; created_at:string; read_at:string|null;
 };
+
+export type ParcelIntake = {
+  id:number; tracking_number:string; recipient_name:string; city:string; state:string;
+  pincode:string; status:string; received_from:string; package_condition:string;
+  received_at:string; customer_email:string|null;
+};
+export type CustodyEvent = {
+  id:number; parcel_id:number; actor_id:number; event_type:string;
+  package_condition:string|null; received_from:string|null; handed_to:string|null;
+  note:string|null; created_at:string;
+};
