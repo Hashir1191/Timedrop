@@ -45,9 +45,9 @@ Create and activate a virtual environment:
 
 ```powershell
 py -3 -m venv .venv
-.\.venv\Scripts\Activate.ps1
+.\\.venv\\Scripts\\Activate.ps1
 python -m pip install --upgrade pip
-python -m pip install -r backend\requirements-dev.txt
+python -m pip install -r backend\\requirements-dev.txt
 ```
 
 Copy `.env.example` to `.env`. Local non-Docker development uses SQLite by default. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
@@ -58,8 +58,8 @@ Apply database migrations from the repository root:
 
 ```powershell
 $env:PYTHONPATH = "backend"
-python -m alembic -c backend\alembic.ini upgrade head
-python -m alembic -c backend\alembic.ini current
+python -m alembic -c backend\\alembic.ini upgrade head
+python -m alembic -c backend\\alembic.ini current
 ```
 
 The first migration creates missing tables and conditionally adds the ownership, delivery-failure, and proof-of-delivery fields introduced in earlier pilot versions. It is designed to preserve existing rows; it does not delete or recreate the database.
@@ -107,7 +107,7 @@ docker compose down -v
 This is a deliberate, separate operation. First stop the API and any process that can write to SQLite, and make a backup:
 
 ```powershell
-Copy-Item .\timedrop.db .\timedrop-before-postgres-migration.db
+Copy-Item .\\timedrop.db .\\timedrop-before-postgres-migration.db
 ```
 
 Start the Compose database and API so the PostgreSQL schema is created:
@@ -121,7 +121,7 @@ Run a read-only preflight (replace the example password with the value in your l
 
 ```powershell
 $env:PYTHONPATH = "backend"
-python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop"
+python backend\\scripts\\migrate_sqlite_to_postgres.py --source .\\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop"
 ```
 
 The preflight checks that both databases have the same Alembic revision, the same business tables and columns, and that every PostgreSQL business table is empty. It prints the source row counts and changes no data.
@@ -129,7 +129,7 @@ The preflight checks that both databases have the same Alembic revision, the sam
 Only after reviewing a successful preflight, repeat the command with `--execute`:
 
 ```powershell
-python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop" --execute
+python backend\\scripts\\migrate_sqlite_to_postgres.py --source .\\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop" --execute
 ```
 
 The utility reads SQLite in read-only mode, copies rows in foreign-key dependency order, preserves primary keys, updates PostgreSQL integer sequences, and writes all copied rows in one PostgreSQL transaction. It refuses to overwrite a non-empty target or proceed when schema/revision checks fail. Keep the SQLite backup until you have separately verified the PostgreSQL data and application behavior. Use a URL-safe password in the connection URL; percent-encode reserved URL characters.
@@ -138,7 +138,7 @@ Run tests after the development phase is complete:
 
 ```powershell
 $env:PYTHONPATH = "backend"
-python -m pytest backend\tests -v
+python -m pytest backend\\tests -v
 ```
 
 ## Frontend
@@ -164,16 +164,11 @@ Open http://localhost:5173. Keep the API running in a separate terminal. For the
 - Replace localStorage token storage with a production-grade session design before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
 
-
 ## In-app notifications
 
-TimeDrop stores user-scoped in-app notifications for key booking and delivery events. The inbox is available to customers, delivery partners, and operations users in the application header.
+TimeDrop stores user-scoped in-app notifications for key booking and delivery events. The inbox is available to customers, delivery partners, and operations users in the application header. Notifications are created in the same database transaction as the underlying booking or delivery change.
 
-Current notification events include:
-- Booking created, rescheduled, and cancelled (parcel owner).
-- Delivery partner assigned (parcel owner and assigned partner).
-- Assignment accepted, parcel out for delivery, and delivery failed (parcel owner).
-- Delivery completed after proof-of-delivery verification (parcel owner).
+Current events include booking creation/rescheduling/cancellation, delivery partner assignment, partner acceptance, out-for-delivery, failed delivery, and proof-verified completion.
 
 Authenticated API endpoints:
 - `GET /api/v1/notifications/` — list the signed-in user's latest notifications; supports `unread_only=true` and `limit`.
@@ -181,19 +176,25 @@ Authenticated API endpoints:
 - `PATCH /api/v1/notifications/{id}/read` — mark one of the signed-in user's notifications as read.
 - `POST /api/v1/notifications/read-all` — mark all of the signed-in user's notifications as read.
 
-Notification records are created in the same database transaction as the booking or delivery change. This prevents a notification from being stored when its underlying operation rolls back. The current implementation is in-app only; email and SMS delivery require a separately configured provider and are not yet enabled.
+## External notification delivery
 
+The durable `notification_deliveries` outbox supports email through Resend and transactional SMS through MSG91 Flow. Jobs are created atomically with the in-app notification, claimed by the background worker, retried with exponential backoff, and marked sent or failed. Email requires `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL`.
 
-### Transactional email delivery
+### MSG91 SMS setup
 
-In-app notifications can also be delivered by the standalone email outbox worker. Configure `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` in your local `.env` file (never commit secrets), then start the stack with `docker compose up --build -d`. The API writes email jobs to `notification_deliveries` in the same transaction as the in-app notification. The separate worker sends pending jobs through Resend, uses an idempotency key, retries transient failures with backoff, and marks exhausted jobs as failed. Configure a verified sending domain/address in Resend before production use.
+SMS remains disabled by default. To enable it, configure these values in the uncommitted root `.env` file and in the deployment secret store:
 
-SMS provider settings are reserved for MSG91, but SMS dispatch is deliberately not enabled yet. Customer parcel phone numbers and admin-entered partner phone numbers are not verified or consented contact points in the current data model. Do not send delivery notifications to those numbers until TimeDrop adds an explicit phone-verification and SMS-consent flow and the required Indian DLT entity/header/template setup is completed. MSG91 requires an approved Flow/template; see the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [DLT template setup](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
+- `MSG91_AUTH_KEY`: MSG91 account auth key.
+- `MSG91_FLOW_TEMPLATE_ID`: the approved MSG91 Flow/template ID.
+- `SMS_NOTIFICATIONS_ENABLED=true`: explicit feature switch; defaults to false.
 
+The MSG91 Flow must have two variables with these exact case-sensitive names: `VAR1` for the notification title and `VAR2` for the notification message. The template text must be approved and match the Indian DLT-registered entity, sender/header, and template details. Do not enable the feature until MSG91 reports the template as DLT-verified. TimeDrop sends only to the account's own normalized Indian mobile number, and only when `phone_verified_at` and `sms_consent_at` are both present. Parcel recipient numbers and the legacy delivery-partner contact field are never used as SMS recipients. Withdrawing consent prevents future SMS jobs; it does not cancel messages already submitted to the provider.
 
-## Phone verification and SMS consent
+The worker uses MSG91's Flow endpoint `POST https://control.msg91.com/api/v5/flow` with the `authkey` header, `template_id`, and a recipient object containing `mobiles`, `VAR1`, and `VAR2`. Provider failures are recorded in the outbox and retried using the same idempotency key at the application layer. MSG91 acceptance is not proof of handset delivery; use MSG91 delivery logs for final delivery status. See the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [MSG91 DLT template setup guide](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
 
-Customer and delivery-partner accounts can manage a mobile number at **Phone & SMS** in their portal. The API normalizes Indian mobile numbers to +91 E.164 format, prevents a number from being linked to multiple accounts, invalidates older challenges when a new code is requested, stores only an Argon2 hash, expires codes after five minutes, limits verification to five attempts, and rate-limits requests to three per account per 15 minutes.
+### Phone verification and SMS consent
+
+Customer and delivery-partner accounts can manage a mobile number at **Phone & SMS** in their portal. The API normalizes Indian mobile numbers to +91 format, prevents a number from being linked to multiple accounts, invalidates older challenges when a new code is requested, stores only an Argon2 hash, expires codes after five minutes, limits verification to five attempts, and rate-limits requests to three per account per 15 minutes.
 
 Endpoints (authenticated):
 - `GET /api/v1/phone-verification/me` — current phone verification and SMS consent state.
@@ -201,6 +202,4 @@ Endpoints (authenticated):
 - `POST /api/v1/phone-verification/verify` — verify a six-digit code.
 - `PUT /api/v1/phone-verification/sms-consent` — explicitly enable or withdraw SMS notification consent.
 
-**Development mode:** no SMS is sent. With `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true`, the API returns a development-only OTP in its response so the workflow can be exercised locally. Keep this setting disabled outside local development. Production mode rejects OTP requests until a real SMS provider is configured; the API never claims that an SMS was sent when no provider is active.
-
-**SMS delivery remains disabled.** Verification and consent are separate. No message should be sent until the MSG91 Flow integration, approved Indian DLT entity/header/template details, and operational consent controls are configured. Existing delivery-partner phone fields remain unchanged; users verify the contact number on their own account profile.
+**Development mode:** no SMS is sent for OTP verification. With `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true`, the API returns a development-only OTP in its response so the workflow can be exercised locally. Production mode currently rejects OTP requests; a production-grade MSG91 OTP verification flow is a separate prerequisite before production onboarding. Transactional delivery SMS is a separate feature and requires both verified phone status and explicit SMS consent.
