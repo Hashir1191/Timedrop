@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -13,6 +13,7 @@ from app.schemas import (
     DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
+    DeliveryRoutePlanResponse, DeliveryRouteStop,
 )
 from app.security import get_current_user, hash_password, verify_password, require_admin, require_delivery_partner
 
@@ -148,6 +149,151 @@ def list_assignments(
     if assignment_status:
         statement = statement.where(DeliveryAssignment.status == assignment_status)
     return [_assignment_response(db, item) for item in db.scalars(statement).all()]
+
+
+@router.get("/route-plan", response_model=DeliveryRoutePlanResponse)
+def generate_route_plan(
+    delivery_date: date = Query(...),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Build a non-binding partner/stop proposal for booked parcels on a delivery date.
+
+    The heuristic balances active workload, groups matching PIN-code prefixes,
+    and avoids overlapping delivery-slot commitments. It does not estimate road
+    distance, traffic, or turn-by-turn navigation.
+    """
+    today = datetime.now(timezone.utc).date()
+    if delivery_date < today:
+        raise HTTPException(status_code=400, detail="Route plans cannot be generated for a past date.")
+
+    parcel_rows = db.execute(
+        select(Parcel, DeliveryBooking, DeliverySlot)
+        .join(DeliveryBooking, DeliveryBooking.parcel_id == Parcel.id)
+        .join(DeliverySlot, DeliverySlot.id == DeliveryBooking.slot_id)
+        .where(
+            DeliveryBooking.status == "booked",
+            DeliverySlot.delivery_date == delivery_date,
+            Parcel.status == "scheduled",
+        )
+    ).all()
+
+    active_rows = db.execute(
+        select(DeliveryAssignment, Parcel, DeliverySlot)
+        .join(Parcel, Parcel.id == DeliveryAssignment.parcel_id)
+        .join(DeliveryBooking, DeliveryBooking.parcel_id == Parcel.id)
+        .join(DeliverySlot, DeliverySlot.id == DeliveryBooking.slot_id)
+        .where(
+            DeliveryAssignment.status.in_(["assigned", "accepted", "out_for_delivery"]),
+        )
+    ).all()
+
+    active_parcel_ids = {assignment.parcel_id for assignment, _, _ in active_rows}
+    candidates = db.execute(
+        select(DeliveryPartner, User)
+        .join(User, User.id == DeliveryPartner.user_id)
+        .where(DeliveryPartner.is_available.is_(True), User.is_active.is_(True))
+        .order_by(DeliveryPartner.id)
+    ).all()
+
+    partner_state = {}
+    for partner, user in candidates:
+        partner_state[partner.id] = {
+            "name": user.full_name,
+            "load": 0,
+            "intervals": [],
+            "zones": {},
+            "planned": [],
+        }
+
+    for assignment, parcel, slot in active_rows:
+        state = partner_state.get(assignment.partner_id)
+        if state is None:
+            continue
+        state["load"] += 1
+        if slot.delivery_date == delivery_date:
+            state["intervals"].append((slot.start_time, slot.end_time))
+            zone = parcel.pincode[:3]
+            state["zones"][zone] = state["zones"].get(zone, 0) + 1
+
+    eligible = [
+        (parcel, booking, slot)
+        for parcel, booking, slot in parcel_rows
+        if parcel.id not in active_parcel_ids
+    ]
+    eligible.sort(key=lambda row: (
+        row[2].start_time, row[0].pincode, row[0].city.lower(),
+        row[0].address_line.lower(), row[0].tracking_number,
+    ))
+
+    planned_stops = []
+    unassigned = []
+    for parcel, booking, slot in eligible:
+        zone = parcel.pincode[:3]
+        options = []
+        for partner_id, state in partner_state.items():
+            overlaps = any(
+                not (slot.end_time <= start or slot.start_time >= end)
+                for start, end in state["intervals"]
+            )
+            if overlaps:
+                continue
+            zone_count = state["zones"].get(zone, 0)
+            score = state["load"] * 10 - zone_count * 4
+            options.append((score, state["load"], partner_id, zone_count))
+
+        if not options:
+            unassigned.append(DeliveryRouteStop(
+                parcel_id=parcel.id, tracking_number=parcel.tracking_number,
+                recipient_name=parcel.recipient_name, city=parcel.city,
+                state=parcel.state, pincode=parcel.pincode,
+                delivery_date=slot.delivery_date, slot_start=slot.start_time,
+                slot_end=slot.end_time, suggested_partner_id=None,
+                suggested_partner_name=None, route_sequence=None,
+                partner_active_jobs=0, zone_key=zone,
+                recommendation="No available partner can cover this slot without an overlapping assignment.",
+            ))
+            continue
+
+        score, load, partner_id, zone_count = min(options)
+        state = partner_state[partner_id]
+        state["intervals"].append((slot.start_time, slot.end_time))
+        state["load"] += 1
+        state["zones"][zone] = state["zones"].get(zone, 0) + 1
+        state["planned"].append(parcel.id)
+        sequence = len(state["planned"])
+        rationale = (
+            f"Grouped with {zone_count} existing or proposed stop(s) in PIN prefix {zone}; "
+            f"{load} active job(s) before this proposal."
+            if zone_count else
+            f"Lowest available workload ({load} active job(s) before this proposal); no overlapping slot."
+        )
+        planned_stops.append(DeliveryRouteStop(
+            parcel_id=parcel.id, tracking_number=parcel.tracking_number,
+            recipient_name=parcel.recipient_name, city=parcel.city,
+            state=parcel.state, pincode=parcel.pincode,
+            delivery_date=slot.delivery_date, slot_start=slot.start_time,
+            slot_end=slot.end_time, suggested_partner_id=partner_id,
+            suggested_partner_name=state["name"], route_sequence=sequence,
+            partner_active_jobs=load, zone_key=zone, recommendation=rationale,
+        ))
+
+    stops = planned_stops + unassigned
+    stops.sort(key=lambda stop: (
+        stop.suggested_partner_id is None,
+        stop.suggested_partner_id or 0,
+        stop.route_sequence or 999999,
+        stop.slot_start,
+        stop.pincode,
+    ))
+    return DeliveryRoutePlanResponse(
+        delivery_date=delivery_date,
+        generated_at=datetime.now(timezone.utc),
+        total_unassigned=len(eligible),
+        recommended=len(planned_stops),
+        unassigned_without_partner=len(unassigned),
+        stops=stops,
+    )
 
 
 @router.get("/my-tracking", response_model=list[DeliveryAssignmentResponse])
