@@ -25,6 +25,7 @@ export default function PartnerDashboard() {
     catch(e){setError(e instanceof Error?e.message:"Unable to update delivery status.");}
     finally{setBusy(null);}
   }
+  async function saveEta(id:number){if(!token)return;const value=eta[id];if(!value?.start||!value?.end){setError("Choose both ETA start and end times.");return;}const start=new Date(value.start),end=new Date(value.end);if(Number.isNaN(start.getTime())||Number.isNaN(end.getTime())||end<=start||end<=new Date()){setError("Choose a future ETA window with the end after the start.");return;}setBusy(id);setError("");try{await updateDeliveryEta(token,id,{estimated_delivery_start:start.toISOString(),estimated_delivery_end:end.toISOString()});await load();}catch(e){setError(e instanceof Error?e.message:"Unable to update ETA.");}finally{setBusy(null);}}
   async function confirmProof(id:number){if(!token)return;const data=proof[id];if(!data||!/^\d{6}$/.test(data.code)||data.recipient_name.trim().length<2){setError("Enter the six-digit code and recipient name.");return;}setBusy(id);setError("");try{await submitDeliveryProof(token,id,{code:data.code,recipient_name:data.recipient_name.trim()});setProof(current=>({...current,[id]:{code:"",recipient_name:""}}));await load();}catch(e){setError(e instanceof Error?e.message:"Unable to verify delivery.");}finally{setBusy(null);}}
   const active=items.filter(i=>["assigned","accepted","out_for_delivery"].includes(i.status));
   return <>
