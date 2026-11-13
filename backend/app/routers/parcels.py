@@ -113,7 +113,7 @@ def get_parcel_timeline(
                     if active else "The previous delivery slot booking was cancelled."
                 ),
                 "status": booking.status,
-                "created_at": booking.updated_at if not active else booking.booked_at,
+                "created_at": booking.updated_at,
             })
 
     assignment = db.scalar(
