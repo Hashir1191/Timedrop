@@ -8,7 +8,7 @@ import StatusBadge from "../components/StatusBadge";
 import ParcelTimeline from "../components/ParcelTimeline";
 import type { DeliveryAssignment, Parcel } from "../types";
 
-type Filter = "all" | "active" | "delivered" | "cancelled";
+type Filter = "all" | "active" | "delivered" | "failed" | "cancelled";
 
 export default function CustomerParcels() {
   const { token } = useAuth();
@@ -65,7 +65,7 @@ export default function CustomerParcels() {
       const matchesQuery = !normalized || [parcel.tracking_number, parcel.recipient_name, parcel.city, parcel.pincode]
         .some((value) => value.toLowerCase().includes(normalized));
       const matchesFilter = filter === "all"
-        || (filter === "active" && !["delivered","cancelled"].includes(parcel.status))
+        || (filter === "active" && !["delivered","failed","cancelled"].includes(parcel.status))
         || parcel.status === filter;
       return matchesQuery && matchesFilter;
     });
@@ -83,7 +83,7 @@ export default function CustomerParcels() {
     <section className="customer-parcel-toolbar">
       <label className="customer-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tracking number, recipient or city" aria-label="Search parcels"/></label>
       <div className="customer-filter-tabs" aria-label="Filter parcels">
-        {(["all","active","delivered","cancelled"] as Filter[]).map((value) => <button key={value} type="button" className={filter===value?"active":""} onClick={() => setFilter(value)}>{value==="all"?"All parcels":value==="active"?"In progress":value==="delivered"?"Delivered":"Cancelled"}</button>)}
+        {(["all","active","delivered","failed","cancelled"] as Filter[]).map((value) => <button key={value} type="button" className={filter===value?"active":""} onClick={() => setFilter(value)}>{value==="all"?"All parcels":value==="active"?"In progress":value==="delivered"?"Delivered":value==="failed"?"Failed":"Cancelled"}</button>)}
       </div>
       <span className="customer-results-count">{filtered.length} {filtered.length===1?"parcel":"parcels"}</span>
     </section>
