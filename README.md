@@ -203,3 +203,16 @@ Endpoints (authenticated):
 - `PUT /api/v1/phone-verification/sms-consent` — explicitly enable or withdraw SMS notification consent.
 
 **Development mode:** no SMS is sent for OTP verification. With `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true`, the API returns a development-only OTP in its response so the workflow can be exercised locally. Production mode currently rejects OTP requests; a production-grade MSG91 OTP verification flow is a separate prerequisite before production onboarding. Transactional delivery SMS is a separate feature and requires both verified phone status and explicit SMS consent.
+
+## Production phone OTP verification
+
+Phone verification uses MSG91's OTP API when the application is not in local development OTP mode. Configure `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID` in the deployment secret store. The OTP template must be created in the MSG91 OTP section and contain the `##OTP##` placeholder. The API requests a six-digit code with the configured expiry; MSG91 generates and stores the production OTP. TimeDrop does not generate, store, log, or return the production OTP.
+
+- `POST /api/v1/phone-verification/request` sends a provider-generated OTP.
+- `POST /api/v1/phone-verification/resend` requests a replacement OTP for the account's current phone number. It is subject to the same account-level rate limit.
+- `POST /api/v1/phone-verification/verify` verifies the submitted code with MSG91. The application checks the provider response `type`; HTTP 200 alone does not mean the OTP is valid.
+- The existing local challenge row tracks the application's expiry, attempt limit, and request rate. The actual production OTP remains managed by MSG91.
+
+For local development only, set `APP_ENV=development` and `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true` to use the local six-digit OTP response without sending SMS. To exercise MSG91 from a non-production environment, set `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=false` and configure the MSG91 auth key and OTP template ID. Never enable development OTP exposure in production. Production must set `APP_ENV=production`; in that mode the development OTP path is always disabled.
+
+The MSG91 OTP API requires an approved OTP template and configured sender/DLT setup for Indian delivery. See the [MSG91 SendOTP API](https://docs.msg91.com/otp/sendotp), [Verify OTP API](https://docs.msg91.com/en/otp/verify-otp), and [OTP configuration guide](https://msg91.com/help/sendotp/step-by-step-process-to-configure-otp).
