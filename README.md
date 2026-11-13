@@ -385,3 +385,16 @@ The customer overview and parcel directory have been refreshed around a more pro
 - Loading, empty, error, and narrow-screen states have dedicated layouts. The interface continues to use API-backed values rather than fabricated dashboard metrics.
 
 The refresh is implemented with the existing React and TypeScript components and a dedicated `customer-portal.css` layer. No backend API or database migration is required.
+
+
+## Phase 16 — Delivery partner workspace
+
+The delivery-partner home screen now uses a task-focused layout with an operational welcome panel, a summary of the partner's weekly availability, API-backed assignment metrics, and a searchable delivery queue.
+
+- Assignment cards organize tracking ID, recipient, destination, booked slot, and customer ETA.
+- Partners can publish ETA updates, accept assignments, start deliveries, record failed attempts, and verify delivery using the existing one-time customer code.
+- Assignment history remains available on each card.
+- The dashboard reads the saved weekly availability and links directly to schedule management.
+- Responsive layouts keep assignment actions and recipient verification usable on smaller screens.
+
+The work is presentation-layer only and uses the existing partner APIs. No database migration is required.

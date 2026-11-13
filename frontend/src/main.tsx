@@ -5,6 +5,8 @@ import App from "./App";
 import "./styles.css";
 import "./design-system.css";
 import "./customer-portal.css";
+import "./partner-workspace.css";
+import "./partner-workspace.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
