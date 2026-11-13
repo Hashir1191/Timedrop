@@ -169,6 +169,33 @@ class DeliveryPartnerResponse(BaseModel):
     active_assignments: int
 
 
+class DeliveryRouteStop(BaseModel):
+    parcel_id: int
+    tracking_number: str
+    recipient_name: str
+    city: str
+    state: str
+    pincode: str
+    delivery_date: date
+    slot_start: time
+    slot_end: time
+    suggested_partner_id: int | None
+    suggested_partner_name: str | None
+    route_sequence: int | None
+    partner_active_jobs: int
+    zone_key: str
+    recommendation: str
+
+
+class DeliveryRoutePlanResponse(BaseModel):
+    delivery_date: date
+    generated_at: datetime
+    total_unassigned: int
+    recommended: int
+    unassigned_without_partner: int
+    stops: list[DeliveryRouteStop]
+
+
 class DeliveryAssignmentCreate(BaseModel):
     partner_id: int = Field(gt=0)
 

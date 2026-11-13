@@ -216,6 +216,17 @@ ETA changes are rejected for completed or failed assignments, are recorded in th
 
 Apply the new Alembic migration before using this feature.
 
+
+## Route planning and assignment recommendations
+
+Operations admins can generate a non-binding route/assignment proposal for a delivery date:
+
+- `GET /api/v1/delivery/route-plan?delivery_date=YYYY-MM-DD` — returns booked, scheduled parcels that do not already have an active assignment, along with suggested partners and proposed stop sequence.
+
+The first version uses a transparent heuristic: it balances active partner workload, groups parcels sharing the same first three PIN-code digits, and avoids assigning a partner to overlapping booked delivery slots. Operations must explicitly apply each suggested assignment; generating a plan does not create or change assignments.
+
+**Planning limitation:** PIN-code prefix is only a coarse postal grouping, not a measured road distance. The planner does not geocode addresses, calculate shortest paths, account for traffic, or provide turn-by-turn navigation. Those capabilities require a trusted geocoding/routing provider and should be added only after its coverage, cost, and data-handling requirements are reviewed.
+
 ## Production phone OTP verification
 
 Phone verification uses MSG91's OTP API when the application is not in local development OTP mode. Configure `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID` in the deployment secret store. The OTP template must be created in the MSG91 OTP section and contain the `##OTP##` placeholder. The API requests a six-digit code with the configured expiry; MSG91 generates and stores the production OTP. TimeDrop does not generate, store, log, or return the production OTP.
