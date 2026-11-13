@@ -10,11 +10,8 @@ import "./operations-workspace.css";
 import "./warehouse-workspace.css";
 import "./parcel-operations.css";
 import "./fleet-scheduling.css";
+import "./marketing.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
-  <React.StrictMode>
-    <BrowserRouter>
-      <App />
-    </BrowserRouter>
-  </React.StrictMode>,
+  <React.StrictMode><BrowserRouter><App /></BrowserRouter></React.StrictMode>,
 );
