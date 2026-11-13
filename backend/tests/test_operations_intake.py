@@ -375,37 +375,46 @@ def test_storage_bin_can_only_be_assigned_while_parcel_is_in_operations_custody(
 
 def test_storage_bin_cannot_be_updated_after_parcel_is_released(client):
     admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
-    received = client.post(
-        "/api/v1/operations/intake",
-        headers=admin,
-        json=intake_payload("TD-WAREHOUSE-BIN-002"),
-    )
-    parcel_id = received.json()["id"]
-
-    client.post("/api/v1/auth/register", json={
+    registration = client.post("/api/v1/auth/register", json={
         "email": "bin-owner@example.com",
         "full_name": "Bin Owner",
         "password": "CustomerPassword123!",
     })
+    assert registration.status_code == 201
     customer = auth(client, "bin-owner@example.com", "CustomerPassword123!")
+
+    received = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json={**intake_payload("TD-WAREHOUSE-BIN-002"), "customer_email": "bin-owner@example.com"},
+    )
+    assert received.status_code == 201
+    parcel_id = received.json()["id"]
+
     slot = client.post("/api/v1/scheduling/slots", headers=admin, json={
         "delivery_date": (datetime.now().date() + timedelta(days=3)).isoformat(),
         "start_time": "10:00:00", "end_time": "12:00:00", "capacity": 5,
     })
-    client.post(
+    assert slot.status_code == 201
+    booking = client.post(
         f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
         headers=customer,
         json={"slot_id": slot.json()["id"]},
     )
+    assert booking.status_code == 201
+
     partner = client.post("/api/v1/delivery/partners", headers=admin, json={
         "email": "bin-rider@example.com", "full_name": "Bin Rider",
         "password": "StrongRiderPassword123!", "phone": "9876543213",
     })
-    client.post(
+    assert partner.status_code == 201
+    assignment = client.post(
         f"/api/v1/delivery/parcels/{parcel_id}/assignments",
         headers=admin,
         json={"partner_id": partner.json()["id"]},
     )
+    assert assignment.status_code == 201
+
     released = client.post(
         f"/api/v1/operations/parcels/{parcel_id}/release",
         headers=admin,
