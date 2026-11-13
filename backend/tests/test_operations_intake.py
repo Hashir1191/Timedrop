@@ -183,3 +183,115 @@ def test_release_records_handover_to_assigned_partner(client):
     assert [event["event_type"] for event in history.json()] == ["received", "released"]
     again = client.post(f"/api/v1/operations/parcels/{parcel_id}/release", headers=admin, json={})
     assert again.status_code == 409
+
+
+def test_failed_delivery_must_return_to_operations_before_reassignment(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "return-owner@example.com", "full_name": "Return Owner", "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "return-owner@example.com", "CustomerPassword123!")
+    received = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json={**intake_payload("TD-CUSTODY-RETURN"), "customer_email": "return-owner@example.com"},
+    )
+    assert received.status_code == 201
+    parcel_id = received.json()["id"]
+
+    slot_response = client.post("/api/v1/scheduling/slots", headers=admin, json={
+        "delivery_date": (datetime.now().date() + timedelta(days=3)).isoformat(),
+        "start_time": "10:00:00", "end_time": "12:00:00", "capacity": 5,
+    })
+    assert slot_response.status_code == 201
+    booking = client.post(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=customer,
+        json={"slot_id": slot_response.json()["id"]},
+    )
+    assert booking.status_code == 201
+
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "return-rider@example.com", "full_name": "Return Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543212",
+    })
+    assert partner.status_code == 201
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner.json()["id"]},
+    )
+    assert assignment.status_code == 201
+    released = client.post(
+        f"/api/v1/operations/parcels/{parcel_id}/release",
+        headers=admin,
+        json={},
+    )
+    assert released.status_code == 201
+
+    rider = auth(client, "return-rider@example.com", "StrongRiderPassword123!")
+    assert client.patch(
+        f"/api/v1/delivery/assignments/{assignment.json()['id']}/status",
+        headers=rider,
+        json={"status": "accepted"},
+    ).status_code == 200
+    assert client.patch(
+        f"/api/v1/delivery/assignments/{assignment.json()['id']}/status",
+        headers=rider,
+        json={"status": "out_for_delivery"},
+    ).status_code == 200
+    failed = client.patch(
+        f"/api/v1/delivery/assignments/{assignment.json()['id']}/status",
+        headers=rider,
+        json={"status": "failed", "failure_reason": "Recipient unavailable"},
+    )
+    assert failed.status_code == 200
+
+    blocked = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner.json()["id"]},
+    )
+    assert blocked.status_code == 409
+
+    returned = client.post(
+        f"/api/v1/operations/parcels/{parcel_id}/return",
+        headers=admin,
+        json={"package_condition": "damaged", "note": "Outer packaging torn; received back at depot."},
+    )
+    assert returned.status_code == 201
+    assert returned.json()["event_type"] == "returned"
+    assert returned.json()["received_from"] == "Return Rider"
+    assert returned.json()["package_condition"] == "damaged"
+
+    reassigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner.json()["id"]},
+    )
+    assert reassigned.status_code == 201
+    released_again = client.post(
+        f"/api/v1/operations/parcels/{parcel_id}/release",
+        headers=admin,
+        json={"note": "Reissued after return inspection."},
+    )
+    assert released_again.status_code == 201
+
+    history = client.get(f"/api/v1/operations/parcels/{parcel_id}/custody", headers=admin)
+    assert [event["event_type"] for event in history.json()] == [
+        "received", "released", "returned", "released",
+    ]
+
+
+def test_only_operations_admin_can_record_failed_parcel_return(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "ordinary-customer@example.com", "full_name": "Customer", "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "ordinary-customer@example.com", "CustomerPassword123!")
+    response = client.post(
+        "/api/v1/operations/parcels/999/return",
+        headers=customer,
+        json={"package_condition": "intact", "note": "Synthetic return"},
+    )
+    assert response.status_code == 403
