@@ -22,6 +22,7 @@ export const bookParcel=(token:string,parcelId:number,slotId:number)=>request<Bo
 export const getDeliveryPartners=(token:string)=>request<DeliveryPartner[]>("/delivery/partners",token);
 export const createDeliveryPartner=(token:string,data:{email:string;full_name:string;password:string;phone:string;vehicle_type:string})=>request<DeliveryPartner>("/delivery/partners",token,{method:"POST",body:JSON.stringify(data)});
 export const getDeliveryAssignments=(token:string)=>request<DeliveryAssignment[]>("/delivery/assignments",token);
+export const getDeliveryRoutePlan=(token:string,date:string)=>request<DeliveryRoutePlan>(`/delivery/route-plan?delivery_date=${encodeURIComponent(date)}`,token);
 export const assignParcel=(token:string,parcelId:number,partnerId:number)=>request<DeliveryAssignment>(`/delivery/parcels/${parcelId}/assignments`,token,{method:"POST",body:JSON.stringify({partner_id:partnerId})});
 export const getMyAssignments=(token:string)=>request<DeliveryAssignment[]>("/delivery/my-assignments",token);
 export const getMyTracking=(token:string)=>request<DeliveryAssignment[]>("/delivery/my-tracking",token);
