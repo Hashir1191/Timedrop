@@ -433,3 +433,10 @@ The route planner remains a recommendation workflow requiring an operations user
 The customer parcel-creation page now uses a guided first-step layout with grouped recipient, address, and parcel-reference fields, plus a clear two-step progress indicator. The slot-selection page now presents the parcel summary, current booking, date selection, available capacity, selected-window confirmation, and reschedule/cancellation actions in a more focused flow.
 
 All parcel creation, booking, rescheduling, cancellation, and slot-availability operations continue to use the existing APIs and server-side rules. Loading, no-slot, error, and narrow-screen states are included. No backend API or database migration is required.
+
+
+## Phase 23 — Notification and app-shell accessibility
+
+Notification controls now expose their expanded state and dialog semantics to assistive technology, provide clear accessible labels for individual items, and close with the Escape key. Sign-out controls across the admin, customer, and delivery-partner shells now have explicit accessible names.
+
+The notification visual layer improves keyboard focus, popover presentation, and reduced-motion behavior. Authentication and onboarding refinements are maintained in the preceding Phase 22 experience.
