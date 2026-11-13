@@ -11,7 +11,7 @@ import type { Parcel } from "../types";
 
 export default function CustomerParcels() {
  const {token}=useAuth(); const [codes,setCodes]=useState<Record<number,{code:string;expires_at:string}>>({}); const [codeBusy,setCodeBusy]=useState<number|null>(null); const [codeError,setCodeError]=useState(""); const [parcels,setParcels]=useState<Parcel[]>([]); const [tracking,setTracking]=useState<DeliveryAssignment[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState("");
- async function load(){if(!token)return;setLoading(true);setError("");try{setParcels(await getParcels(token));}catch(e){setError(e instanceof Error?e.message:"Unable to load parcels.");}finally{setLoading(false);}}
+ async function load(){if(!token)return;setLoading(true);setError("");try{const [parcelRows,trackingRows]=await Promise.all([getParcels(token),getMyTracking(token)]);setParcels(parcelRows);setTracking(trackingRows);}catch(e){setError(e instanceof Error?e.message:"Unable to load parcels.");}finally{setLoading(false);}}
  useEffect(()=>{void load();},[token]);
  async function generateCode(parcelId:number){if(!token)return;setCodeBusy(parcelId);setCodeError("");try{const result=await issueDeliveryCode(token,parcelId);setCodes(current=>({...current,[parcelId]:result}));}catch(e){setCodeError(e instanceof Error?e.message:"Unable to generate delivery code.");}finally{setCodeBusy(null);}}
  return <><div className="page-heading"><div><div className="eyebrow">PARCEL HISTORY</div><h1>My parcels</h1><p>Every parcel you've registered with TimeDrop.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={15}/> Refresh</button></div>
