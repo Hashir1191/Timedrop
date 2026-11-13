@@ -429,3 +429,99 @@ def test_delivery_code_locks_after_five_incorrect_attempts(client):
         headers=rider, json={"code": issued.json()["code"], "recipient_name": "Lock Owner"},
     )
     assert blocked.status_code == 409
+
+
+
+def test_partner_capacity_is_enforced_and_route_plan_respects_limit(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    assert client.post("/api/v1/auth/register", json={
+        "email": "capacity-owner@example.com", "full_name": "Capacity Owner",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    customer = auth(client, "capacity-owner@example.com", "CustomerPassword123!")
+
+    first_id = make_parcel(client, customer, "TD-CAPACITY-001")
+    second_id = make_parcel(client, customer, "TD-CAPACITY-002")
+    delivery_date = (datetime.now().date() + timedelta(days=3)).isoformat()
+    slot = client.post("/api/v1/scheduling/slots", headers=admin, json={
+        "delivery_date": delivery_date, "start_time": "10:00:00",
+        "end_time": "12:00:00", "capacity": 5,
+    })
+    assert slot.status_code == 201
+    for parcel_id in (first_id, second_id):
+        booked = client.post(
+            f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+            headers=customer, json={"slot_id": slot.json()["id"]},
+        )
+        assert booked.status_code == 201
+
+    partner_response = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "capacity-rider@example.com", "full_name": "Capacity Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+        "max_active_assignments": 1,
+    })
+    assert partner_response.status_code == 201
+    partner = partner_response.json()
+    assert partner["max_active_assignments"] == 1
+
+    first_assignment = client.post(
+        f"/api/v1/delivery/parcels/{first_id}/assignments",
+        headers=admin, json={"partner_id": partner["id"]},
+    )
+    assert first_assignment.status_code == 201
+
+    second_assignment = client.post(
+        f"/api/v1/delivery/parcels/{second_id}/assignments",
+        headers=admin, json={"partner_id": partner["id"]},
+    )
+    assert second_assignment.status_code == 409
+    assert "capacity" in second_assignment.json()["detail"].lower()
+
+    plan = client.get(f"/api/v1/delivery/route-plan?delivery_date={delivery_date}", headers=admin)
+    assert plan.status_code == 200
+    assert plan.json()["recommended"] == 0
+    assert plan.json()["unassigned_without_partner"] == 1
+    assert plan.json()["stops"][0]["suggested_partner_id"] is None
+
+
+def test_assignment_rejects_overlapping_partner_slots(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    assert client.post("/api/v1/auth/register", json={
+        "email": "overlap-owner@example.com", "full_name": "Overlap Owner",
+        "password": "CustomerPassword123!",
+    }).status_code == 201
+    customer = auth(client, "overlap-owner@example.com", "CustomerPassword123!")
+    first_id = make_parcel(client, customer, "TD-OVERLAP-001")
+    second_id = make_parcel(client, customer, "TD-OVERLAP-002")
+    delivery_date = (datetime.now().date() + timedelta(days=4)).isoformat()
+    slots = []
+    for start, end in (("10:00:00", "12:00:00"), ("11:00:00", "13:00:00")):
+        response = client.post("/api/v1/scheduling/slots", headers=admin, json={
+            "delivery_date": delivery_date, "start_time": start,
+            "end_time": end, "capacity": 5,
+        })
+        assert response.status_code == 201
+        slots.append(response.json())
+    for parcel_id, slot in zip((first_id, second_id), slots):
+        booked = client.post(
+            f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+            headers=customer, json={"slot_id": slot["id"]},
+        )
+        assert booked.status_code == 201
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "overlap-rider@example.com", "full_name": "Overlap Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543210",
+        "max_active_assignments": 5,
+    })
+    assert partner.status_code == 201
+    first = client.post(
+        f"/api/v1/delivery/parcels/{first_id}/assignments",
+        headers=admin, json={"partner_id": partner.json()["id"]},
+    )
+    assert first.status_code == 201
+    second = client.post(
+        f"/api/v1/delivery/parcels/{second_id}/assignments",
+        headers=admin, json={"partner_id": partner.json()["id"]},
+    )
+    assert second.status_code == 409
+    assert "overlapping" in second.json()["detail"].lower()
