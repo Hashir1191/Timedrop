@@ -225,7 +225,30 @@ Operations admins can generate a non-binding route/assignment proposal for a del
 
 The first version uses a transparent heuristic: it balances active partner workload, groups parcels sharing the same first three PIN-code digits, and avoids assigning a partner to overlapping booked delivery slots. Operations must explicitly apply each suggested assignment; generating a plan does not create or change assignments.
 
-**Planning limitation:** PIN-code prefix is only a coarse postal grouping, not a measured road distance. The planner does not geocode addresses, calculate shortest paths, account for traffic, or provide turn-by-turn navigation. Those capabilities require a trusted geocoding/routing provider and should be added only after its coverage, cost, and data-handling requirements are reviewed.
+### Map-based route optimization (optional)
+
+The planner can optionally use OpenStreetMap Nominatim for address geocoding and OSRM for driving-route optimization. For each suggested partner, OSRM's trip service reorders geocoded stops and returns road-leg distance and duration estimates. The operations screen shows coordinates, road estimates, and a link to open the proposed route in OpenStreetMap. If a destination cannot be geocoded or a provider is unavailable, that stop remains in the plan and the existing PIN-prefix heuristic is retained as a fallback.
+
+Map routing is **disabled by default**. To enable it, set these values in the uncommitted root `.env` file:
+
+```dotenv
+ROUTE_MAPPING_ENABLED=true
+ROUTE_GEOCODER_URL=https://nominatim.openstreetmap.org/search
+ROUTE_ROUTER_URL=https://router.project-osrm.org
+ROUTE_PROVIDER_USER_AGENT=TimeDrop/1.0 (route-planning; contact: your-monitored-email@example.com)
+ROUTE_GEOCODE_TIMEOUT_SECONDS=8
+```
+
+Replace the sample User-Agent with a descriptive application identifier and a monitored contact address. Apply the new Alembic migration before using the feature:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m alembic -c backend\\alembic.ini upgrade head
+```
+
+Address coordinates are cached in the `route_geocode_cache` table using a SHA-256 hash of the normalized address; the original address is not copied into the cache table. When mapping is enabled, the delivery address is sent to the configured geocoding provider and coordinates are sent to the configured routing provider. Keep mapping disabled unless your privacy notice and operational policy permit this processing. Do not send sensitive or real customer addresses to public demo services without authorization.
+
+The public Nominatim service has a strict usage policy (including a maximum of one request per second and a descriptive User-Agent); the public OSRM demo server has no production availability guarantee. These public endpoints are suitable only for low-volume development and evaluation. For production, use a compliant hosted provider or self-host the geocoder/router, configure the URLs accordingly, and review provider retention, rate limits, coverage, and service terms. Road estimates do not include live traffic and are not turn-by-turn navigation.
 
 ## Production phone OTP verification
 
