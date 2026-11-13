@@ -38,6 +38,7 @@ export const markAllNotificationsRead=(token:string)=>request<{updated_count:num
 
 export type PhoneStatus = { phone_number:string|null; phone_verified:boolean; sms_notifications_consent:boolean };
 export const getPhoneStatus=(token:string)=>request<PhoneStatus>("/phone-verification/me",token);
-export const requestPhoneCode=(token:string,phone_number:string)=>request<{message:string;phone_number:string;expires_in_seconds:number;development_code?:string}>("/phone-verification/request",token,{method:"POST",body:JSON.stringify({phone_number})});
+export const requestPhoneCode=(token:string,phone_number:string)=>request<{message:string;phone_number:string;expires_in_seconds:number;development_code?:string;delivery_mode?:string}>("/phone-verification/request",token,{method:"POST",body:JSON.stringify({phone_number})});
+export const resendPhoneCode=(token:string)=>request<{message:string;phone_number:string;expires_in_seconds:number;delivery_mode:string}>("/phone-verification/resend",token,{method:"POST"});
 export const verifyPhoneCode=(token:string,code:string)=>request<PhoneStatus>("/phone-verification/verify",token,{method:"POST",body:JSON.stringify({code})});
 export const updateSmsConsent=(token:string,enabled:boolean)=>request<PhoneStatus>("/phone-verification/sms-consent",token,{method:"PUT",body:JSON.stringify({enabled})});
