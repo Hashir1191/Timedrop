@@ -1,0 +1,134 @@
+/* Customer parcel creation and slot booking — Phase 21 */
+.customer-booking-workspace, .customer-schedule-workspace { max-width: 1250px; margin: 0 auto; }
+.customer-booking-heading { align-items: flex-end; }
+.customer-booking-step { display: inline-flex; align-items: center; gap: 8px; padding: 8px 11px; border: 1px solid #e4eaf4; border-radius: 99px; color: #8390a3; background: #fff; font-size: 8px; font-weight: 750; white-space: nowrap; }
+.customer-booking-step span { color: #5275d5; font-size: 9px; }
+.customer-booking-step i { width: 23px; height: 1px; background: #dfe6f0; }
+.customer-booking-layout { display: grid; grid-template-columns: minmax(0,1.7fr) minmax(240px,.75fr); gap: 15px; align-items: start; }
+.customer-create-form-panel { overflow: hidden; border-radius: 17px; box-shadow: 0 7px 24px rgba(25,45,79,.04); }
+.customer-create-form-panel .panel-heading { display: flex; align-items: center; justify-content: space-between; padding: 19px 20px; border-bottom: 1px solid #edf1f6; }
+.customer-form-kicker { color: #8495b5; font-size: 7px; font-weight: 800; letter-spacing: 1.4px; }
+.customer-create-form-panel .panel-heading h2 { display: flex; align-items: center; gap: 8px; margin: 6px 0 0; color: #293b56; font-size: 15px; }
+.customer-create-form-panel .panel-heading h2 svg { color: #5275d5; }
+.customer-create-form-panel .panel-heading p { margin: 5px 0 0; color: #8b97a8; font-size: 9px; }
+.customer-form-step-mark { color: #a1adbf; font-size: 8px; font-weight: 800; letter-spacing: 1px; }
+.customer-create-form { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px 12px; padding: 20px; }
+.customer-create-form label { display: grid; gap: 6px; color: #78869a; font-size: 9px; font-weight: 750; }
+.customer-create-form input, .customer-create-form textarea { width: 100%; min-height: 39px; border: 1px solid #e1e7f0; border-radius: 9px; padding: 0 10px; color: #40516b; background: #fbfcfe; font-size: 10px; }
+.customer-create-form textarea { padding: 10px; resize: vertical; }
+.customer-create-form input:focus, .customer-create-form textarea:focus { border-color: #9db3ee; background: #fff; }
+.customer-create-form .span-two { grid-column: span 2; }
+.customer-form-section-label { grid-column: span 2; display: flex; align-items: center; gap: 9px; padding: 12px 0 2px; border-top: 1px solid #f0f2f6; }
+.customer-form-section-label:first-child { border-top: 0; padding-top: 0; }
+.customer-form-section-label > span { width: 25px; height: 25px; display: grid; place-items: center; border-radius: 8px; color: #4d70d4; background: #edf2ff; font-size: 8px; font-weight: 800; }
+.customer-form-section-label > div { display: grid; gap: 3px; }
+.customer-form-section-label strong { color: #42536d; font-size: 9px; }
+.customer-form-section-label small { color: #9aa5b4; font-size: 8px; }
+.customer-optional-label { display: inline-flex; margin-left: 5px; color: #9ba7b6; font-size: 7px; letter-spacing: .7px; }
+.customer-create-form .customer-form-actions { grid-column: span 2; display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 5px; padding-top: 16px; border-top: 1px solid #edf1f6; }
+.customer-create-form .customer-form-actions > span { color: #929eae; font-size: 8px; }
+.customer-create-form .customer-form-actions .primary-button { min-height: 40px; }
+.customer-booking-aside { display: grid; gap: 11px; }
+.customer-booking-aside-card { padding: 16px; border: 1px solid #e5eaf2; border-radius: 14px; background: #fff; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.customer-booking-aside-card h3 { margin: 10px 0 5px; color: #2d405c; font-size: 11px; }
+.customer-booking-aside-card p { margin: 0; color: #8996a8; font-size: 9px; line-height: 1.65; }
+.customer-aside-kicker { color: #8798b8; font-size: 7px; font-weight: 800; letter-spacing: 1.3px; }
+.customer-booking-progress h3 { margin-top: 6px; margin-bottom: 14px; font-size: 13px; }
+.customer-progress-step { display: flex; align-items: center; gap: 8px; }
+.customer-progress-step > span { width: 29px; height: 29px; display: grid; place-items: center; border-radius: 9px; color: #98a5b7; background: #f2f4f8; }
+.customer-progress-step.active > span { color: #2f8d69; background: #eaf8f1; }
+.customer-progress-step > div { display: grid; gap: 3px; flex: 1; }
+.customer-progress-step strong { color: #53627a; font-size: 9px; }
+.customer-progress-step small { color: #9aa5b4; font-size: 8px; }
+.customer-progress-step b { color: #a0aaba; font-size: 8px; }
+.customer-progress-line { height: 18px; margin-left: 14px; border-left: 1px dashed #dce3ed; }
+.customer-aside-icon { width: 33px; height: 33px; display: grid; place-items: center; border-radius: 10px; color: #4b70d4; background: #edf2ff; }
+.customer-booking-security .customer-aside-icon { color: #29966b; background: #eaf8f1; }
+
+/* Slot selection */
+.customer-schedule-heading { align-items: flex-end; }
+.customer-schedule-progress { display: flex; align-items: center; gap: 11px; margin: -5px 0 18px; color: #95a1b2; font-size: 8px; font-weight: 750; }
+.customer-schedule-progress span { display: inline-flex; align-items: center; gap: 6px; }
+.customer-schedule-progress .done { color: #338263; }
+.customer-schedule-progress .current { color: #4b70d4; }
+.customer-schedule-progress i { width: 45px; height: 1px; background: #dfe6f0; }
+.customer-schedule-parcel { overflow: hidden; margin-bottom: 17px; border: 1px solid #e5eaf2; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.customer-schedule-parcel-main { display: flex; align-items: center; gap: 10px; padding: 15px 17px; }
+.customer-schedule-package-icon { width: 38px; height: 38px; flex: 0 0 38px; display: grid; place-items: center; border-radius: 11px; color: #4b70d4; background: #edf2ff; }
+.customer-schedule-parcel-main > div { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.customer-schedule-parcel-main > div > span { color: #9aa5b4; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.customer-schedule-parcel-main strong { color: #2b3c56; font-size: 11px; }
+.customer-schedule-parcel-main small { color: #8b97a8; font-size: 8px; }
+.customer-schedule-address { display: grid; gap: 4px; padding: 11px 17px; border-top: 1px solid #f0f2f6; }
+.customer-schedule-address span { color: #9aa5b4; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.customer-schedule-address strong { color: #53627a; font-size: 9px; }
+.customer-schedule-address small { color: #8b97a8; font-size: 8px; }
+.customer-confirmed-booking { display: flex; align-items: center; gap: 10px; padding: 13px 17px; border-top: 1px solid #dcefe5; background: #f4fbf7; }
+.customer-confirmed-icon { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 9px; color: #27825e; background: #e3f5eb; }
+.customer-confirmed-booking > div { display: grid; gap: 3px; flex: 1; }
+.customer-confirmed-booking small { color: #6e9a84; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.customer-confirmed-booking strong { color: #356f54; font-size: 10px; }
+.customer-confirmed-booking span:not(.customer-confirmed-icon) { color: #648d78; font-size: 8px; }
+.customer-cancel-booking { padding: 7px 9px; border: 1px solid #d6e8de; border-radius: 7px; color: #9a6262; background: #fff; font-size: 8px; font-weight: 750; cursor: pointer; }
+.customer-slot-section { padding: 19px; border: 1px solid #e5eaf2; border-radius: 16px; background: #fff; box-shadow: 0 6px 20px rgba(25,45,79,.035); }
+.customer-slot-section-heading { display: flex; align-items: flex-end; justify-content: space-between; gap: 14px; margin-bottom: 15px; }
+.customer-slot-section-heading h2 { margin: 5px 0 0; color: #2b3c56; font-size: 16px; }
+.customer-slot-section-heading p { margin: 5px 0 0; color: #8b97a8; font-size: 9px; }
+.customer-slot-legend { display: inline-flex; align-items: center; gap: 6px; color: #7e8c9f; font-size: 8px; }
+.customer-slot-legend i { width: 7px; height: 7px; border-radius: 50%; background: #47a57c; }
+.customer-slot-date-panel { display: flex; align-items: center; gap: 9px; padding: 11px 12px; margin-bottom: 14px; border: 1px solid #e8edf4; border-radius: 10px; background: #fbfcfe; }
+.customer-slot-date-panel label { display: inline-flex; align-items: center; gap: 6px; flex: 1; color: #78869a; font-size: 9px; font-weight: 750; }
+.customer-slot-date-panel label svg { color: #5677d3; }
+.customer-slot-date-panel input { height: 34px; border: 1px solid #dfe6f0; border-radius: 8px; padding: 0 8px; color: #52627b; background: #fff; font-size: 9px; }
+.customer-slot-date-panel > span { color: #9aa5b4; font-size: 8px; }
+.customer-slot-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.customer-slot-option { position: relative; display: flex; flex-direction: column; align-items: flex-start; gap: 7px; min-height: 88px; padding: 12px; border: 1px solid #e3e9f2; border-radius: 11px; color: #53627a; background: #fff; text-align: left; cursor: pointer; transition: border-color .15s, background .15s, box-shadow .15s; }
+.customer-slot-option:hover:not(:disabled) { border-color: #a9bdf0; background: #f8faff; }
+.customer-slot-option.selected { border-color: #5478df; background: #f3f6ff; box-shadow: 0 0 0 2px rgba(84,120,223,.10); }
+.customer-slot-option-icon { color: #5577d5; }
+.customer-slot-option strong { color: #344760; font-size: 10px; }
+.customer-slot-option small { color: #8a98ac; font-size: 8px; }
+.customer-slot-option.unavailable { opacity: .45; background: #f8f9fb; cursor: not-allowed; }
+.customer-slot-selected { position: absolute; top: 10px; right: 10px; color: #4770d4; }
+.customer-no-slots { display: grid; justify-items: center; gap: 7px; padding: 34px 15px; border: 1px dashed #dce4f0; border-radius: 12px; color: #8b9ab0; background: #fbfcfe; }
+.customer-no-slots strong { color: #586981; font-size: 10px; }
+.customer-no-slots span { color: #9aa5b4; font-size: 8px; }
+.customer-slot-loading { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 10px; }
+.customer-slot-loading div { height: 88px; border-radius: 11px; background: linear-gradient(100deg,#fff 25%,#f4f6fa 38%,#fff 62%); background-size: 300% 100%; animation: customer-shimmer 1.5s ease infinite; }
+.customer-selected-summary { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 14px; padding: 11px 12px; border: 1px solid #dcefe5; border-radius: 10px; color: #318362; background: #f4fbf7; }
+.customer-selected-summary span { display: inline-flex; align-items: center; gap: 6px; font-size: 8px; font-weight: 750; }
+.customer-selected-summary strong { color: #356f54; font-size: 9px; }
+.customer-schedule-submit { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-top: 16px; margin-top: 16px; border-top: 1px solid #edf1f6; }
+.customer-schedule-submit > div { display: flex; align-items: flex-start; gap: 7px; color: #8493a8; }
+.customer-schedule-submit > div svg { flex: 0 0 auto; color: #4b70d4; }
+.customer-schedule-submit > div span { max-width: 310px; font-size: 8px; line-height: 1.5; }
+.customer-schedule-submit .primary-button { min-height: 40px; }
+.customer-schedule-skeleton { height: 160px; margin-bottom: 13px; border-radius: 15px; background: linear-gradient(100deg,#fff 25%,#f4f6fa 38%,#fff 62%); background-size: 300% 100%; animation: customer-shimmer 1.5s ease infinite; }
+@media (max-width: 1000px) { .customer-booking-layout { grid-template-columns: minmax(0,1fr) 230px; } .customer-slot-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 700px) {
+ .customer-booking-heading, .customer-schedule-heading { align-items: flex-start; flex-direction: column; }
+ .customer-booking-step { align-self: flex-start; }
+ .customer-booking-layout { grid-template-columns: 1fr; }
+ .customer-create-form { grid-template-columns: 1fr; padding: 14px; }
+ .customer-create-form .span-two, .customer-form-section-label, .customer-create-form .customer-form-actions { grid-column: auto; }
+ .customer-create-form .customer-form-actions { align-items: stretch; flex-direction: column; }
+ .customer-create-form .customer-form-actions .primary-button { width: 100%; }
+ .customer-booking-aside { grid-template-columns: 1fr; }
+ .customer-schedule-progress { margin-top: 0; }
+ .customer-schedule-progress i { width: 25px; }
+ .customer-schedule-parcel-main { flex-wrap: wrap; padding: 13px; }
+ .customer-schedule-address { padding: 10px 13px; }
+ .customer-confirmed-booking { align-items: flex-start; flex-wrap: wrap; padding: 12px 13px; }
+ .customer-cancel-booking { margin-left: 41px; }
+ .customer-slot-section { padding: 13px; }
+ .customer-slot-section-heading { align-items: flex-start; }
+ .customer-slot-date-panel { align-items: flex-start; flex-wrap: wrap; }
+ .customer-slot-date-panel label { flex-basis: 100%; }
+ .customer-slot-date-panel input { flex: 1; }
+ .customer-slot-date-panel > span { display: none; }
+ .customer-slot-grid, .customer-slot-loading { grid-template-columns: repeat(2,minmax(0,1fr)); }
+ .customer-schedule-submit { align-items: stretch; flex-direction: column; }
+ .customer-schedule-submit .primary-button { width: 100%; }
+ .customer-selected-summary { align-items: flex-start; flex-direction: column; }
+}
+@media (prefers-reduced-motion: reduce) { .customer-slot-loading div, .customer-schedule-skeleton { animation: none; } }
