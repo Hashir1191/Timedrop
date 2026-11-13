@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Activity, CalendarClock, ChevronDown, LayoutDashboard, LogOut, Package, PackageCheck, Truck, Users, Warehouse } from "lucide-react";
+import { Activity, CalendarClock, BarChart3, ChevronDown, LayoutDashboard, LogOut, Package, PackageCheck, Truck, Users, Warehouse } from "lucide-react";
 import { useAuth } from "../auth";
 import NotificationBell from "./NotificationBell";
 const navItems=[
@@ -7,6 +7,7 @@ const navItems=[
  {to:"/parcels",label:"Parcels",icon:Package},
  {to:"/intake",label:"Parcel intake",icon:PackageCheck},
  {to:"/warehouse",label:"Warehouse",icon:Warehouse},
+ {to:"/analytics",label:"Analytics",icon:BarChart3},
  {to:"/slots",label:"Delivery slots",icon:CalendarClock},
  {to:"/bookings",label:"Bookings",icon:Truck},
  {to:"/delivery-partners",label:"Delivery partners",icon:Users},

@@ -42,3 +42,15 @@ export type ParcelTimelineEvent = {
   id: string; event_type: string; title: string; description: string;
   status: string; created_at: string;
 };
+
+export type PartnerPerformance = {
+ partner_id:number; partner_name:string; total_assignments:number; delivered:number;
+ failed:number; active:number; success_rate:number; average_delivery_hours:number|null;
+};
+export type DailyDeliveryMetric = { day:string; assigned:number; delivered:number; failed:number };
+export type OperationsAnalytics = {
+ start_date:string; end_date:string; parcels_created:number; assignments_created:number;
+ delivered:number; failed:number; active:number; success_rate:number;
+ average_delivery_hours:number|null; partner_count:number;
+ partners:PartnerPerformance[]; daily:DailyDeliveryMetric[];
+};

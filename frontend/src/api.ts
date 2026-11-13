@@ -87,3 +87,6 @@ export const updateWarehouseLocation=(token:string,parcelId:number,warehouse_loc
  request<Parcel>(`/operations/warehouse/parcels/${parcelId}/location`,token,{method:"PATCH",body:JSON.stringify({warehouse_location})});
 
 export const getParcelTimeline=(token:string,parcelId:number)=>request<ParcelTimelineEvent[]>(`/parcels/${parcelId}/timeline`,token);
+
+export const getOperationsAnalytics=(token:string,startDate:string,endDate:string)=>
+ request<import("./types").OperationsAnalytics>(`/operations/analytics?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`,token);

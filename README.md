@@ -308,3 +308,15 @@ The customer portal's parcel history now combines parcel registration, the curre
 - The endpoint checks parcel ownership and returns 404 for another customer's parcel.
 - Internal custody notes, raw failure notes, delivery verification codes, and recipient contact details are not included in the timeline.
 - The customer **My parcels** page exposes the unified history under **Full parcel activity**. This is event-based progress, not GPS/live-location tracking.
+
+
+## Operations analytics and partner performance
+
+The admin **Analytics** workspace summarizes recorded parcel and delivery-assignment activity over a selected inclusive date range (maximum 366 calendar days).
+
+- `GET /api/v1/operations/analytics?start_date=YYYY-MM-DD&end_date=YYYY-MM-DD` — returns parcels created, assignments created, delivered/failed/active assignments, delivery success rate, average completed-delivery duration, partner-level performance, and daily assignment/outcome counts.
+- Date filtering is based on parcel creation and assignment creation timestamps. Delivery success rate uses terminal assignments (delivered + failed) as its denominator; active assignments are excluded.
+- Average delivery duration is calculated only for delivered assignments with a recorded `delivered_at` timestamp and non-negative elapsed time.
+- Partner metrics include assignments created within the selected period, delivered/failed/active counts, terminal-outcome success rate, and average duration where available.
+- Daily delivered counts use `delivered_at`; failed counts use the assignment's last update timestamp because the current schema does not have a dedicated failure timestamp.
+- All analytics endpoints are admin-only and read existing records; they do not change parcel or assignment state.
