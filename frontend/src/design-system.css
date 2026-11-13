@@ -103,7 +103,7 @@ input, select, textarea { border-radius: 9px; }
   }
   .side-nav { padding-bottom: 2px; }
   .nav-link { transform: none !important; }
-  .topbar { position: sticky; top: 62px; height: 56px; }
+  .topbar { position: relative; top: auto; height: 56px; }
   .page-content { padding-top: 25px; }
   .login-panel { padding: 35px 0; }
 }
