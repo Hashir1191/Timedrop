@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
+import "../styles.custody.css";
 import { ClipboardCheck, PackageCheck, RefreshCw, ShieldCheck } from "lucide-react";
 import { createParcelIntake, getCustodyHistory, getParcelIntakes, releaseParcelCustody } from "../api";
 import { useAuth } from "../auth";
