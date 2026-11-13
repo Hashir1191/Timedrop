@@ -15,6 +15,7 @@ import "./customer-booking.css";
 import "./marketing.css";
 import "./auth-experience.css";
 import "./accessibility-polish.css";
+import "./communication-settings.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
