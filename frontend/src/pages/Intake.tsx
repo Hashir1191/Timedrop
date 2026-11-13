@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { ClipboardCheck, PackageCheck, RefreshCw, ShieldCheck } from "lucide-react";
 import { createParcelIntake, getCustodyHistory, getParcelIntakes, releaseParcelCustody } from "../api";
 import { useAuth } from "../auth";
@@ -27,7 +28,7 @@ export default function Intake(){
  }
  useEffect(()=>{void load();},[token]);
  function update(key:string,value:string){setForm(old=>({...old,[key]:value}));}
- async function submit(event:React.FormEvent){
+ async function submit(event:FormEvent){
   event.preventDefault();if(!token)return;setBusy(true);setError("");setSuccess("");
   try{
    const created=await createParcelIntake(token,{
