@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     phone_otp_expose_in_development: bool = True
     phone_otp_expire_minutes: int = 5
     phone_otp_max_attempts: int = 5
+    route_mapping_enabled: bool = False
+    route_geocoder_url: str = "https://nominatim.openstreetmap.org/search"
+    route_router_url: str = "https://router.project-osrm.org"
+    route_provider_user_agent: str = "TimeDrop/1.0 (route-planning; configure-contact-email)"
+    route_geocode_timeout_seconds: float = 8.0
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore", case_sensitive=False)
 

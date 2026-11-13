@@ -159,3 +159,16 @@ class PhoneVerificationCode(Base):
     attempts: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class RouteGeocodeCache(Base):
+    """Cached address coordinates to avoid repeatedly sending the same address to a geocoder."""
+
+    __tablename__ = "route_geocode_cache"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    address_hash: Mapped[str] = mapped_column(String(64), unique=True, nullable=False, index=True)
+    latitude: Mapped[float] = mapped_column(nullable=False)
+    longitude: Mapped[float] = mapped_column(nullable=False)
+    provider: Mapped[str] = mapped_column(String(40), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)

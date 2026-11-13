@@ -185,6 +185,11 @@ class DeliveryRouteStop(BaseModel):
     partner_active_jobs: int
     zone_key: str
     recommendation: str
+    latitude: float | None = None
+    longitude: float | None = None
+    leg_distance_m: int | None = None
+    leg_duration_seconds: int | None = None
+    map_url: str | None = None
 
 
 class DeliveryRoutePlanResponse(BaseModel):
@@ -193,6 +198,8 @@ class DeliveryRoutePlanResponse(BaseModel):
     total_unassigned: int
     recommended: int
     unassigned_without_partner: int
+    mapping_enabled: bool = False
+    routing_provider: str = "pin_prefix_heuristic"
     stops: list[DeliveryRouteStop]
 
 
