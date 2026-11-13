@@ -320,3 +320,16 @@ The admin **Analytics** workspace summarizes recorded parcel and delivery-assign
 - Partner metrics include assignments created within the selected period, delivered/failed/active counts, terminal-outcome success rate, and average duration where available.
 - Daily delivered counts use `delivered_at`; failed counts use the assignment's last update timestamp because the current schema does not have a dedicated failure timestamp.
 - All analytics endpoints are admin-only and read existing records; they do not change parcel or assignment state.
+
+
+## Partner capacity-aware assignment
+
+Delivery partners have an operations-configured **maximum active assignment** limit (1–50, default 5). The limit is shown in the delivery team register and can be set when an administrator creates a partner account.
+
+- The route planner excludes partners already at their active assignment limit.
+- The manual assignment API enforces the same limit, so bypassing a recommendation does not bypass capacity.
+- Assignment creation also rejects overlapping booked delivery windows for the same partner on the same date.
+- Active load includes assignments in `assigned`, `accepted`, or `out_for_delivery`; delivered and failed assignments do not consume capacity.
+- PIN-prefix grouping remains a locality heuristic, not a verified service-zone boundary. Partner capacity and slot compatibility are hard constraints; geographic grouping is a ranking preference.
+
+The migration adds `delivery_partners.max_active_assignments` with a default of 5 for existing partner records. Apply Alembic migrations before using the updated API.

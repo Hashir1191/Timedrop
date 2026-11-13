@@ -151,6 +151,7 @@ class DeliveryPartnerCreate(BaseModel):
     password: str = Field(min_length=12, max_length=128)
     phone: str = Field(min_length=10, max_length=20)
     vehicle_type: str = Field(default="two_wheeler", min_length=2, max_length=40)
+    max_active_assignments: int = Field(default=5, ge=1, le=50)
 
     @field_validator("email")
     @classmethod
@@ -168,6 +169,7 @@ class DeliveryPartnerResponse(BaseModel):
     is_available: bool
     is_active: bool
     active_assignments: int
+    max_active_assignments: int = 5
 
 
 class DeliveryRouteStop(BaseModel):

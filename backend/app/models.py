@@ -95,6 +95,7 @@ class DeliveryPartner(Base):
     phone: Mapped[str] = mapped_column(String(20), nullable=False)
     vehicle_type: Mapped[str] = mapped_column(String(40), default="two_wheeler", nullable=False)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    max_active_assignments: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 

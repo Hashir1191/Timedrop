@@ -49,7 +49,10 @@ def create_partner(data: DeliveryPartnerCreate, db: Session = Depends(get_db), a
     if db.scalar(select(User).where(User.email == data.email)) is not None:
         raise HTTPException(status_code=409, detail="An account with this email already exists.")
     user = User(email=data.email, full_name=data.full_name.strip(), password_hash=hash_password(data.password), role="delivery_partner")
-    partner = DeliveryPartner(phone=data.phone.strip(), vehicle_type=data.vehicle_type.strip())
+    partner = DeliveryPartner(
+        phone=data.phone.strip(), vehicle_type=data.vehicle_type.strip(),
+        max_active_assignments=data.max_active_assignments,
+    )
     db.add(user)
     db.flush()
     partner.user_id = user.id
@@ -65,6 +68,7 @@ def create_partner(data: DeliveryPartnerCreate, db: Session = Depends(get_db), a
         id=partner.id, user_id=user.id, full_name=user.full_name, email=user.email,
         phone=partner.phone, vehicle_type=partner.vehicle_type, is_available=partner.is_available,
         is_active=user.is_active, active_assignments=0,
+        max_active_assignments=partner.max_active_assignments,
     )
 
 
@@ -81,6 +85,7 @@ def list_partners(db: Session = Depends(get_db), admin: User = Depends(require_a
             id=partner.id, user_id=user.id, full_name=user.full_name, email=user.email,
             phone=partner.phone, vehicle_type=partner.vehicle_type, is_available=partner.is_available,
             is_active=user.is_active, active_assignments=count,
+            max_active_assignments=partner.max_active_assignments,
         ))
     return result
 
@@ -113,6 +118,38 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
     if not user.is_active or not partner.is_available:
         raise HTTPException(status_code=409, detail="This delivery partner is inactive or unavailable.")
     assignment = db.scalar(select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel_id))
+    active_count = db.scalar(select(func.count(DeliveryAssignment.id)).where(
+        DeliveryAssignment.partner_id == partner.id,
+        DeliveryAssignment.status.in_(["assigned", "accepted", "out_for_delivery"]),
+        DeliveryAssignment.parcel_id != parcel_id,
+    )) or 0
+    if active_count >= partner.max_active_assignments:
+        raise HTTPException(
+            status_code=409,
+            detail=f"This delivery partner has reached their active assignment capacity ({partner.max_active_assignments}).",
+        )
+    slot = db.get(DeliverySlot, booking.slot_id)
+    overlapping = db.scalar(
+        select(DeliveryAssignment.id)
+        .join(Parcel, Parcel.id == DeliveryAssignment.parcel_id)
+        .join(DeliveryBooking, DeliveryBooking.parcel_id == Parcel.id)
+        .join(DeliverySlot, DeliverySlot.id == DeliveryBooking.slot_id)
+        .where(
+            DeliveryAssignment.partner_id == partner.id,
+            DeliveryAssignment.status.in_(["assigned", "accepted", "out_for_delivery"]),
+            DeliveryAssignment.parcel_id != parcel_id,
+            DeliveryBooking.status == "booked",
+            DeliverySlot.delivery_date == slot.delivery_date,
+            DeliverySlot.start_time < slot.end_time,
+            DeliverySlot.end_time > slot.start_time,
+        )
+        .limit(1)
+    )
+    if overlapping is not None:
+        raise HTTPException(
+            status_code=409,
+            detail="This delivery partner already has an active assignment during the booked slot.",
+        )
     if assignment and assignment.status in {"assigned", "accepted", "out_for_delivery"}:
         raise HTTPException(status_code=409, detail="This parcel already has an active delivery assignment.")
     if assignment:
@@ -215,6 +252,7 @@ def generate_route_plan(
         partner_state[partner.id] = {
             "name": user.full_name,
             "load": 0,
+            "capacity": partner.max_active_assignments,
             "intervals": [],
             "zones": {},
             "planned": [],
@@ -246,6 +284,8 @@ def generate_route_plan(
         zone = parcel.pincode[:3]
         options = []
         for partner_id, state in partner_state.items():
+            if state["load"] >= state["capacity"]:
+                continue
             overlaps = any(
                 not (slot.end_time <= start or slot.start_time >= end)
                 for start, end in state["intervals"]

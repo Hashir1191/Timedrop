@@ -12,7 +12,7 @@ export default function DeliveryPartners() {
   const [partners, setPartners] = useState<DeliveryPartner[]>([]);
   const [assignments, setAssignments] = useState<DeliveryAssignment[]>([]);
   const [parcels, setParcels] = useState<Parcel[]>([]);
-  const [form, setForm] = useState({ full_name: "", email: "", password: "", phone: "", vehicle_type: "two_wheeler" });
+  const [form, setForm] = useState({ full_name: "", email: "", password: "", phone: "", vehicle_type: "two_wheeler", max_active_assignments: 5 });
   const [selected, setSelected] = useState<Record<number, string>>({});
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
@@ -38,7 +38,7 @@ export default function DeliveryPartners() {
     setBusy(true); setError(""); setNotice("");
     try {
       await createDeliveryPartner(token, form);
-      setForm({ full_name: "", email: "", password: "", phone: "", vehicle_type: "two_wheeler" });
+      setForm({ full_name: "", email: "", password: "", phone: "", vehicle_type: "two_wheeler", max_active_assignments: 5 });
       setNotice("Delivery partner account created. Share the temporary password securely.");
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to create partner."); }
@@ -96,11 +96,12 @@ export default function DeliveryPartners() {
         <label>Temporary password<input required type="password" minLength={12} value={form.password} onChange={e=>setForm({...form,password:e.target.value})} placeholder="At least 12 characters"/></label>
         <label>Phone number<input required minLength={10} value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label>
         <label>Vehicle type<select value={form.vehicle_type} onChange={e=>setForm({...form,vehicle_type:e.target.value})}><option value="two_wheeler">Two wheeler</option><option value="three_wheeler">Three wheeler</option><option value="four_wheeler">Four wheeler</option><option value="bicycle">Bicycle</option></select></label>
+        <label>Maximum active assignments<input required type="number" min={1} max={50} value={form.max_active_assignments} onChange={e=>setForm({...form,max_active_assignments:Number(e.target.value)})}/></label>
         <div className="customer-form-actions"><span>Share credentials with the partner through a secure channel.</span><button className="primary-button" disabled={busy}><Plus size={15}/> Create account</button></div>
       </form>
     </section>
     <div className="section-title-row"><h2>Delivery team</h2><span className="result-count">{partners.length} partners</span></div>
-    {loading ? <div className="panel table-loading">Loading delivery partners…</div> : partners.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>PARTNER</th><th>CONTACT</th><th>VEHICLE</th><th>ACTIVE JOBS</th><th>ACCOUNT</th></tr></thead><tbody>{partners.map(p=><tr key={p.id}><td><strong className="cell-strong">{p.full_name}</strong><span className="cell-sub">Partner #{p.id}</span></td><td>{p.email}<span className="cell-sub">{p.phone}</span></td><td>{p.vehicle_type.replace(/_/g," ")}</td><td>{p.active_assignments}</td><td><StatusBadge status={p.is_active ? (p.is_available ? "available" : "busy") : "inactive"}/></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No delivery partners yet" description="Create the first partner account using the form above."/></div>}
+    {loading ? <div className="panel table-loading">Loading delivery partners…</div> : partners.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>PARTNER</th><th>CONTACT</th><th>VEHICLE</th><th>ACTIVE JOBS / CAPACITY</th><th>ACCOUNT</th></tr></thead><tbody>{partners.map(p=><tr key={p.id}><td><strong className="cell-strong">{p.full_name}</strong><span className="cell-sub">Partner #{p.id}</span></td><td>{p.email}<span className="cell-sub">{p.phone}</span></td><td>{p.vehicle_type.replace(/_/g," ")}</td><td>{p.active_assignments} / {p.max_active_assignments}</td><td><StatusBadge status={p.is_active ? (p.is_available ? "available" : "busy") : "inactive"}/></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No delivery partners yet" description="Create the first partner account using the form above."/></div>}
     <div className="section-title-row"><h2>Unassigned scheduled parcels</h2><span className="result-count">{eligibleParcels.length} parcels</span></div>
     {eligibleParcels.length ? <div className="booking-list">{eligibleParcels.map(parcel=><div className="panel booking-card" key={parcel.id}><div className="booking-main"><div className="booking-icon"><Truck size={19}/></div><div><strong>{parcel.tracking_number}</strong><span>{parcel.recipient_name} · {parcel.city}, {parcel.state}</span><span>{parcel.address_line} · {parcel.pincode}</span></div></div><div className="booking-actions"><select value={selected[parcel.id] || ""} onChange={e=>setSelected({...selected,[parcel.id]:e.target.value})}><option value="">Choose partner…</option>{partners.filter(p=>p.is_active && p.is_available).map(p=><option key={p.id} value={p.id}>{p.full_name} · {p.active_assignments} active</option>)}</select><button className="primary-button" disabled={busy || !selected[parcel.id]} onClick={()=>void assign(parcel.id)}>Assign parcel</button></div></div>)}</div> : <div className="panel"><EmptyState title="No parcels awaiting assignment" description="Only parcels with an active delivery booking can be assigned."/></div>}
     <section className="panel customer-form-panel">
