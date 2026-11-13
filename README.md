@@ -412,3 +412,10 @@ The analytics screen now uses the shared operations visual language for its date
 The warehouse workspace now uses responsive parcel cards instead of a wide inventory table. Operations can search and filter inventory, inspect each parcel's recipient, destination, status, and storage bin, and edit bin assignments inline without browser prompt dialogs.
 
 The eight warehouse summary metrics remain backed by the existing warehouse summary API. Loading, empty, success, and error states are presented in the page, while the backend continues to enforce physical-custody rules for storage-location changes. No API or database migration is required.
+
+
+## Phase 19 — Parcel register and operations intake UI
+
+The admin parcel register now presents responsive parcel cards with tracking, recipient, destination, registration date, status, and an inline status editor. Search and status filters remain API-backed, and status changes continue to use the server's existing workflow validation.
+
+The operations intake and custody workspace receives a consistent form, inventory-history, and custody-timeline presentation. Receipt, release, and failed-parcel return actions are unchanged; physical custody events remain recorded through the existing APIs.
