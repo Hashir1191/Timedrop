@@ -71,7 +71,7 @@ export default function Intake(){
   }catch(err){setError(err instanceof Error?err.message:"Unable to record parcel return.");}
   finally{setBusy(false);}
  }
- return <>
+ return <div className="intake-workspace">
   <div className="page-heading"><div><div className="eyebrow">WAREHOUSE OPERATIONS</div><h1>Parcel intake & custody</h1><p>Record authorized parcel receipts, inspect package condition, and maintain a handover trail.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={15}/> Refresh</button></div>
   <div className="alert-info"><ShieldCheck size={17}/> Only record parcels TimeDrop is explicitly authorized to receive and handle. Use synthetic details while testing.</div>
   {error&&<div className="alert-error">{error}</div>}
@@ -102,5 +102,5 @@ export default function Intake(){
    {history.length>0&&["received","returned"].includes(history[history.length-1].event_type)&&items.find(item=>item.id===selected)?.status==="scheduled"&&<div className="customer-form-actions"><span>Parcel is in operations custody and assigned. Confirm physical handover to the delivery partner.</span><button className="secondary-button" disabled={busy} onClick={()=>void release(selected)}>Record partner handover</button></div>}
    {history.length>0&&history[history.length-1].event_type==="released"&&items.find(item=>item.id===selected)?.status==="failed"&&<div className="customer-form-actions"><span>Delivery failed. Confirm physical receipt and inspect the parcel before reassignment.</span><button className="secondary-button" disabled={busy} onClick={()=>void receiveReturn(selected)}>Receive failed parcel</button></div>}
   </section>}
- </>;
+ </div>;
 }
