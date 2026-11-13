@@ -426,3 +426,10 @@ The operations intake and custody workspace receives a consistent form, inventor
 The delivery fleet, delivery-slot, and booking pages now share a more consistent operational layout. Partner provisioning forms, capacity summaries, route-plan tables, available slot cards, booking filters, reschedule controls, and cancellation actions receive responsive styling while retaining their existing API behavior.
 
 The route planner remains a recommendation workflow requiring an operations user to apply assignments. Slot capacity, partner assignment capacity, and booking constraints continue to be enforced by the backend.
+
+
+## Phase 21 — Customer parcel creation and booking flow
+
+The customer parcel-creation page now uses a guided first-step layout with grouped recipient, address, and parcel-reference fields, plus a clear two-step progress indicator. The slot-selection page now presents the parcel summary, current booking, date selection, available capacity, selected-window confirmation, and reschedule/cancellation actions in a more focused flow.
+
+All parcel creation, booking, rescheduling, cancellation, and slot-availability operations continue to use the existing APIs and server-side rules. Loading, no-slot, error, and narrow-screen states are included. No backend API or database migration is required.

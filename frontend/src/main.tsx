@@ -10,6 +10,7 @@ import "./operations-workspace.css";
 import "./warehouse-workspace.css";
 import "./parcel-operations.css";
 import "./fleet-scheduling.css";
+import "./customer-booking.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
