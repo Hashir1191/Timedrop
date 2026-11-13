@@ -65,3 +65,7 @@ export const createParcelIntake=(token:string,data:ParcelIntakeCreate)=>request<
 export const getParcelIntakes=(token:string)=>request<ParcelIntake[]>("/operations/intake",token);
 export const getCustodyHistory=(token:string,parcelId:number)=>request<CustodyEvent[]>(`/operations/parcels/${parcelId}/custody`,token);
 export const releaseParcelCustody=(token:string,parcelId:number,note?:string)=>request<CustodyEvent>(`/operations/parcels/${parcelId}/release`,token,{method:"POST",body:JSON.stringify({note:note||undefined})});
+
+export const returnParcelToOperations=(
+ token:string,parcelId:number,data:{package_condition:"intact"|"damaged"|"opened";note:string}
+)=>request<CustodyEvent>(`/operations/parcels/${parcelId}/return`,token,{method:"POST",body:JSON.stringify(data)});
