@@ -14,13 +14,11 @@ from app.routers.phone_verification import router as phone_verification_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Schema changes are managed explicitly with `alembic upgrade head`.
-    # Keeping DDL out of application startup avoids concurrent worker races.
     settings.validate_for_startup()
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.8.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version="0.9.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,
