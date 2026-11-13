@@ -20,6 +20,7 @@ import PhoneSettings from "./pages/PhoneSettings";
 import Intake from "./pages/Intake";
 import WarehousePage from "./pages/Warehouse";
 import Analytics from "./pages/Analytics";
+import PartnerAvailability from "./pages/PartnerAvailability";
 export default function App(){
  const [auth,setAuth]=useState<AuthState>({token:localStorage.getItem("timedrop_token"),user:null,loading:true});
  useEffect(()=>{const token=auth.token;if(!token){setAuth({token:null,user:null,loading:false});return;}getMe(token).then(user=>setAuth({token,user,loading:false})).catch(()=>{localStorage.removeItem("timedrop_token");setAuth({token:null,user:null,loading:false});});},[]);
@@ -31,7 +32,7 @@ export default function App(){
   <Route path="/" element={auth.user?(role==="admin"?<Layout/>:role==="delivery_partner"?<PartnerLayout/>:<CustomerLayout/>):<Navigate to="/login" replace/>}>
    {role==="admin"?<>
     <Route index element={<Dashboard/>}/><Route path="parcels" element={<Parcels/>}/><Route path="slots" element={<Slots/>}/><Route path="bookings" element={<Bookings/>}/><Route path="delivery-partners" element={<DeliveryPartners/>}/><Route path="intake" element={<Intake/>}/><Route path="warehouse" element={<WarehousePage/>}/><Route path="analytics" element={<Analytics/>}/><Route path="phone-settings" element={<PhoneSettings/>}/>
-   </>:role==="delivery_partner"?<><Route index element={<PartnerDashboard/>}/><Route path="phone-settings" element={<PhoneSettings/>}/></>:<>
+   </>:role==="delivery_partner"?<><Route index element={<PartnerDashboard/>}/><Route path="phone-settings" element={<PhoneSettings/>}/><Route path="availability" element={<PartnerAvailability/>}/></>:<>
     <Route index element={<CustomerDashboard/>}/><Route path="my-parcels" element={<CustomerParcels/>}/><Route path="new-parcel" element={<NewParcel/>}/><Route path="schedule/:parcelId" element={<ScheduleParcel/>}/><Route path="phone-settings" element={<PhoneSettings/>}/>
    </>}
   </Route><Route path="*" element={<Navigate to={auth.user?"/":"/login"} replace/>}/>

@@ -90,3 +90,21 @@ export const getParcelTimeline=(token:string,parcelId:number)=>request<ParcelTim
 
 export const getOperationsAnalytics=(token:string,startDate:string,endDate:string)=>
  request<import("./types").OperationsAnalytics>(`/operations/analytics?start_date=${encodeURIComponent(startDate)}&end_date=${encodeURIComponent(endDate)}`,token);
+
+
+export type PartnerAvailabilityWindow = {
+ weekday:number;
+ start_time:string;
+ end_time:string;
+ is_active:boolean;
+};
+export type PartnerAvailabilitySettings = {
+ enabled:boolean;
+ windows:PartnerAvailabilityWindow[];
+};
+export const getMyAvailability=(token:string)=>
+ request<PartnerAvailabilitySettings>("/delivery/my-availability",token);
+export const updateMyAvailability=(token:string,data:PartnerAvailabilitySettings)=>
+ request<PartnerAvailabilitySettings>("/delivery/my-availability",token,{
+  method:"PUT",body:JSON.stringify(data)
+});

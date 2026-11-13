@@ -363,3 +363,12 @@ Apply the Alembic migration before using this feature:
 $env:PYTHONPATH = "backend"
 python -m alembic -c backend\\alembic.ini upgrade head
 ```
+
+
+## Phase 14 — UI foundation and partner availability workspace
+
+The frontend now has a shared visual foundation in `frontend/src/design-system.css`, layered over the existing styles so the current role-based portals can be modernized incrementally without a risky rewrite. It introduces consistent brand tokens, refined navigation and application surfaces, improved focus states, reduced-motion handling, and responsive shell refinements.
+
+Delivery partners can manage their weekly availability from **Availability** in the partner workspace. The page supports enabling/disabling schedule enforcement, adding multiple windows per weekday, pausing individual windows, and saving the schedule through the Phase 13 API. Client-side checks flag invalid or overlapping time windows before submission.
+
+The visual system is intentionally dependency-light for this first pass. Existing React, TypeScript, Vite, Tailwind, and Lucide dependencies remain in place; additional UI libraries will be introduced only where they add a clear product benefit.
