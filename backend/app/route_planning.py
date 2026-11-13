@@ -117,6 +117,7 @@ def enrich_partner_route(db: Session, stops: list, partner_id: int) -> list:
             if index < len(legs):
                 stop.leg_distance_m = round(float(legs[index].get("distance", 0)))
                 stop.leg_duration_seconds = round(float(legs[index].get("duration", 0)))
-        return ordered_stops
+        unlocated_stops = [stop for stop in stops if stop not in located]
+        return ordered_stops + unlocated_stops
     except (httpx.HTTPError, ValueError, KeyError, TypeError):
         return stops
