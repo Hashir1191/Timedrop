@@ -419,3 +419,10 @@ The eight warehouse summary metrics remain backed by the existing warehouse summ
 The admin parcel register now presents responsive parcel cards with tracking, recipient, destination, registration date, status, and an inline status editor. Search and status filters remain API-backed, and status changes continue to use the server's existing workflow validation.
 
 The operations intake and custody workspace receives a consistent form, inventory-history, and custody-timeline presentation. Receipt, release, and failed-parcel return actions are unchanged; physical custody events remain recorded through the existing APIs.
+
+
+## Phase 20 — Fleet and scheduling workspaces
+
+The delivery fleet, delivery-slot, and booking pages now share a more consistent operational layout. Partner provisioning forms, capacity summaries, route-plan tables, available slot cards, booking filters, reschedule controls, and cancellation actions receive responsive styling while retaining their existing API behavior.
+
+The route planner remains a recommendation workflow requiring an operations user to apply assignments. Slot capacity, partner assignment capacity, and booking constraints continue to be enforced by the backend.

@@ -87,7 +87,7 @@ export default function Bookings() {
   }
 
   return (
-    <>
+    <div className="booking-management-workspace">
       <div className="page-heading">
         <div>
           <div className="eyebrow">DELIVERY COORDINATION</div>
@@ -181,6 +181,6 @@ export default function Bookings() {
       <p className="page-footnote">
         Booking records come directly from the delivery_bookings table. A cancelled row remains visible until that parcel is booked again; the current one-booking-per-parcel model reuses that row on rebooking.
       </p>
-    </>
+    </div>
   );
 }

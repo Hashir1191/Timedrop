@@ -79,7 +79,7 @@ export default function DeliveryPartners() {
 
   const assignedParcelIds = new Set(assignments.filter(a => ["assigned","accepted","out_for_delivery"].includes(a.status)).map(a => a.parcel_id));
   const eligibleParcels = parcels.filter(p => p.status === "scheduled" && !assignedParcelIds.has(p.id));
-  return <>
+  return <div className="delivery-fleet-workspace">
     <div className="page-heading"><div><div className="eyebrow">OPERATIONS / DELIVERY FLEET</div><h1>Delivery partners</h1><p>Create partner accounts and assign booked parcels to your delivery team.</p></div><button className="secondary-button" onClick={() => void load()}><RefreshCw size={14}/> Refresh</button></div>
     {error && <div className="alert-error">{error}</div>}{notice && <div className="alert-success">{notice}</div>}
     <div className="stats-grid">
@@ -112,5 +112,5 @@ export default function DeliveryPartners() {
     </section>
     <div className="section-title-row"><h2>Assignment register</h2><span className="result-count">{assignments.length} records</span></div>
     {assignments.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>TRACKING ID</th><th>RECIPIENT</th><th>DELIVERY PARTNER</th><th>DELIVERY WINDOW</th><th>STATUS</th></tr></thead><tbody>{assignments.map(a=><tr key={a.id}><td className="tracking">{a.tracking_number}</td><td>{a.recipient_name}<span className="cell-sub">{a.city}, {a.state}</span></td><td>{a.partner_name}</td><td>{new Date(a.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}<span className="cell-sub">{a.start_time.slice(0,5)}–{a.end_time.slice(0,5)}</span></td><td><StatusBadge status={a.status}/><details className="delivery-history"><summary>History</summary>{token && <DeliveryTimeline token={token} assignmentId={a.id}/>}</details></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No assignments yet" description="New assignments will appear here."/></div>}
-  </>;
+  </div>;
 }
