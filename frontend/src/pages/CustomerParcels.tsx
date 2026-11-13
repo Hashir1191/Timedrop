@@ -1,20 +1,127 @@
-import { useEffect,useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { ArrowRight, CalendarClock, Clock3, Package, Plus, RefreshCw, Search, ShieldCheck, Truck } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { RefreshCw, CalendarClock } from "lucide-react";
 import { getParcels, issueDeliveryCode, getMyTracking } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import ParcelTimeline from "../components/ParcelTimeline";
-import type { DeliveryAssignment } from "../types";
-import type { Parcel } from "../types";
+import type { DeliveryAssignment, Parcel } from "../types";
+
+type Filter = "all" | "active" | "delivered" | "cancelled";
 
 export default function CustomerParcels() {
- const {token}=useAuth(); const [searchParams]=useSearchParams(); const focusParcelId=Number(searchParams.get("parcelId")); const [codes,setCodes]=useState<Record<number,{code:string;expires_at:string}>>({}); const [codeBusy,setCodeBusy]=useState<number|null>(null); const [codeError,setCodeError]=useState(""); const [parcels,setParcels]=useState<Parcel[]>([]); const [tracking,setTracking]=useState<DeliveryAssignment[]>([]); const [loading,setLoading]=useState(true); const [error,setError]=useState("");
- async function load(){if(!token)return;setLoading(true);setError("");try{const [parcelRows,trackingRows]=await Promise.all([getParcels(token),getMyTracking(token)]);setParcels(parcelRows);setTracking(trackingRows);}catch(e){setError(e instanceof Error?e.message:"Unable to load parcels.");}finally{setLoading(false);}}
- useEffect(()=>{void load();},[token]);
- async function generateCode(parcelId:number){if(!token)return;setCodeBusy(parcelId);setCodeError("");try{const result=await issueDeliveryCode(token,parcelId);setCodes(current=>({...current,[parcelId]:result}));}catch(e){setCodeError(e instanceof Error?e.message:"Unable to generate delivery code.");}finally{setCodeBusy(null);}}
- return <><div className="page-heading"><div><div className="eyebrow">PARCEL HISTORY</div><h1>My parcels</h1><p>Every parcel you've registered with TimeDrop.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={15}/> Refresh</button></div>
- {error&&<div className="alert-error">{error}</div>}{codeError&&<div className="alert-error">{codeError}</div>}
- <section className="panel list-panel">{loading?<div className="table-loading">Loading parcels...</div>:parcels.length?<div className="table-wrap"><table><thead><tr><th>TRACKING ID</th><th>RECIPIENT</th><th>DESTINATION</th><th>CREATED</th><th>STATUS</th><th>ESTIMATED ARRIVAL</th><th>DELIVERY</th></tr></thead><tbody>{parcels.map(p=><tr key={p.id} id={`parcel-${p.id}`} className={focusParcelId===p.id?"notification-target-row":undefined}><td className="tracking">{p.tracking_number}</td><td><strong className="cell-strong">{p.recipient_name}</strong><span className="cell-sub">{p.phone}</span></td><td>{p.city}, {p.state}<span className="cell-sub">{p.pincode}</span></td><td>{new Date(p.created_at).toLocaleDateString("en-IN")}</td><td><StatusBadge status={p.status}/></td><td>{tracking.find(t=>t.parcel_id===p.id)?.estimated_delivery_start&&tracking.find(t=>t.parcel_id===p.id)?.estimated_delivery_end?<strong>{new Date(tracking.find(t=>t.parcel_id===p.id)!.estimated_delivery_start!).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})} – {new Date(tracking.find(t=>t.parcel_id===p.id)!.estimated_delivery_end!).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</strong>:tracking.some(t=>t.parcel_id===p.id)?"Awaiting estimate":"—"}</td><td><div className="customer-delivery-actions"><Link className="text-link" to={`/schedule/${p.id}`}><CalendarClock size={14}/> {p.status==="scheduled"?"Manage slot":"Book slot"}</Link>{p.status==="out_for_delivery"&&<button className="secondary-button" disabled={codeBusy===p.id} onClick={()=>void generateCode(p.id)}>{codeBusy===p.id?"Generating…":"Get delivery code"}</button>}{codes[p.id]&&<span className="delivery-code">Code: <strong>{codes[p.id].code}</strong><small>Expires {new Date(codes[p.id].expires_at).toLocaleTimeString("en-IN")}</small></span>}</div><details className="delivery-history"><summary>Full parcel activity</summary><ParcelTimeline token={token!} parcelId={p.id}/></details></td></tr>)}</tbody></table></div>:<EmptyState title="No parcels registered" description="Create a parcel to see it listed here."/>}</section></>;
+  const { token } = useAuth();
+  const [searchParams] = useSearchParams();
+  const focusParcelId = Number(searchParams.get("parcelId"));
+  const [codes, setCodes] = useState<Record<number, {code:string;expires_at:string}>>({});
+  const [codeBusy, setCodeBusy] = useState<number|null>(null);
+  const [codeError, setCodeError] = useState("");
+  const [parcels, setParcels] = useState<Parcel[]>([]);
+  const [tracking, setTracking] = useState<DeliveryAssignment[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
+
+  async function load() {
+    if (!token) return;
+    setLoading(true);
+    setError("");
+    try {
+      const [parcelRows, trackingRows] = await Promise.all([getParcels(token), getMyTracking(token)]);
+      setParcels(parcelRows);
+      setTracking(trackingRows);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to load parcels.");
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  useEffect(() => { void load(); }, [token]);
+
+  async function generateCode(parcelId: number) {
+    if (!token) return;
+    setCodeBusy(parcelId);
+    setCodeError("");
+    try {
+      const result = await issueDeliveryCode(token, parcelId);
+      setCodes((current) => ({...current, [parcelId]: result}));
+    } catch (err) {
+      setCodeError(err instanceof Error ? err.message : "Unable to generate delivery code.");
+    } finally {
+      setCodeBusy(null);
+    }
+  }
+
+  const trackingByParcel = useMemo(
+    () => new Map(tracking.map((item) => [item.parcel_id, item])),
+    [tracking],
+  );
+  const filtered = useMemo(() => {
+    const normalized = query.trim().toLowerCase();
+    return parcels.filter((parcel) => {
+      const matchesQuery = !normalized || [parcel.tracking_number, parcel.recipient_name, parcel.city, parcel.pincode]
+        .some((value) => value.toLowerCase().includes(normalized));
+      const matchesFilter = filter === "all"
+        || (filter === "active" && !["delivered","cancelled"].includes(parcel.status))
+        || parcel.status === filter;
+      return matchesQuery && matchesFilter;
+    });
+  }, [parcels, query, filter]);
+
+  return <div className="customer-parcels-page">
+    <div className="page-heading customer-list-heading">
+      <div><div className="eyebrow">YOUR DELIVERY HISTORY</div><h1>My parcels</h1><p>Follow every parcel from registration through delivery.</p></div>
+      <div className="customer-heading-actions"><button className="secondary-button" onClick={() => void load()} disabled={loading}><RefreshCw size={15}/> Refresh</button><Link className="primary-button" to="/new-parcel"><Plus size={16}/> New parcel</Link></div>
+    </div>
+
+    {error && <div className="alert-error">{error}</div>}
+    {codeError && <div className="alert-error">{codeError}</div>}
+
+    <section className="customer-parcel-toolbar">
+      <label className="customer-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tracking number, recipient or city" aria-label="Search parcels"/></label>
+      <div className="customer-filter-tabs" aria-label="Filter parcels">
+        {(["all","active","delivered","cancelled"] as Filter[]).map((value) => <button key={value} type="button" className={filter===value?"active":""} onClick={() => setFilter(value)}>{value==="all"?"All parcels":value==="active"?"In progress":value==="delivered"?"Delivered":"Cancelled"}</button>)}
+      </div>
+      <span className="customer-results-count">{filtered.length} {filtered.length===1?"parcel":"parcels"}</span>
+    </section>
+
+    {loading ? <div className="customer-parcel-skeletons">{[1,2,3].map((item) => <div className="customer-parcel-skeleton" key={item}/>)}</div> :
+      filtered.length ? <div className="customer-parcel-list">{filtered.map((parcel) => {
+        const assignment = trackingByParcel.get(parcel.id);
+        const canManage = !["delivered","cancelled"].includes(parcel.status);
+        return <article className={`customer-parcel-card ${focusParcelId===parcel.id?"notification-target-row":""}`} key={parcel.id} id={`parcel-${parcel.id}`}>
+          <div className="customer-parcel-card-main">
+            <div className="customer-parcel-card-top">
+              <span className="customer-parcel-card-icon"><Package size={20}/></span>
+              <div className="customer-parcel-card-id"><span>TRACKING NUMBER</span><strong>{parcel.tracking_number}</strong></div>
+              <StatusBadge status={parcel.status}/>
+            </div>
+            <div className="customer-parcel-card-details">
+              <div><span>Recipient</span><strong>{parcel.recipient_name}</strong></div>
+              <div><span>Destination</span><strong>{parcel.city}, {parcel.state}</strong><small>{parcel.pincode}</small></div>
+              <div><span>Registered</span><strong>{new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</strong></div>
+            </div>
+            <div className="customer-parcel-card-footer">
+              <div className="customer-parcel-eta">
+                {assignment?.estimated_delivery_start && assignment.estimated_delivery_end ? <><Clock3 size={14}/><span>Estimated arrival <strong>{new Date(assignment.estimated_delivery_start).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})} – {new Date(assignment.estimated_delivery_end).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</strong></span></> :
+                  assignment ? <><Clock3 size={14}/><span>Delivery estimate <strong>Awaiting update</strong></span></> :
+                  <><ShieldCheck size={14}/><span>Delivery updates <strong>Shown here as they become available</strong></span></>}
+              </div>
+              <div className="customer-parcel-actions">
+                {canManage && <Link className="customer-card-action" to={`/schedule/${parcel.id}`}><CalendarClock size={15}/>{parcel.status==="scheduled"?"Manage slot":"Book a slot"}</Link>}
+                {parcel.status==="out_for_delivery" && <button className="customer-card-action secondary" disabled={codeBusy===parcel.id} onClick={() => void generateCode(parcel.id)}>{codeBusy===parcel.id?"Generating…":"Get delivery code"}</button>}
+                {codes[parcel.id] && <span className="customer-delivery-code"><strong>{codes[parcel.id].code}</strong><small>Expires {new Date(codes[parcel.id].expires_at).toLocaleTimeString("en-IN")}</small></span>}
+              </div>
+            </div>
+          </div>
+          <details className="customer-parcel-history"><summary><span><Truck size={15}/> View parcel activity</span><span className="customer-history-hint">Registration, booking and delivery updates <ArrowRight size={13}/></span></summary>
+            {token && <ParcelTimeline token={token} parcelId={parcel.id}/>}
+          </details>
+        </article>;
+      })}</div> : parcels.length ? <div className="customer-empty-panel"><EmptyState title="No matching parcels" description="Try a different search or filter to find your parcel."/></div> : <div className="customer-empty-panel"><EmptyState title="No parcels registered" description="Create your first parcel to see its delivery progress here."/><Link className="primary-button" to="/new-parcel"><Plus size={16}/> Create a parcel</Link></div>
+    }
+  </div>;
 }
