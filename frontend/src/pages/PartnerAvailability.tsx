@@ -55,6 +55,19 @@ export default function PartnerAvailability() {
 
   async function save() {
     if (!token) return;
+    for (let weekday = 0; weekday < 7; weekday += 1) {
+      const dayWindows = windows.filter((item) => item.weekday === weekday).sort((a, b) => a.start_time.localeCompare(b.start_time));
+      for (let index = 0; index < dayWindows.length; index += 1) {
+        if (dayWindows[index].end_time <= dayWindows[index].start_time) {
+          setError(`${days[weekday]}: the end time must be later than the start time.`);
+          return;
+        }
+        if (index > 0 && dayWindows[index].start_time < dayWindows[index - 1].end_time) {
+          setError(`${days[weekday]}: availability windows cannot overlap.`);
+          return;
+        }
+      }
+    }
     setSaving(true);
     setError("");
     setNotice("");
