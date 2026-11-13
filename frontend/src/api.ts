@@ -1,4 +1,4 @@
-import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem } from "./types";
+import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem, DeliveryRoutePlan } from "./types";
 const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
 export class ApiError extends Error { status:number; constructor(message:string,status:number){super(message);this.status=status;} }
 async function request<T>(path:string,token:string,init:RequestInit={}):Promise<T>{
