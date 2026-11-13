@@ -4,9 +4,6 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
-from app.database import Base, engine
-from app import models
-from app.migrations import upgrade_legacy_parcel_table, upgrade_delivery_assignment_table, upgrade_delivery_proof_fields
 from app.routers.auth import router as auth_router
 from app.routers.parcels import router as parcels_router
 from app.routers.scheduling import router as scheduling_router
@@ -15,18 +12,19 @@ from app.routers.delivery import router as delivery_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    upgrade_legacy_parcel_table()
-    upgrade_delivery_assignment_table()
-    upgrade_delivery_proof_fields()
+    # Schema changes are managed explicitly with `alembic upgrade head`.
+    # Keeping DDL out of application startup avoids concurrent worker races.
+    settings.validate_for_startup()
     yield
 
 
-app = FastAPI(title=settings.app_name, version="0.5.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
+app = FastAPI(title=settings.app_name, version="0.7.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_credentials=True, allow_methods=["*"], allow_headers=["*"],
+    allow_origins=settings.allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allow_headers=["Authorization", "Content-Type"],
 )
 app.include_router(auth_router)
 app.include_router(parcels_router)

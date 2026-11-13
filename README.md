@@ -7,7 +7,9 @@ The pilot must only handle parcels that TimeDrop is explicitly authorized to rec
 ## Current milestone
 
 - FastAPI application with Swagger/OpenAPI documentation
-- SQLAlchemy + SQLite persistence for local development
+- SQLAlchemy persistence with SQLite for local development and PostgreSQL support
+- Alembic versioned database migrations, including a non-destructive baseline adoption migration for existing pilot databases
+- Docker Compose development environment with PostgreSQL 16 and a non-root FastAPI container
 - Customer registration and JWT login
 - Separate role-based customer and operations web portals
 - Customer parcel creation, personal parcel list, and delivery booking management
@@ -48,9 +50,21 @@ python -m pip install --upgrade pip
 python -m pip install -r backend\requirements-dev.txt
 ```
 
-Copy `.env.example` to `.env` and set a long, random `SECRET_KEY`. Do not commit `.env`.
+Copy `.env.example` to `.env`. Local non-Docker development uses SQLite by default. Set `APP_ENV=production`, a unique `SECRET_KEY` of at least 32 characters, and the production `CORS_ORIGINS` before deployment. Production mode rejects the development secret and SQLite. Never commit `.env`.
 
-Start the API:
+### Option A: Run with SQLite (existing local workflow)
+
+Apply database migrations from the repository root:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m alembic -c backend\alembic.ini upgrade head
+python -m alembic -c backend\alembic.ini current
+```
+
+The first migration creates missing tables and conditionally adds the ownership, delivery-failure, and proof-of-delivery fields introduced in earlier pilot versions. It is designed to preserve existing rows; it does not delete or recreate the database.
+
+Start the API after migrations:
 
 ```powershell
 $env:PYTHONPATH = "backend"
@@ -59,7 +73,68 @@ python -m uvicorn app.main:app --reload --app-dir backend
 
 Open Swagger UI at http://127.0.0.1:8000/docs.
 
-Run tests:
+### Option B: Run the API and PostgreSQL with Docker Compose
+
+Install and start Docker Desktop, then run these commands from the repository root:
+
+```powershell
+docker compose config
+docker compose up --build -d
+docker compose ps
+docker compose logs -f api
+```
+
+Compose starts PostgreSQL 16 with a persistent named volume, waits for its health check, builds the API image, applies Alembic migrations, and then starts FastAPI. The API is available at http://localhost:8000 and Swagger UI at http://localhost:8000/docs. PostgreSQL is exposed on localhost:5432 for database tools. The frontend can continue running locally with the steps in the Frontend section.
+
+For the local Compose environment, the defaults are intentionally development-only. Override `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `SECRET_KEY`, and ports through the root `.env` file before sharing the environment or exposing it beyond your machine. Use a URL-safe PostgreSQL password; if it contains reserved URL characters, percent-encode it when constructing a connection URL.
+
+Stop containers while retaining the database volume:
+
+```powershell
+docker compose down
+```
+
+Stop containers and permanently delete the Compose database volume (destructive; only for disposable local data):
+
+```powershell
+docker compose down -v
+```
+
+**SQLite data is not copied automatically into PostgreSQL.** The two databases are separate. Keep using SQLite for your existing pilot data until you are ready to perform a planned migration. Do not run `docker compose down -v` if you need to preserve PostgreSQL data.
+
+#### Optional: transfer existing SQLite data to PostgreSQL
+
+This is a deliberate, separate operation. First stop the API and any process that can write to SQLite, and make a backup:
+
+```powershell
+Copy-Item .\timedrop.db .\timedrop-before-postgres-migration.db
+```
+
+Start the Compose database and API so the PostgreSQL schema is created:
+
+```powershell
+docker compose up --build -d
+docker compose ps
+```
+
+Run a read-only preflight (replace the example password with the value in your local `.env`):
+
+```powershell
+$env:PYTHONPATH = "backend"
+python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop"
+```
+
+The preflight checks that both databases have the same Alembic revision, the same business tables and columns, and that every PostgreSQL business table is empty. It prints the source row counts and changes no data.
+
+Only after reviewing a successful preflight, repeat the command with `--execute`:
+
+```powershell
+python backend\scripts\migrate_sqlite_to_postgres.py --source .\timedrop.db --target-url "postgresql+psycopg://timedrop_user:change-this-local-docker-password@localhost:5432/timedrop" --execute
+```
+
+The utility reads SQLite in read-only mode, copies rows in foreign-key dependency order, preserves primary keys, updates PostgreSQL integer sequences, and writes all copied rows in one PostgreSQL transaction. It refuses to overwrite a non-empty target or proceed when schema/revision checks fail. Keep the SQLite backup until you have separately verified the PostgreSQL data and application behavior. Use a URL-safe password in the connection URL; percent-encode reserved URL characters.
+
+Run tests after the development phase is complete:
 
 ```powershell
 $env:PYTHONPATH = "backend"
@@ -76,12 +151,15 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:5173. Keep the API running in a separate terminal.
+Open http://localhost:5173. Keep the API running in a separate terminal. For the Docker Compose backend, the frontend still runs locally and calls the API at localhost:8000.
 
 ## Security and operations
 
 - Never commit `.env` or share passwords/access tokens.
-- Configure HTTPS and restrict CORS before external use.
+- Configure HTTPS and set `CORS_ORIGINS` to only the trusted frontend origins before external use.
+- Configure `DATABASE_URL` for PostgreSQL in deployed environments; SQLite remains the local non-Docker development default.
+- The PostgreSQL driver and Alembic are installed from `backend/requirements.txt`.
+- Apply database migrations as a deployment step before starting new application instances; the API intentionally does not mutate the schema at startup. The Compose command applies migrations for this single-instance local development setup.
+- Back up the database before applying migrations to any environment containing important data.
 - Replace localStorage token storage with a production-grade session design before production.
-- Replace the prototype SQLite compatibility approach with versioned Alembic migrations and PostgreSQL before production.
 - Do not accept, store, transport, or deliver third-party marketplace parcels unless the relevant seller, carrier, and operational parties have explicitly authorized the arrangement.
