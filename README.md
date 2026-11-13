@@ -287,3 +287,14 @@ When a delivery attempt fails after a parcel has been handed to a partner, opera
 - The API appends a `returned` custody event with the partner name, operations actor, timestamp, inspected condition, and note. Parcel status becomes `returned_to_operations`.
 - Reassignment is blocked while the latest custody event is `released`; operations must first record the physical return. After return, the parcel can be explicitly reassigned and released again.
 - This records an operator-confirmed physical handover; it does not independently verify the parcel's location or automatically retry delivery.
+
+
+## Warehouse management
+
+The operations workspace includes a warehouse inventory page with live parcel counts, search by tracking number/recipient/city/PIN, status filtering, and storage-bin assignment.
+
+- `GET /api/v1/operations/warehouse/summary` — live totals for parcels, parcels currently in operations custody, bin assignments, parcels awaiting storage, damaged/opened inspections, out-for-delivery, delivered, and failed.
+- `GET /api/v1/operations/warehouse/parcels?q=&parcel_status=&location=` — search and filter up to 200 parcels. Use `location=unassigned` to find parcels without a storage bin.
+- `PATCH /api/v1/operations/warehouse/parcels/{parcel_id}/location` — set or clear a storage-bin code while the latest custody event is `received` or `returned`.
+
+Storage-bin values are operator-entered labels (for example `A-01-02`), not a live warehouse-location or barcode system. The migration adds nullable `parcels.warehouse_location`.
