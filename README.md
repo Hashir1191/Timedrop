@@ -372,3 +372,16 @@ The frontend now has a shared visual foundation in `frontend/src/design-system.c
 Delivery partners can manage their weekly availability from **Availability** in the partner workspace. The page supports enabling/disabling schedule enforcement, adding multiple windows per weekday, pausing individual windows, and saving the schedule through the Phase 13 API. Client-side checks flag invalid or overlapping time windows before submission.
 
 The visual system is intentionally dependency-light for this first pass. Existing React, TypeScript, Vite, Tailwind, and Lucide dependencies remain in place; additional UI libraries will be introduced only where they add a clear product benefit.
+
+
+## Phase 15 — Customer portal experience
+
+The customer overview and parcel directory have been refreshed around a more product-focused delivery experience.
+
+- The customer dashboard presents a branded welcome area, live account metrics, recent parcel cards, and direct actions to create or manage deliveries.
+- The parcel directory supports search by tracking number, recipient, city, and PIN, plus filters for all, in-progress, delivered, and cancelled parcels.
+- Parcel cards present destination, registration date, customer-visible ETA when available, booking actions, and the existing customer-safe activity timeline.
+- Delivery-code generation remains available only while a parcel is out for delivery.
+- Loading, empty, error, and narrow-screen states have dedicated layouts. The interface continues to use API-backed values rather than fabricated dashboard metrics.
+
+The refresh is implemented with the existing React and TypeScript components and a dedicated `customer-portal.css` layer. No backend API or database migration is required.
