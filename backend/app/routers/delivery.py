@@ -34,6 +34,8 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
         start_time=slot.start_time, end_time=slot.end_time, partner_name=partner_user.full_name,
         failure_reason=assignment.failure_reason,
         delivered_at=assignment.delivered_at,
+        estimated_delivery_start=assignment.estimated_delivery_start,
+        estimated_delivery_end=assignment.estimated_delivery_end,
         proof_recipient_name=assignment.proof_recipient_name,
     )
 
