@@ -4,11 +4,12 @@ import logging
 import time
 
 import httpx
-from sqlalchemy import or_, select
+from sqlalchemy import select
 
 from app.config import settings
 from app.database import SessionLocal
 from app.models import NotificationDelivery
+from app.providers.msg91 import send_transactional_sms
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("timedrop.notification_worker")
@@ -71,6 +72,12 @@ def process_one() -> bool:
         try:
             if item.channel == "email":
                 provider_id = _deliver_email(item)
+            elif item.channel == "sms":
+                provider_id = send_transactional_sms(
+                    recipient=item.recipient,
+                    title=item.subject,
+                    message=item.body,
+                )
             else:
                 raise RuntimeError(f"Unsupported notification channel: {item.channel}")
             item.status = "sent"
