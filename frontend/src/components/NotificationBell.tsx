@@ -33,17 +33,6 @@ export default function NotificationBell() {
     void load();
   }, [token]);
 
-  async function markRead(id: number) {
-    if (!token) return;
-    try {
-      const updated = await markNotificationRead(token, id);
-      setItems((current) => current.map((item) => item.id === id ? updated : item));
-      setUnreadCount((count) => Math.max(0, count - 1));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to update notification.");
-    }
-  }
-
   async function openNotification(item: NotificationItem) {
     if (!token) return;
     if (!item.read_at) {
