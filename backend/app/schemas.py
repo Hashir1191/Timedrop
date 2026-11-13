@@ -226,6 +226,8 @@ class DeliveryAssignmentResponse(BaseModel):
     partner_name: str
     failure_reason: str | None = None
     delivered_at: datetime | None = None
+    estimated_delivery_start: datetime | None = None
+    estimated_delivery_end: datetime | None = None
     proof_recipient_name: str | None = None
 
 
