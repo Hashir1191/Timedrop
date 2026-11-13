@@ -32,6 +32,7 @@ class ParcelIntakeCreate(BaseModel):
         if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
             raise ValueError("A valid customer email address is required.")
         return normalized
+
     received_from: str = Field(min_length=2, max_length=120)
     package_condition: str = Field(pattern=r"^(intact|damaged|opened)$")
     note: str | None = Field(default=None, max_length=500)
@@ -66,6 +67,11 @@ class CustodyEventResponse(BaseModel):
 
 class CustodyReleaseRequest(BaseModel):
     note: str | None = Field(default=None, max_length=500)
+
+
+class CustodyReturnRequest(BaseModel):
+    package_condition: str = Field(pattern=r"^(intact|damaged|opened)$")
+    note: str = Field(min_length=3, max_length=500)
 
 
 def _intake_response(parcel: Parcel, event: ParcelCustodyEvent, owner: User | None):
@@ -163,7 +169,7 @@ def release_parcel(parcel_id: int, data: CustodyReleaseRequest, db: Session = De
         .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
         .limit(1)
     )
-    if latest is None or latest.event_type != "received":
+    if latest is None or latest.event_type not in {"received", "returned"}:
         raise HTTPException(status_code=409, detail="This parcel is not currently recorded as being in TimeDrop custody.")
     assignment = db.scalar(select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel_id))
     if assignment is None or assignment.status != "assigned":
@@ -179,6 +185,51 @@ def release_parcel(parcel_id: int, data: CustodyReleaseRequest, db: Session = De
         handed_to=partner_user.full_name,
         note=data.note.strip() if data.note else "Handed over to the assigned delivery partner.",
     )
+    db.add(event)
+    db.commit()
+    db.refresh(event)
+    return event
+
+
+@router.post("/parcels/{parcel_id}/return", response_model=CustodyEventResponse, status_code=status.HTTP_201_CREATED)
+def receive_failed_parcel(
+    parcel_id: int,
+    data: CustodyReturnRequest,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Record physical return of a failed delivery from its assigned partner to operations."""
+    parcel = db.get(Parcel, parcel_id)
+    if parcel is None:
+        raise HTTPException(status_code=404, detail="Parcel not found.")
+
+    latest = db.scalar(
+        select(ParcelCustodyEvent)
+        .where(ParcelCustodyEvent.parcel_id == parcel_id)
+        .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
+        .limit(1)
+    )
+    if latest is None or latest.event_type != "released":
+        raise HTTPException(status_code=409, detail="The parcel must be recorded as released to a delivery partner before it can be returned.")
+
+    assignment = db.scalar(select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel_id))
+    if assignment is None or assignment.status != "failed":
+        raise HTTPException(status_code=409, detail="Only a failed delivery can be received back into operations.")
+
+    partner = db.get(DeliveryPartner, assignment.partner_id)
+    partner_user = db.get(User, partner.user_id) if partner else None
+    if partner_user is None:
+        raise HTTPException(status_code=409, detail="The assigned delivery partner could not be found.")
+
+    event = ParcelCustodyEvent(
+        parcel_id=parcel_id,
+        actor_id=admin.id,
+        event_type="returned",
+        package_condition=data.package_condition,
+        received_from=partner_user.full_name,
+        note=data.note.strip(),
+    )
+    parcel.status = "returned_to_operations"
     db.add(event)
     db.commit()
     db.refresh(event)

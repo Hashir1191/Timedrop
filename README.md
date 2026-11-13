@@ -277,3 +277,13 @@ The authenticated operations API is:
 Every custody event records the acting operations user and timestamp. Intake is limited to existing customer accounts when an account email is supplied; the API does not create customer accounts implicitly. The first release records the assigned partner's name. Repeated release attempts are rejected.
 
 This is an application-level operational event history, not a tamper-proof audit ledger. The pilot should use synthetic parcel details until the workflow, authorization, and retention requirements have been reviewed. Only receive parcels TimeDrop is explicitly authorized to handle.
+
+
+## Failed delivery returns to operations
+
+When a delivery attempt fails after a parcel has been handed to a partner, operations must record the parcel's physical return before assigning it again. The operations custody screen exposes **Receive failed parcel** after the partner reports a failed delivery and the custody history shows a prior partner release.
+
+- `POST /api/v1/operations/parcels/{parcel_id}/return` — operations-only receipt of a failed parcel from its assigned delivery partner. Requires `package_condition` (`intact`, `damaged`, or `opened`) and an inspection note.
+- The API appends a `returned` custody event with the partner name, operations actor, timestamp, inspected condition, and note. Parcel status becomes `returned_to_operations`.
+- Reassignment is blocked while the latest custody event is `released`; operations must first record the physical return. After return, the parcel can be explicitly reassigned and released again.
+- This records an operator-confirmed physical handover; it does not independently verify the parcel's location or automatically retry delivery.

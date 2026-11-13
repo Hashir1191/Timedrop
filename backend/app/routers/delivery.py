@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.config import settings
 from app.route_planning import enrich_partner_route
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, ParcelCustodyEvent, User
 from app.notifications import add_notification
 from app.schemas import (
     DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
@@ -92,6 +92,17 @@ def assign_parcel(parcel_id: int, data: DeliveryAssignmentCreate, db: Session = 
         raise HTTPException(status_code=404, detail="Parcel not found.")
     if parcel.status in {"delivered", "failed", "cancelled"}:
         raise HTTPException(status_code=409, detail="A terminal parcel cannot be assigned.")
+    latest_custody = db.scalar(
+        select(ParcelCustodyEvent)
+        .where(ParcelCustodyEvent.parcel_id == parcel_id)
+        .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
+        .limit(1)
+    )
+    if latest_custody is not None and latest_custody.event_type == "released" and parcel.status == "failed":
+        raise HTTPException(
+            status_code=409,
+            detail="The parcel must be physically returned to operations before it can be reassigned.",
+        )
     booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel_id, DeliveryBooking.status == "booked"))
     if booking is None:
         raise HTTPException(status_code=409, detail="Book a delivery slot before assigning this parcel.")
