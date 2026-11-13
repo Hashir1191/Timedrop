@@ -291,6 +291,8 @@ def generate_route_plan(
         optimized_stops.extend(enrich_partner_route(db, partner_stops, partner_id))
 
     stops = optimized_stops + unassigned
+    if settings.route_mapping_enabled:
+        db.commit()  # Persist successful address geocodes for later previews.
     stops.sort(key=lambda stop: (
         stop.suggested_partner_id is None,
         stop.suggested_partner_id or 0,
