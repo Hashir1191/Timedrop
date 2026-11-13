@@ -5,6 +5,8 @@ import { getParcels, issueDeliveryCode, getMyTracking } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
+import DeliveryTimeline from "../components/DeliveryTimeline";
+import type { DeliveryAssignment } from "../types";
 import type { Parcel } from "../types";
 
 export default function CustomerParcels() {
