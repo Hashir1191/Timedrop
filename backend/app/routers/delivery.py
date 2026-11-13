@@ -10,7 +10,7 @@ from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliverySlot, Parcel, User
 from app.notifications import add_notification
 from app.schemas import (
-    DeliveryCodeResponse, DeliveryProofSubmit,
+    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
 )
