@@ -13,6 +13,7 @@ export default function PartnerDashboard() {
   const [error,setError] = useState("");
   const [busy,setBusy] = useState<number|null>(null);
   const [proof,setProof] = useState<Record<number,{code:string;recipient_name:string}>>({});
+  const [eta,setEta] = useState<Record<number,{start:string;end:string}>>({});
   async function load(){ if(!token)return; setError(""); try{setItems(await getMyAssignments(token));}catch(e){setError(e instanceof Error?e.message:"Unable to load your assignments.");}}
   useEffect(()=>{void load();},[token]);
   async function update(id:number,status:"accepted"|"out_for_delivery"|"delivered"|"failed"){
