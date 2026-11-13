@@ -150,6 +150,23 @@ def list_assignments(
     return [_assignment_response(db, item) for item in db.scalars(statement).all()]
 
 
+@router.get("/my-tracking", response_model=list[DeliveryAssignmentResponse])
+def my_delivery_tracking(
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    """Return delivery progress only for parcels owned by the signed-in customer."""
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Customer access is required.")
+    statement = (
+        select(DeliveryAssignment)
+        .join(Parcel, Parcel.id == DeliveryAssignment.parcel_id)
+        .where(Parcel.owner_id == customer.id)
+        .order_by(DeliveryAssignment.updated_at.desc())
+    )
+    return [_assignment_response(db, item) for item in db.scalars(statement).all()]
+
+
 @router.get("/my-assignments", response_model=list[DeliveryAssignmentResponse])
 def my_assignments(db: Session = Depends(get_db), partner_user: User = Depends(require_delivery_partner)):
     partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
