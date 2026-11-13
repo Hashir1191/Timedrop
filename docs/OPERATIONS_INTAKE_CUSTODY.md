@@ -45,3 +45,22 @@ All endpoints require an authenticated operations administrator:
 ## Pilot limitations
 
 This is not yet a tamper-proof audit ledger, barcode scanner integration, photo evidence workflow, multi-warehouse inventory system, or chain-of-custody signature capture. Use synthetic data during development and receive only parcels TimeDrop is explicitly authorized to handle.
+
+
+## Failed delivery return workflow
+
+When a delivery partner marks an assignment as failed, operations must physically receive the parcel back before it can be reassigned:
+
+1. The partner records the failed attempt and reason in the partner portal.
+2. Operations confirms the parcel has physically returned to the depot.
+3. In the parcel custody history, operations records the return condition and a note describing the inspection/receipt.
+4. The API appends a `returned` custody event, attributes it to the operations user, records the assigned partner as the sender, and changes the parcel status to `returned_to_operations`.
+5. A failed parcel with a latest custody event of `released` cannot be reassigned. After a `returned` event is recorded, operations can assign it again and record a new release.
+
+Additional endpoint:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| POST | `/api/v1/operations/parcels/{parcel_id}/return` | Record physical receipt of a failed parcel back from its assigned partner |
+
+The request requires `package_condition` (`intact`, `damaged`, or `opened`) and a note of at least three characters. This endpoint does not itself retry delivery or change the failed assignment; a separate explicit reassignment is required.
