@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
 import "../styles.custody.css";
 import { ClipboardCheck, PackageCheck, RefreshCw, ShieldCheck } from "lucide-react";
-import { createParcelIntake, getCustodyHistory, getParcelIntakes, releaseParcelCustody } from "../api";
+import { createParcelIntake, getCustodyHistory, getParcelIntakes, releaseParcelCustody, returnParcelToOperations } from "../api";
 import { useAuth } from "../auth";
 import type { CustodyEvent, ParcelIntake } from "../types";
 import EmptyState from "../components/EmptyState";
@@ -53,6 +53,24 @@ export default function Intake(){
   catch(err){setError(err instanceof Error?err.message:"Unable to record handover.");}
   finally{setBusy(false);}
  }
+ async function receiveReturn(id:number){
+  if(!token)return;
+  const condition=window.prompt("Inspect the returned parcel. Enter condition: intact, damaged, or opened.","intact");
+  if(!condition)return;
+  if(!["intact","damaged","opened"].includes(condition.trim().toLowerCase())){
+   setError("Package condition must be intact, damaged, or opened.");return;
+  }
+  const note=window.prompt("Record the return inspection note (required):")?.trim();
+  if(!note||note.length<3){setError("A return inspection note of at least 3 characters is required.");return;}
+  if(!window.confirm("Confirm the parcel has physically returned from the delivery partner to TimeDrop operations?"))return;
+  setBusy(true);setError("");setSuccess("");
+  try{
+   await returnParcelToOperations(token,id,{package_condition:condition.trim().toLowerCase() as "intact"|"damaged"|"opened",note});
+   setSuccess("Failed parcel received back into operations custody.");
+   await showHistory(id);await load();
+  }catch(err){setError(err instanceof Error?err.message:"Unable to record parcel return.");}
+  finally{setBusy(false);}
+ }
  return <>
   <div className="page-heading"><div><div className="eyebrow">WAREHOUSE OPERATIONS</div><h1>Parcel intake & custody</h1><p>Record authorized parcel receipts, inspect package condition, and maintain a handover trail.</p></div><button className="secondary-button" onClick={()=>void load()}><RefreshCw size={15}/> Refresh</button></div>
   <div className="alert-info"><ShieldCheck size={17}/> Only record parcels TimeDrop is explicitly authorized to receive and handle. Use synthetic details while testing.</div>
@@ -81,7 +99,8 @@ export default function Intake(){
   </section>
   {selected!==null&&<section className="panel list-panel"><div className="panel-heading"><div><h2>Custody history · parcel #{selected}</h2><p>Events are appended; previous records are not edited.</p></div><button className="secondary-button" onClick={()=>{setSelected(null);setHistory([]);}}>Close</button></div>
    <div className="timeline">{history.map(event=><div className="timeline-item" key={event.id}><div className="timeline-dot"/><div><strong>{event.event_type==="received"?"Received into custody":event.event_type==="released"?"Released to delivery partner":event.event_type}</strong><span className="cell-sub">{new Date(event.created_at).toLocaleString("en-IN")}</span>{event.received_from&&<p>Received from: {event.received_from}</p>}{event.package_condition&&<p>Condition: {event.package_condition}</p>}{event.handed_to&&<p>Handed to: {event.handed_to}</p>}{event.note&&<p>{event.note}</p>}</div></div>)}</div>
-   {history.length===1&&history[0].event_type==="received"&&<div className="customer-form-actions"><span>Release becomes available after a delivery partner is assigned.</span><button className="secondary-button" disabled={busy} onClick={()=>void release(selected)}>Record partner handover</button></div>}
+   {history.length>0&&history[history.length-1].event_type==="received"||history.length>0&&history[history.length-1].event_type==="returned"?<div className="customer-form-actions"><span>Parcel is recorded in operations custody. Release is available after assignment.</span><button className="secondary-button" disabled={busy} onClick={()=>void release(selected)}>Record partner handover</button></div>:null}
+   {history.length>0&&history[history.length-1].event_type==="released"&&items.find(item=>item.id===selected)?.status==="failed"&&<div className="customer-form-actions"><span>Delivery failed. Confirm physical receipt and inspect the parcel before reassignment.</span><button className="secondary-button" disabled={busy} onClick={()=>void receiveReturn(selected)}>Receive failed parcel</button></div>}
   </section>}
  </>;
 }
