@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Activity, LayoutDashboard, LogOut, Package, PlusCircle, UserRound } from "lucide-react";
+import { Activity, LayoutDashboard, LogOut, Package, PlusCircle, UserRound, Smartphone } from "lucide-react";
 import { useAuth } from "../auth";
 import NotificationBell from "./NotificationBell";
 
@@ -7,6 +7,7 @@ const links = [
   { to: "/", label: "Overview", icon: LayoutDashboard, end: true },
   { to: "/my-parcels", label: "My parcels", icon: Package },
   { to: "/new-parcel", label: "Create parcel", icon: PlusCircle },
+  { to: "/phone-settings", label: "Phone & SMS", icon: Smartphone },
 ];
 
 export default function CustomerLayout() {

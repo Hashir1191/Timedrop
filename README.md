@@ -189,3 +189,18 @@ Notification records are created in the same database transaction as the booking
 In-app notifications can also be delivered by the standalone email outbox worker. Configure `RESEND_API_KEY` and `NOTIFICATION_FROM_EMAIL` in your local `.env` file (never commit secrets), then start the stack with `docker compose up --build -d`. The API writes email jobs to `notification_deliveries` in the same transaction as the in-app notification. The separate worker sends pending jobs through Resend, uses an idempotency key, retries transient failures with backoff, and marks exhausted jobs as failed. Configure a verified sending domain/address in Resend before production use.
 
 SMS provider settings are reserved for MSG91, but SMS dispatch is deliberately not enabled yet. Customer parcel phone numbers and admin-entered partner phone numbers are not verified or consented contact points in the current data model. Do not send delivery notifications to those numbers until TimeDrop adds an explicit phone-verification and SMS-consent flow and the required Indian DLT entity/header/template setup is completed. MSG91 requires an approved Flow/template; see the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [DLT template setup](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
+
+
+## Phone verification and SMS consent
+
+Customer and delivery-partner accounts can manage a mobile number at **Phone & SMS** in their portal. The API normalizes Indian mobile numbers to +91 E.164 format, prevents a number from being linked to multiple accounts, invalidates older challenges when a new code is requested, stores only an Argon2 hash, expires codes after five minutes, limits verification to five attempts, and rate-limits requests to three per account per 15 minutes.
+
+Endpoints (authenticated):
+- `GET /api/v1/phone-verification/me` — current phone verification and SMS consent state.
+- `POST /api/v1/phone-verification/request` — request a verification challenge.
+- `POST /api/v1/phone-verification/verify` — verify a six-digit code.
+- `PUT /api/v1/phone-verification/sms-consent` — explicitly enable or withdraw SMS notification consent.
+
+**Development mode:** no SMS is sent. With `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true`, the API returns a development-only OTP in its response so the workflow can be exercised locally. Keep this setting disabled outside local development. Production mode rejects OTP requests until a real SMS provider is configured; the API never claims that an SMS was sent when no provider is active.
+
+**SMS delivery remains disabled.** Verification and consent are separate. No message should be sent until the MSG91 Flow integration, approved Indian DLT entity/header/template details, and operational consent controls are configured. Existing delivery-partner phone fields remain unchanged; users verify the contact number on their own account profile.
