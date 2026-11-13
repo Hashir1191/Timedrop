@@ -1,0 +1,72 @@
+/* Parcel operations UI — Phase 19 */
+.parcel-operations-workspace, .intake-workspace { max-width: 1420px; margin: 0 auto; }
+.parcel-operations-heading { margin-bottom: 21px; }
+.parcel-register-summary { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 10px; margin-bottom: 18px; }
+.parcel-register-summary > div { display: grid; gap: 6px; padding: 13px 14px; border: 1px solid #e6ebf3; border-radius: 13px; background: #fff; box-shadow: 0 4px 15px rgba(25,45,79,.03); }
+.parcel-register-summary span { color: #8996a8; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.parcel-register-summary strong { color: #26364e; font-size: 21px; letter-spacing: -.5px; }
+.parcel-register-toolbar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 12px; margin-bottom: 14px; border: 1px solid #e5eaf2; border-radius: 13px; background: #fff; box-shadow: 0 4px 15px rgba(25,45,79,.03); }
+.parcel-register-search { display: flex; align-items: center; gap: 8px; flex: 1 1 260px; max-width: 440px; padding: 0 10px; border: 1px solid #e2e8f0; border-radius: 8px; color: #98a4b4; }
+.parcel-register-search input { width: 100%; height: 36px; border: 0; outline: 0; color: #40516b; background: transparent; font-size: 9px; }
+.parcel-register-toolbar select { min-width: 150px; height: 36px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 9px; color: #65748b; background: #fff; font-size: 9px; }
+.parcel-register-count { margin-left: auto; color: #96a2b2; font-size: 9px; white-space: nowrap; }
+.parcel-register-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.parcel-register-card { min-width: 0; padding: 15px; border: 1px solid #e6ebf3; border-radius: 14px; background: #fff; box-shadow: 0 5px 18px rgba(25,45,79,.03); transition: border-color .18s, box-shadow .18s; }
+.parcel-register-card:hover { border-color: #d8e2f3; box-shadow: 0 9px 22px rgba(25,45,79,.06); }
+.parcel-register-card-top { display: flex; align-items: center; gap: 9px; }
+.parcel-register-icon { width: 34px; height: 34px; flex: 0 0 34px; display: grid; place-items: center; border-radius: 10px; color: #4b70d4; background: #eff3ff; }
+.parcel-register-id { display: grid; gap: 4px; flex: 1; min-width: 0; }
+.parcel-register-id small, .parcel-register-recipient > span { color: #9aa5b4; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.parcel-register-id strong { color: #2b3c56; font-size: 11px; overflow-wrap: anywhere; }
+.parcel-register-recipient { display: grid; gap: 3px; margin-top: 13px; }
+.parcel-register-recipient strong { color: #53627a; font-size: 10px; }
+.parcel-register-recipient small { color: #9aa5b4; font-size: 8px; }
+.parcel-register-destination { display: flex; align-items: center; gap: 6px; margin-top: 10px; color: #8090a7; font-size: 8px; }
+.parcel-register-destination svg { color: #5c7cce; }
+.parcel-register-card-meta { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 0; margin-top: 12px; border-top: 1px solid #f0f2f6; color: #9aa5b4; font-size: 7px; }
+.parcel-register-card-meta span:first-child { display: inline-flex; align-items: center; gap: 5px; }
+.parcel-register-status-editor { display: flex; align-items: flex-end; gap: 9px; padding-top: 10px; border-top: 1px solid #f0f2f6; }
+.parcel-register-status-editor label { display: grid; gap: 5px; flex: 1; color: #8a97a9; font-size: 8px; font-weight: 750; }
+.parcel-register-status-editor select { width: 100%; height: 33px; border: 1px solid #e1e7f0; border-radius: 8px; padding: 0 8px; color: #52627b; background: #fbfcfe; font-size: 9px; }
+.parcel-register-saving { color: #8a97a9; font-size: 8px; }
+.parcel-register-skeletons { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 12px; }
+.parcel-register-skeleton { height: 210px; border: 1px solid #e7ecf4; border-radius: 14px; background: linear-gradient(100deg,#fff 25%,#f4f6fa 38%,#fff 62%); background-size: 300% 100%; animation: parcel-register-shimmer 1.5s ease infinite; }
+@keyframes parcel-register-shimmer { to { background-position: -150% 0; } }
+.parcel-register-empty { padding: 30px; border: 1px dashed #dce4f0; border-radius: 13px; background: #fbfcfe; }
+
+/* Operations intake form and custody history */
+.intake-workspace .page-heading { margin-bottom: 20px; }
+.intake-workspace .alert-info { display: flex; align-items: center; gap: 9px; padding: 12px 14px; border: 1px solid #dce7f8; border-radius: 11px; color: #5d7197; background: #f5f8ff; font-size: 9px; line-height: 1.55; }
+.intake-workspace .customer-form-panel, .intake-workspace .list-panel { overflow: hidden; border-radius: 16px; box-shadow: 0 6px 20px rgba(25,45,79,.035); }
+.intake-workspace .customer-form-panel .panel-heading, .intake-workspace .list-panel .panel-heading { padding: 18px 19px; border-bottom: 1px solid #edf1f6; }
+.intake-workspace .panel-heading h2 { color: #2b3c56; font-size: 14px; }
+.intake-workspace .panel-heading p { color: #8a97a9; font-size: 9px; }
+.intake-workspace .customer-form { padding: 19px; }
+.intake-workspace .customer-form label { color: #78869a; font-size: 9px; font-weight: 750; }
+.intake-workspace .customer-form input, .intake-workspace .customer-form select, .intake-workspace .customer-form textarea { border: 1px solid #e1e7f0; border-radius: 9px; color: #40516b; background: #fbfcfe; font-size: 10px; }
+.intake-workspace .customer-form input, .intake-workspace .customer-form select { min-height: 39px; }
+.intake-workspace .customer-form input:focus, .intake-workspace .customer-form select:focus, .intake-workspace .customer-form textarea:focus { border-color: #9db3ee; background: #fff; }
+.intake-workspace .customer-form-actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding-top: 15px; border-top: 1px solid #edf1f6; }
+.intake-workspace .customer-form-actions > span { color: #929eae; font-size: 8px; line-height: 1.5; }
+.intake-workspace .list-panel { margin-top: 18px; }
+.intake-workspace .timeline { padding: 17px 20px; }
+.intake-workspace .timeline-item { padding-bottom: 17px; }
+.intake-workspace .timeline-item > div:last-child { color: #52627b; font-size: 10px; }
+.intake-workspace .timeline-item p { color: #8592a5; font-size: 9px; }
+@media (max-width: 1100px) { .parcel-register-summary { grid-template-columns: repeat(3,minmax(0,1fr)); } }
+@media (max-width: 700px) {
+ .parcel-operations-heading { align-items: flex-start; flex-direction: column; }
+ .parcel-operations-heading > button { width: 100%; }
+ .parcel-register-summary { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 7px; }
+ .parcel-register-summary > div { padding: 10px; }
+ .parcel-register-summary strong { font-size: 18px; }
+ .parcel-register-toolbar { align-items: stretch; }
+ .parcel-register-search { max-width: none; flex-basis: 100%; }
+ .parcel-register-toolbar select { flex: 1; min-width: 0; }
+ .parcel-register-count { margin-left: 0; }
+ .parcel-register-grid, .parcel-register-skeletons { grid-template-columns: 1fr; }
+ .intake-workspace .customer-form { padding: 13px; }
+ .intake-workspace .customer-form-actions { align-items: stretch; flex-direction: column; }
+ .intake-workspace .customer-form-actions .primary-button { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) { .parcel-register-skeleton { animation: none; } }
