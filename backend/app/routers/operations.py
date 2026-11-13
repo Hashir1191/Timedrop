@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, ConfigDict, EmailStr, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -21,7 +21,17 @@ class ParcelIntakeCreate(BaseModel):
     city: str = Field(min_length=2, max_length=100)
     state: str = Field(min_length=2, max_length=100)
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
-    customer_email: EmailStr | None = None
+    customer_email: str | None = Field(default=None, max_length=255)
+
+    @field_validator("customer_email")
+    @classmethod
+    def normalize_customer_email(cls, value: str | None) -> str | None:
+        if value is None or not value.strip():
+            return None
+        normalized = value.strip().lower()
+        if "@" not in normalized or normalized.startswith("@") or normalized.endswith("@"):
+            raise ValueError("A valid customer email address is required.")
+        return normalized
     received_from: str = Field(min_length=2, max_length=120)
     package_condition: str = Field(pattern=r"^(intact|damaged|opened)$")
     note: str | None = Field(default=None, max_length=500)
