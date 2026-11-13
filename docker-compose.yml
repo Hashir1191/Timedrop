@@ -17,7 +17,6 @@ services:
       timeout: 5s
       retries: 12
       start_period: 10s
-
   api:
     build:
       context: .
@@ -26,7 +25,7 @@ services:
     restart: unless-stopped
     environment:
       APP_NAME: ${APP_NAME:-TimeDrop API}
-      APP_ENV: development
+      APP_ENV: ${APP_ENV:-development}
       DATABASE_URL: postgresql+psycopg://${POSTGRES_USER:-timedrop_user}:${POSTGRES_PASSWORD:-timedrop_dev_password}@db:5432/${POSTGRES_DB:-timedrop}
       SECRET_KEY: ${SECRET_KEY:-development-only-change-this-secret}
       JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
@@ -38,6 +37,7 @@ services:
       NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
       MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
       MSG91_FLOW_TEMPLATE_ID: ${MSG91_FLOW_TEMPLATE_ID:-}
+      MSG91_OTP_TEMPLATE_ID: ${MSG91_OTP_TEMPLATE_ID:-}
       SMS_NOTIFICATIONS_ENABLED: ${SMS_NOTIFICATIONS_ENABLED:-false}
       PHONE_OTP_EXPOSE_IN_DEVELOPMENT: ${PHONE_OTP_EXPOSE_IN_DEVELOPMENT:-true}
       PHONE_OTP_EXPIRE_MINUTES: ${PHONE_OTP_EXPIRE_MINUTES:-5}
@@ -47,7 +47,6 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
   notification-worker:
     build:
       context: .
@@ -73,6 +72,5 @@ services:
         condition: service_healthy
       api:
         condition: service_started
-
 volumes:
   timedrop_postgres_data:
