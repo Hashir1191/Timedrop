@@ -1,4 +1,5 @@
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -163,7 +164,7 @@ def generate_route_plan(
     and avoids overlapping delivery-slot commitments. It does not estimate road
     distance, traffic, or turn-by-turn navigation.
     """
-    today = datetime.now(timezone.utc).date()
+    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
     if delivery_date < today:
         raise HTTPException(status_code=400, detail="Route plans cannot be generated for a past date.")
 
