@@ -204,6 +204,18 @@ Endpoints (authenticated):
 
 **Development mode:** no SMS is sent for OTP verification. With `PHONE_OTP_EXPOSE_IN_DEVELOPMENT=true`, the API returns a development-only OTP in its response so the workflow can be exercised locally. Production mode currently rejects OTP requests; a production-grade MSG91 OTP verification flow is a separate prerequisite before production onboarding. Transactional delivery SMS is a separate feature and requires both verified phone status and explicit SMS consent.
 
+
+## Delivery ETA and customer tracking
+
+Delivery partners can publish or revise an estimated arrival window from their assignment card. Operations admins can also update the ETA through the authenticated API:
+
+- `PATCH /api/v1/delivery/assignments/{assignment_id}/eta` — accepts timezone-aware `estimated_delivery_start` and `estimated_delivery_end` timestamps.
+- `GET /api/v1/delivery/my-tracking` — returns assignment progress and ETA only for parcels owned by the signed-in customer.
+
+ETA changes are rejected for completed or failed assignments, are recorded in the append-only delivery event history, and create an in-app notification for the parcel owner. The customer portal displays the current estimate and delivery event timeline. This is an operator/partner-maintained estimate, not GPS-based live tracking; no continuous location collection is performed.
+
+Apply the new Alembic migration before using this feature.
+
 ## Production phone OTP verification
 
 Phone verification uses MSG91's OTP API when the application is not in local development OTP mode. Configure `MSG91_AUTH_KEY` and `MSG91_OTP_TEMPLATE_ID` in the deployment secret store. The OTP template must be created in the MSG91 OTP section and contain the `##OTP##` placeholder. The API requests a six-digit code with the configured expiry; MSG91 generates and stores the production OTP. TimeDrop does not generate, store, log, or return the production OTP.
