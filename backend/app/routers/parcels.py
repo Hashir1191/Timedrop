@@ -137,7 +137,7 @@ def get_parcel_timeline(
             "eta_updated": "Estimated arrival updated",
         }
         for event in delivery_events:
-            event_status = event.to_status
+            event_status = "eta_updated" if event.event_type == "eta_updated" else event.to_status
             title = titles.get(event_status, titles.get(event.event_type, "Delivery progress updated"))
             descriptions = {
                 "assigned": "A delivery partner has been assigned to your parcel.",
