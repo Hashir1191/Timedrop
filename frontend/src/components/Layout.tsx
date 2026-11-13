@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { Activity, CalendarClock, ChartNoAxesCombined, ChevronDown, LayoutDashboard, LogOut, Package, PackageCheck, Truck, Users, Warehouse } from "lucide-react";
+import { Activity, CalendarClock, BarChart3, ChevronDown, LayoutDashboard, LogOut, Package, PackageCheck, Truck, Users, Warehouse } from "lucide-react";
 import { useAuth } from "../auth";
 import NotificationBell from "./NotificationBell";
 const navItems=[
