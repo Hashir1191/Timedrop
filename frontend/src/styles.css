@@ -82,3 +82,30 @@
 .delivery-code{display:grid;gap:3px;padding:8px 10px;border:1px dashed #8eabd9;border-radius:8px;background:#f3f7ff;color:#355b94;font-size:10px}
 .delivery-code strong{font-size:18px;letter-spacing:3px}
 .delivery-code small{color:#75869d}
+
+
+/* In-app notification inbox */
+.notification-control{position:relative;display:flex;align-items:center}
+.notification-trigger{position:relative;color:#64748b}
+.notification-count{position:absolute;right:-3px;top:-4px;min-width:16px;height:16px;padding:0 4px;border-radius:10px;background:#e45c5c;color:#fff;font-size:9px;font-weight:750;line-height:16px;text-align:center}
+.notification-popover{position:absolute;z-index:50;right:0;top:calc(100% + 12px);width:min(360px,calc(100vw - 28px));max-height:440px;display:flex;flex-direction:column;background:#fff;border:1px solid #e3e9f1;border-radius:12px;box-shadow:0 14px 38px rgba(31,48,75,.16);overflow:hidden}
+.notification-popover-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 15px;border-bottom:1px solid #edf0f4}
+.notification-popover-head>div{display:grid;gap:3px}
+.notification-popover-head strong{font-size:13px;color:#34445b}
+.notification-popover-head span{font-size:10px;color:#8793a5}
+.notification-mark-all{display:flex;align-items:center;gap:5px;border:0;background:transparent;color:#477bd1;font-size:10px;font-weight:650;cursor:pointer}
+.notification-mark-all:disabled{opacity:.45;cursor:not-allowed}
+.notification-list{overflow:auto}
+.notification-item{width:100%;display:flex;align-items:flex-start;gap:10px;padding:12px 15px;border:0;border-bottom:1px solid #f0f2f5;background:#fff;text-align:left;cursor:pointer}
+.notification-item:hover{background:#f8faff}
+.notification-item.unread{background:#f6f9ff}
+.notification-dot{flex:0 0 7px;width:7px;height:7px;margin-top:5px;border-radius:50%;background:#477bd1}
+.notification-item.read .notification-dot{background:#d8dee8}
+.notification-copy{min-width:0;display:grid;gap:4px}
+.notification-copy strong{font-size:11px;color:#34445b}
+.notification-copy>span{font-size:10px;line-height:1.45;color:#65738a}
+.notification-copy small{font-size:9px;color:#9aa5b4}
+.notification-empty{padding:26px 16px;text-align:center;font-size:11px;color:#8793a5}
+.notification-error{margin:10px 14px 0;color:#b94f4f;font-size:10px}
+.notification-close{border:0;border-top:1px solid #edf0f4;background:#fff;padding:10px;color:#64748b;font-size:10px;font-weight:650;cursor:pointer}
+@media(max-width:700px){.notification-popover{position:fixed;top:65px;right:12px}}

@@ -8,6 +8,7 @@ from app.routers.auth import router as auth_router
 from app.routers.parcels import router as parcels_router
 from app.routers.scheduling import router as scheduling_router
 from app.routers.delivery import router as delivery_router
+from app.routers.notifications import router as notifications_router
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ app.include_router(auth_router)
 app.include_router(parcels_router)
 app.include_router(scheduling_router)
 app.include_router(delivery_router)
+app.include_router(notifications_router)
 
 
 @app.get("/", tags=["General"])

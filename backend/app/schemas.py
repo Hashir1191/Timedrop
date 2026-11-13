@@ -242,3 +242,16 @@ class DeliveryProofSubmit(BaseModel):
     @classmethod
     def normalize_recipient_name(cls, value: str) -> str:
         return " ".join(value.split())
+
+
+class NotificationResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    user_id: int
+    parcel_id: int | None
+    event_type: str
+    title: str
+    message: str
+    created_at: datetime
+    read_at: datetime | None

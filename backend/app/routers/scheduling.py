@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBooking, DeliverySlot, Parcel, User
+from app.notifications import add_notification
 from app.schemas import (
     BookingCreate,
     BookingResponse,
@@ -261,6 +262,14 @@ def book_parcel(
             booking.status = "booked"
             booking.updated_at = datetime.now(timezone.utc)
         parcel.status = "scheduled"
+        add_notification(
+            db,
+            user_id=parcel.owner_id,
+            parcel_id=parcel.id,
+            event_type="booking_created",
+            title="Delivery slot booked",
+            message=f"Your parcel {parcel.tracking_number} is scheduled for {slot.delivery_date:%d %b %Y}, {slot.start_time:%H:%M}–{slot.end_time:%H:%M}.",
+        )
         db.commit()
         db.refresh(booking)
         return _booking_response(db, booking)
@@ -288,11 +297,19 @@ def reschedule_parcel(
         return _booking_response(db, booking)
 
     try:
-        _reserve_capacity(db, booking_data.slot_id)
+        new_slot = _reserve_capacity(db, booking_data.slot_id)
         old_slot_id = booking.slot_id
         _release_capacity(db, old_slot_id)
-        booking.slot_id = booking_data.slot_id
+        booking.slot_id = new_slot.id
         booking.updated_at = datetime.now(timezone.utc)
+        add_notification(
+            db,
+            user_id=parcel.owner_id,
+            parcel_id=parcel.id,
+            event_type="booking_rescheduled",
+            title="Delivery slot changed",
+            message=f"Your parcel {parcel.tracking_number} is now scheduled for {new_slot.delivery_date:%d %b %Y}, {new_slot.start_time:%H:%M}–{new_slot.end_time:%H:%M}.",
+        )
         db.commit()
         db.refresh(booking)
         return _booking_response(db, booking)
@@ -318,6 +335,14 @@ def cancel_booking(
         booking.status = "cancelled"
         booking.updated_at = datetime.now(timezone.utc)
         parcel.status = "registered"
+        add_notification(
+            db,
+            user_id=parcel.owner_id,
+            parcel_id=parcel.id,
+            event_type="booking_cancelled",
+            title="Delivery booking cancelled",
+            message=f"The delivery booking for parcel {parcel.tracking_number} was cancelled.",
+        )
         db.commit()
     except Exception:
         db.rollback()
