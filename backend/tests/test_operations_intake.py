@@ -130,3 +130,56 @@ def test_release_requires_an_assigned_delivery_partner(client):
     assert response.status_code == 409
     history = client.get(f"/api/v1/operations/parcels/{parcel_id}/custody", headers=admin)
     assert [event["event_type"] for event in history.json()] == ["received"]
+
+
+def test_release_records_handover_to_assigned_partner(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "release-owner@example.com", "full_name": "Release Owner", "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "release-owner@example.com", "CustomerPassword123!")
+    received = client.post(
+        "/api/v1/operations/intake",
+        headers=admin,
+        json={**intake_payload("TD-CUSTODY-RELEASE"), "customer_email": "release-owner@example.com"},
+    )
+    assert received.status_code == 201
+    parcel_id = received.json()["id"]
+
+    slot_response = client.post("/api/v1/scheduling/slots", headers=admin, json={
+        "delivery_date": (datetime.now().date() + timedelta(days=3)).isoformat(),
+        "start_time": "10:00:00", "end_time": "12:00:00", "capacity": 5,
+    })
+    assert slot_response.status_code == 201
+    booking = client.post(
+        f"/api/v1/scheduling/parcels/{parcel_id}/bookings",
+        headers=customer,
+        json={"slot_id": slot_response.json()["id"]},
+    )
+    assert booking.status_code == 201
+
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "release-rider@example.com", "full_name": "Release Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543211",
+    })
+    assert partner.status_code == 201
+    assigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner.json()["id"]},
+    )
+    assert assigned.status_code == 201
+
+    released = client.post(
+        f"/api/v1/operations/parcels/{parcel_id}/release",
+        headers=admin,
+        json={"note": "Seal and parcel handed to rider."},
+    )
+    assert released.status_code == 201
+    assert released.json()["event_type"] == "released"
+    assert released.json()["handed_to"] == "Release Rider"
+
+    history = client.get(f"/api/v1/operations/parcels/{parcel_id}/custody", headers=admin)
+    assert [event["event_type"] for event in history.json()] == ["received", "released"]
+    again = client.post(f"/api/v1/operations/parcels/{parcel_id}/release", headers=admin, json={})
+    assert again.status_code == 409
