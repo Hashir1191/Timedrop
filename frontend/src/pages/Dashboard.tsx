@@ -56,7 +56,7 @@ export default function Dashboard() {
         <p>Welcome back{user?.full_name ? `, ${user.full_name.split(" ")[0]}` : ""}. Here's a clear view of parcel movement and today's delivery capacity.</p>
         <div className="operations-hero-actions">
           <Link to="/intake" className="operations-hero-primary"><Package size={16}/> Receive a parcel</Link>
-          <Link to="/analytics" className="operations-hero-secondary">View performance <ArrowRight size={15}/></Link>
+          <Link to="/analytics" className="operations-hero-secondary">View performance <ArrowRight size={15}/></Link><button type="button" className="operations-hero-refresh" onClick={() => void refresh()} disabled={loading}><RefreshCw size={14}/> Refresh data</button>
         </div>
       </div>
       <div className="operations-hero-visual" aria-hidden="true">
