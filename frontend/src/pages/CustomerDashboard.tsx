@@ -73,7 +73,7 @@ export default function CustomerDashboard() {
           <span className="customer-tracking-label">TRACKING NUMBER</span>
           <strong className="customer-tracking-number">{parcel.tracking_number}</strong>
           <div className="customer-recent-recipient"><strong>{parcel.recipient_name}</strong><span>{parcel.city}, {parcel.state}</span></div>
-          <div className="customer-recent-card-foot"><span><Clock3 size={13}/> {new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span><Link to={["delivered","cancelled"].includes(parcel.status)?"/my-parcels":`/schedule/${parcel.id}`}>{parcel.status==="delivered"?"View parcel":"Manage delivery"} <ArrowUpRight size={14}/></Link></div>
+          <div className="customer-recent-card-foot"><span><Clock3 size={13}/> {new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span><Link to={["delivered","failed","cancelled"].includes(parcel.status)?"/my-parcels":`/schedule/${parcel.id}`}>{parcel.status==="delivered"?"View parcel":"Manage delivery"} <ArrowUpRight size={14}/></Link></div>
         </article>)}</div> : <div className="customer-empty-panel"><EmptyState title="Your parcel space is ready" description="Create your first parcel and start arranging a delivery."/><Link className="primary-button" to="/new-parcel"><Plus size={16}/> Create your first parcel</Link></div>
       }
     </section>
