@@ -14,6 +14,7 @@ export default function PartnerDashboard() {
   const { token, user } = useAuth();
   const [items, setItems] = useState<DeliveryAssignment[]>([]);
   const [availability, setAvailability] = useState<PartnerAvailabilitySettings | null>(null);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState<number | null>(null);
   const [proof, setProof] = useState<Record<number, {code:string;recipient_name:string}>>({});
@@ -24,12 +25,15 @@ export default function PartnerDashboard() {
   async function load() {
     if (!token) return;
     setError("");
+    setLoading(true);
     try {
       const [assignments, schedule] = await Promise.all([getMyAssignments(token), getMyAvailability(token)]);
       setItems(assignments);
       setAvailability(schedule);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to load your delivery workspace.");
+    } finally {
+      setLoading(false);
     }
   }
 
@@ -146,7 +150,7 @@ export default function PartnerDashboard() {
         <span className="partner-result-count">{visibleItems.length} shown</span>
       </div>
 
-      {items.length===0 ? <div className="partner-empty"><EmptyState title="Your queue is clear" description="New delivery assignments from operations will appear here."/><Link to="/availability" className="partner-empty-link">Review your working hours <ArrowRight size={14}/></Link></div> :
+      {loading ? <div className="partner-loading-grid">{[1,2].map((item) => <div className="partner-loading-card" key={item}/>)}</div> : items.length===0 ? <div className="partner-empty"><EmptyState title="Your queue is clear" description="New delivery assignments from operations will appear here."/><Link to="/availability" className="partner-empty-link">Review your working hours <ArrowRight size={14}/></Link></div> :
        visibleItems.length===0 ? <div className="partner-empty"><EmptyState title="No matching deliveries" description="Try another search or switch the assignment filter."/></div> :
        <div className="partner-assignment-list">{visibleItems.map((item) => <article className="partner-assignment-card" key={item.id}>
         <div className="partner-assignment-main">
