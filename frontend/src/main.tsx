@@ -10,6 +10,7 @@ import "./operations-workspace.css";
 import "./warehouse-workspace.css";
 import "./parcel-operations.css";
 import "./fleet-scheduling.css";
+import "./route-planning.css";
 import "./customer-booking.css";
 import "./marketing.css";
 import "./auth-experience.css";

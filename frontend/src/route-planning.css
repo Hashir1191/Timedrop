@@ -1,0 +1,50 @@
+/* Route planning visualization — Phase 24 */
+.route-planning-results { padding: 14px 18px 18px; border-top: 1px solid #edf1f6; }
+.route-planning-summary { display: flex; align-items: center; justify-content: space-between; gap: 18px; padding: 15px; border: 1px solid #e5eaf2; border-radius: 13px; background: linear-gradient(110deg,#f8faff,#fff); }
+.route-planning-summary > div:first-child { display: grid; gap: 5px; }
+.route-planning-kicker { color: #8293b2; font-size: 7px; font-weight: 800; letter-spacing: 1.4px; }
+.route-planning-summary strong { color: #2d405c; font-size: 12px; }
+.route-planning-summary small { color: #8d99aa; font-size: 8px; }
+.route-planning-kpis { display: flex; align-items: center; gap: 18px; }
+.route-planning-kpis span { display: grid; gap: 3px; color: #8c99ab; font-size: 7px; text-align: right; white-space: nowrap; }
+.route-planning-kpis strong { color: #2c3e58; font-size: 17px; }
+.route-planning-mode { margin: 10px 0 14px; padding: 10px 12px; border: 1px solid #e2e9f5; border-radius: 9px; color: #647797; background: #f7f9ff; font-size: 8px; line-height: 1.55; }
+.route-planning-mode.road { border-color: #d4eadf; color: #3e8264; background: #f2faf5; }
+.route-groups { display: grid; gap: 13px; }
+.route-group { overflow: hidden; border: 1px solid #e4eaf3; border-radius: 14px; background: #fff; box-shadow: 0 4px 15px rgba(25,45,79,.025); }
+.route-group-heading { display: flex; align-items: center; gap: 10px; padding: 13px 15px; border-bottom: 1px solid #edf1f6; background: #fbfcfe; }
+.route-partner-icon { width: 33px; height: 33px; flex: 0 0 33px; display: grid; place-items: center; border-radius: 10px; color: #4b70d4; background: #edf2ff; }
+.route-group-heading > div { display: grid; gap: 3px; flex: 1; min-width: 0; }
+.route-group-heading small { color: #98a5b6; font-size: 7px; font-weight: 800; letter-spacing: 1px; }
+.route-group-heading strong { color: #354760; font-size: 10px; }
+.route-group-heading > div > span { color: #8c99aa; font-size: 8px; }
+.route-map-link { display: inline-flex; align-items: center; gap: 6px; padding: 8px 10px; border: 1px solid #dce6f8; border-radius: 8px; color: #4268ce; background: #f6f8ff; font-size: 8px; font-weight: 750; text-decoration: none; white-space: nowrap; }
+.route-map-link:hover { background: #edf2ff; }
+.route-stop-list { padding: 2px 15px; }
+.route-stop-card { position: relative; display: flex; align-items: flex-start; gap: 11px; padding: 13px 0; }
+.route-stop-card:not(:last-child)::after { position: absolute; content: ""; left: 14px; top: 41px; bottom: -5px; border-left: 1px dashed #cbd7ec; }
+.route-stop-number { position: relative; z-index: 1; width: 29px; height: 29px; flex: 0 0 29px; display: grid; place-items: center; border: 1px solid #d9e4fa; border-radius: 50%; color: #4167cd; background: #f3f6ff; font-size: 9px; font-weight: 800; }
+.route-stop-main { flex: 1; min-width: 0; }
+.route-stop-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.route-stop-title strong { color: #33455f; font-size: 10px; }
+.route-stop-title span { color: #7f8da2; font-size: 8px; }
+.route-stop-address { display: flex; align-items: center; gap: 5px; margin-top: 5px; color: #7f8da2; font-size: 8px; }
+.route-stop-address svg { color: #5c7cce; }
+.route-stop-meta { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-top: 7px; }
+.route-stop-meta span { display: inline-flex; align-items: center; gap: 4px; color: #7f8da2; font-size: 8px; }
+.route-stop-meta svg { color: #6e88c8; }
+.route-stop-main p { margin: 6px 0 0; color: #9aa5b4; font-size: 8px; line-height: 1.5; }
+.route-stop-action { display: flex; align-items: center; justify-content: flex-end; min-width: 105px; padding-top: 2px; }
+.route-stop-action .secondary-button { min-height: 32px; padding: 7px 9px; font-size: 8px; }
+.route-needs-attention { color: #b8793b; font-size: 8px; font-weight: 750; text-align: right; }
+@media (max-width: 700px) {
+ .route-planning-results { padding: 12px; }
+ .route-planning-summary { align-items: flex-start; flex-direction: column; }
+ .route-planning-kpis { width: 100%; justify-content: space-between; gap: 10px; }
+ .route-planning-kpis span { text-align: left; }
+ .route-group-heading { flex-wrap: wrap; }
+ .route-map-link { margin-left: 43px; }
+ .route-stop-card { gap: 8px; }
+ .route-stop-action { min-width: 0; }
+ .route-stop-action .secondary-button { padding: 6px 7px; }
+}

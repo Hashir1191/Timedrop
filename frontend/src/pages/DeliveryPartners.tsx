@@ -1,11 +1,11 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { Plus, RefreshCw, Truck } from "lucide-react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { ArrowRight, CalendarClock, Clock3, MapPin, Plus, RefreshCw, Route, Truck } from "lucide-react";
 import { createDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel, getDeliveryRoutePlan } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import DeliveryTimeline from "../components/DeliveryTimeline";
 import StatusBadge from "../components/StatusBadge";
-import type { DeliveryAssignment, DeliveryPartner, Parcel, DeliveryRoutePlan } from "../types";
+import type { DeliveryAssignment, DeliveryPartner, Parcel, DeliveryRoutePlan, DeliveryRouteStop } from "../types";
 
 export default function DeliveryPartners() {
   const { token } = useAuth();
@@ -77,6 +77,28 @@ export default function DeliveryPartners() {
     finally { setBusy(false); }
   }
 
+
+  const routeGroups = useMemo(() => {
+    const grouped = new Map<string, { key:string; partnerId:number|null; partnerName:string; mapUrl:string|null; stops:DeliveryRouteStop[] }>();
+    for (const stop of routePlan?.stops ?? []) {
+      const key = stop.suggested_partner_id === null ? "unassigned" : String(stop.suggested_partner_id);
+      const group = grouped.get(key) ?? {
+        key,
+        partnerId: stop.suggested_partner_id,
+        partnerName: stop.suggested_partner_name || "Needs manual assignment",
+        mapUrl: stop.map_url,
+        stops: [],
+      };
+      if (!group.mapUrl && stop.map_url) group.mapUrl = stop.map_url;
+      group.stops.push(stop);
+      grouped.set(key, group);
+    }
+    return Array.from(grouped.values()).map(group => ({
+      ...group,
+      stops: group.stops.sort((a,b) => (a.route_sequence ?? 999) - (b.route_sequence ?? 999)),
+    }));
+  }, [routePlan]);
+
   const assignedParcelIds = new Set(assignments.filter(a => ["assigned","accepted","out_for_delivery"].includes(a.status)).map(a => a.parcel_id));
   const eligibleParcels = parcels.filter(p => p.status === "scheduled" && !assignedParcelIds.has(p.id));
   return <div className="delivery-fleet-workspace">
@@ -107,8 +129,32 @@ export default function DeliveryPartners() {
     <section className="panel customer-form-panel">
       <div className="panel-heading"><div><h2>Route planning & assignment suggestions</h2><p>Generate a proposed partner allocation. When map routing is enabled, TimeDrop geocodes destinations and uses road-network estimates to reorder each partner’s stops.</p></div></div>
       <div className="booking-actions"><label>Delivery date<input type="date" value={routeDate} onChange={e=>{setRouteDate(e.target.value);setRoutePlan(null);}}/></label><button className="primary-button" disabled={routeLoading || !routeDate} onClick={()=>void generateRoutePlan()}>{routeLoading?"Planning…":"Generate route plan"}</button></div>
-      {routePlan&&<><div className={routePlan.mapping_enabled?"alert-success":"alert-info"}>{routePlan.mapping_enabled?"Road routing enabled · OpenStreetMap geocoding + OSRM driving estimates.":"PIN-prefix planning fallback active. Configure ROUTE_MAPPING_ENABLED=true to enable geocoding and road routing."}</div><div className="stats-grid customer-stats"><div className="stat-card"><div className="stat-label">Unassigned parcels</div><div className="stat-value">{routePlan.total_unassigned}</div></div><div className="stat-card"><div className="stat-label">Recommendations</div><div className="stat-value">{routePlan.recommended}</div></div><div className="stat-card"><div className="stat-label">No partner available</div><div className="stat-value">{routePlan.unassigned_without_partner}</div></div></div>
-      {routePlan.stops.length?<div className="table-wrap"><table><thead><tr><th>STOP</th><th>PARCEL / DESTINATION</th><th>BOOKED SLOT</th><th>SUGGESTED PARTNER</th><th>WHY THIS MATCH / ROAD LEG</th><th>ACTION</th></tr></thead><tbody>{routePlan.stops.map(stop=><tr key={stop.parcel_id}><td>{stop.route_sequence??"—"}</td><td><strong className="cell-strong">{stop.tracking_number}</strong><span className="cell-sub">{stop.recipient_name} · {stop.city}, {stop.state}</span><span className="cell-sub">PIN {stop.pincode} · Zone {stop.zone_key}</span></td><td>{stop.slot_start.slice(0,5)}–{stop.slot_end.slice(0,5)}</td><td>{stop.suggested_partner_name||"No compatible partner"}</td><td>{stop.recommendation}{stop.leg_distance_m!=null&&<span className="cell-sub">{(stop.leg_distance_m/1000).toFixed(1)} km · {Math.max(1,Math.round((stop.leg_duration_seconds||0)/60))} min road estimate</span>}{stop.latitude!=null&&stop.longitude!=null&&<span className="cell-sub">{stop.latitude.toFixed(5)}, {stop.longitude.toFixed(5)}</span>}{stop.map_url&&<a className="cell-sub" href={stop.map_url} target="_blank" rel="noreferrer">Open partner route map ↗</a>}</td><td>{stop.suggested_partner_id?<button className="secondary-button" disabled={busy} onClick={()=>void assignRecommended(stop.parcel_id,stop.suggested_partner_id!)}>Assign</button>:"—"}</td></tr>)}</tbody></table></div>:<EmptyState title="No parcels need assignment" description="There are no booked, unassigned parcels for this date."/>}</>}
+      {routePlan&&<div className="route-planning-results">
+        <div className="route-planning-summary">
+          <div><span className="route-planning-kicker">PLANNING SUMMARY</span><strong>{routePlan.mapping_enabled?"Road-network route plan":"Zone-based assignment plan"}</strong><small>{routePlan.stops.length} stops grouped into {routeGroups.filter(group=>group.partnerId!==null).length} partner route(s)</small></div>
+          <div className="route-planning-kpis"><span><strong>{routePlan.total_unassigned}</strong>Parcels</span><span><strong>{routePlan.recommended}</strong>Recommendations</span><span><strong>{routePlan.unassigned_without_partner}</strong>Need attention</span></div>
+        </div>
+        <div className={routePlan.mapping_enabled?"route-planning-mode road":"route-planning-mode zone"}>
+          {routePlan.mapping_enabled?"Road routing enabled · OpenStreetMap geocoding and OSRM driving estimates are available.":"Zone-based planning is active. Enable route mapping to add geocoded stops and road-network estimates."}
+        </div>
+        {routeGroups.length ? <div className="route-groups">{routeGroups.map(group=><section className="route-group" key={group.key}>
+          <div className="route-group-heading">
+            <span className="route-partner-icon"><Truck size={17}/></span>
+            <div><small>PROPOSED ROUTE</small><strong>{group.partnerName}</strong><span>{group.stops.length} stop(s) · {routePlan.mapping_enabled?"Road-optimized order":"Zone-based order"}</span></div>
+            {group.mapUrl&&<a href={group.mapUrl} target="_blank" rel="noreferrer" className="route-map-link"><MapPin size={14}/> Open route map <ArrowRight size={13}/></a>}
+          </div>
+          <div className="route-stop-list">{group.stops.map((stop,index)=><article className="route-stop-card" key={stop.parcel_id}>
+            <span className="route-stop-number">{stop.route_sequence??index+1}</span>
+            <div className="route-stop-main">
+              <div className="route-stop-title"><strong>{stop.tracking_number}</strong><span>{stop.recipient_name}</span></div>
+              <div className="route-stop-address"><MapPin size={13}/>{stop.city}, {stop.state} · PIN {stop.pincode}</div>
+              <div className="route-stop-meta"><span><CalendarClock size={12}/> {stop.slot_start.slice(0,5)}–{stop.slot_end.slice(0,5)}</span>{stop.leg_distance_m!=null&&<span><Route size={12}/> {(stop.leg_distance_m/1000).toFixed(1)} km leg</span>}{stop.leg_duration_seconds!=null&&<span><Clock3 size={12}/> {Math.max(1,Math.round(stop.leg_duration_seconds/60))} min</span>}</div>
+              <p>{stop.recommendation}</p>
+            </div>
+            <div className="route-stop-action">{stop.suggested_partner_id?<button className="secondary-button" disabled={busy} onClick={()=>void assignRecommended(stop.parcel_id,stop.suggested_partner_id!)}>Assign parcel</button>:<span className="route-needs-attention">No compatible partner</span>}</div>
+          </article>)}</div>
+        </section>)}</div> : <EmptyState title="No parcels need assignment" description="There are no booked, unassigned parcels for this date."/>}
+      </div>}
     </section>
     <div className="section-title-row"><h2>Assignment register</h2><span className="result-count">{assignments.length} records</span></div>
     {assignments.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>TRACKING ID</th><th>RECIPIENT</th><th>DELIVERY PARTNER</th><th>DELIVERY WINDOW</th><th>STATUS</th></tr></thead><tbody>{assignments.map(a=><tr key={a.id}><td className="tracking">{a.tracking_number}</td><td>{a.recipient_name}<span className="cell-sub">{a.city}, {a.state}</span></td><td>{a.partner_name}</td><td>{new Date(a.delivery_date+"T00:00:00").toLocaleDateString("en-IN")}<span className="cell-sub">{a.start_time.slice(0,5)}–{a.end_time.slice(0,5)}</span></td><td><StatusBadge status={a.status}/><details className="delivery-history"><summary>History</summary>{token && <DeliveryTimeline token={token} assignmentId={a.id}/>}</details></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No assignments yet" description="New assignments will appear here."/></div>}
