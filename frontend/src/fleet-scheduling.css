@@ -1,0 +1,109 @@
+/* Fleet and scheduling workspaces — Phase 20 */
+.delivery-fleet-workspace, .slot-management-workspace, .booking-management-workspace { max-width: 1420px; margin: 0 auto; }
+.delivery-fleet-workspace .page-heading, .slot-management-workspace .page-heading, .booking-management-workspace .page-heading { margin-bottom: 21px; }
+.delivery-fleet-workspace .stats-grid { grid-template-columns: repeat(4,minmax(0,1fr)); gap: 11px; margin-bottom: 24px; }
+.delivery-fleet-workspace .stat-card { border-radius: 14px; padding: 14px; }
+.delivery-fleet-workspace .customer-form-panel { overflow: hidden; border-radius: 16px; box-shadow: 0 6px 20px rgba(25,45,79,.035); }
+.delivery-fleet-workspace .customer-form-panel .panel-heading { padding: 18px 19px; border-bottom: 1px solid #edf1f6; }
+.delivery-fleet-workspace .customer-form-panel .panel-heading h2 { color: #2b3c56; font-size: 14px; }
+.delivery-fleet-workspace .customer-form-panel .panel-heading p { color: #8a97a9; font-size: 9px; }
+.delivery-fleet-workspace .customer-form { padding: 18px 19px; }
+.delivery-fleet-workspace .customer-form label { color: #78869a; font-size: 9px; font-weight: 750; }
+.delivery-fleet-workspace .customer-form input, .delivery-fleet-workspace .customer-form select { min-height: 38px; border: 1px solid #e1e7f0; border-radius: 9px; color: #40516b; background: #fbfcfe; font-size: 10px; }
+.delivery-fleet-workspace .customer-form-actions { padding-top: 14px; border-top: 1px solid #edf1f6; }
+.delivery-fleet-workspace .customer-form-actions > span { color: #929eae; font-size: 8px; }
+.delivery-fleet-workspace .section-title-row { margin-top: 25px; margin-bottom: 12px; }
+.delivery-fleet-workspace .section-title-row h2 { color: #253650; font-size: 16px; }
+.delivery-fleet-workspace .list-panel { overflow: hidden; border-radius: 15px; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.delivery-fleet-workspace .list-panel table th { background: #fbfcfe; }
+.delivery-fleet-workspace .booking-list { display: grid; gap: 11px; }
+.delivery-fleet-workspace .booking-card { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 15px; border-radius: 14px; box-shadow: 0 5px 17px rgba(25,45,79,.03); }
+.delivery-fleet-workspace .booking-main { align-items: flex-start; }
+.delivery-fleet-workspace .booking-main > div:last-child { display: grid; gap: 5px; }
+.delivery-fleet-workspace .booking-main strong { color: #34445b; font-size: 11px; }
+.delivery-fleet-workspace .booking-main span { color: #8b97a8; font-size: 9px; }
+.delivery-fleet-workspace .booking-actions { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.delivery-fleet-workspace .booking-actions select, .delivery-fleet-workspace .booking-actions input { min-width: 190px; height: 37px; border: 1px solid #e1e7f0; border-radius: 8px; padding: 0 9px; color: #52627b; background: #fff; font-size: 9px; }
+.delivery-fleet-workspace .booking-actions .primary-button { min-height: 37px; padding: 8px 11px; font-size: 9px; }
+.delivery-fleet-workspace .customer-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.delivery-fleet-workspace .customer-form-panel .booking-actions { padding: 14px 19px; }
+.delivery-fleet-workspace .customer-form-panel .booking-actions label { display: grid; gap: 5px; color: #7d8a9d; font-size: 9px; }
+.delivery-fleet-workspace .customer-form-panel .booking-actions input { height: 37px; min-width: 160px; }
+.delivery-fleet-workspace .alert-info, .delivery-fleet-workspace .alert-success { margin: 12px 18px; border-radius: 10px; }
+.delivery-fleet-workspace .table-wrap { max-width: 100%; overflow-x: auto; }
+.delivery-fleet-workspace .table-wrap table { min-width: 740px; }
+.delivery-fleet-workspace .delivery-history { margin-top: 7px; }
+
+/* Slot capacity workspace */
+.slot-management-workspace .slot-summary { display: flex; align-items: center; gap: 14px; padding: 17px; margin-bottom: 18px; border: 1px solid #e5eaf2; border-radius: 15px; background: #fff; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.slot-management-workspace .summary-icon { width: 41px; height: 41px; display: grid; place-items: center; border-radius: 12px; color: #4b70d4; background: #edf2ff; }
+.slot-management-workspace .slot-summary > div:nth-child(2) { display: grid; gap: 4px; flex: 1; }
+.slot-management-workspace .slot-summary > div:nth-child(2) span { color: #8a97a9; font-size: 8px; }
+.slot-management-workspace .slot-summary > div:nth-child(2) strong { color: #2b3c56; font-size: 12px; }
+.slot-management-workspace .summary-metrics { display: flex; align-items: center; gap: 18px; }
+.slot-management-workspace .summary-metrics > div { display: grid; gap: 3px; text-align: right; }
+.slot-management-workspace .summary-metrics strong { color: #2b3c56; font-size: 16px; }
+.slot-management-workspace .summary-metrics span { color: #98a3b2; font-size: 8px; }
+.slot-management-workspace .slot-summary > input { height: 36px; border: 1px solid #e1e7f0; border-radius: 8px; padding: 0 9px; color: #52627b; font-size: 9px; }
+.slot-management-workspace .create-slot-form { overflow: hidden; margin-bottom: 19px; border-radius: 15px; }
+.slot-management-workspace .create-slot-form .panel-heading { padding: 17px 19px 0; }
+.slot-management-workspace .create-slot-form .panel-heading h2 { color: #2b3c56; font-size: 14px; }
+.slot-management-workspace .create-slot-form .panel-heading p { color: #8b97a8; font-size: 9px; }
+.slot-management-workspace .form-grid { padding: 15px 19px 19px; }
+.slot-management-workspace .form-grid label { color: #7d8a9d; font-size: 9px; font-weight: 750; }
+.slot-management-workspace .form-grid input { min-height: 37px; border: 1px solid #e1e7f0; border-radius: 8px; color: #40516b; background: #fbfcfe; font-size: 9px; }
+.slot-management-workspace .section-title-row { margin: 22px 0 12px; }
+.slot-management-workspace .section-title-row h2 { color: #253650; font-size: 16px; }
+.slot-management-workspace .slots-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 12px; }
+.slot-management-workspace .slot-card { padding: 15px; border-radius: 14px; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.slot-management-workspace .slot-time { color: #2b3c56; font-size: 14px; }
+.slot-management-workspace .slot-time span { color: #a0aaba; font-size: 9px; }
+.slot-management-workspace .slot-card-top { display: flex; align-items: center; justify-content: space-between; gap: 9px; }
+.slot-management-workspace .capacity-pill, .slot-management-workspace .full-pill { padding: 5px 8px; border-radius: 99px; color: #27825e; background: #edf8f2; font-size: 7px; font-weight: 800; }
+.slot-management-workspace .full-pill { color: #b45d5d; background: #fff0f0; }
+.slot-management-workspace .slot-capacity { margin-top: 17px; }
+.slot-management-workspace .slot-capacity strong { color: #2b3c56; font-size: 23px; }
+.slot-management-workspace .slot-capacity span { color: #909cad; font-size: 9px; }
+.slot-management-workspace .slot-card-foot { color: #9aa5b4; font-size: 8px; }
+
+/* Booking coordination workspace */
+.booking-management-workspace .filter-date { display: flex; align-items: center; gap: 9px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid #e5eaf2; border-radius: 12px; background: #fff; box-shadow: 0 4px 15px rgba(25,45,79,.025); }
+.booking-management-workspace .filter-date > svg { color: #5879d3; }
+.booking-management-workspace .filter-date label { color: #7e8ca0; font-size: 9px; font-weight: 750; }
+.booking-management-workspace .filter-date select, .booking-management-workspace .filter-date input { height: 35px; min-width: 150px; border: 1px solid #e1e7f0; border-radius: 8px; padding: 0 9px; color: #52627b; background: #fff; font-size: 9px; }
+.booking-management-workspace .booking-list { display: grid; gap: 11px; }
+.booking-management-workspace .booking-card { display: grid; grid-template-columns: minmax(0,1.3fr) minmax(145px,.65fr) auto; gap: 14px; padding: 15px; border-radius: 14px; box-shadow: 0 5px 18px rgba(25,45,79,.03); }
+.booking-management-workspace .booking-main { align-items: flex-start; }
+.booking-management-workspace .booking-main > div:last-child { display: grid; gap: 5px; }
+.booking-management-workspace .booking-main strong { color: #34445b; font-size: 11px; }
+.booking-management-workspace .booking-main span { color: #8b97a8; font-size: 8px; }
+.booking-management-workspace .booking-details { display: grid; align-content: center; gap: 4px; }
+.booking-management-workspace .booking-details strong { color: #2b3c56; font-size: 10px; }
+.booking-management-workspace .booking-details span { color: #8b97a8; font-size: 8px; }
+.booking-management-workspace .booking-status { display: grid; align-content: center; justify-items: start; gap: 6px; }
+.booking-management-workspace .booking-actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; align-items: center; gap: 8px; padding-top: 11px; border-top: 1px solid #f0f2f6; }
+.booking-management-workspace .booking-actions select { min-width: 220px; height: 35px; border: 1px solid #e1e7f0; border-radius: 8px; padding: 0 9px; color: #52627b; background: #fff; font-size: 9px; }
+.booking-management-workspace .booking-actions .danger-button { min-height: 35px; padding: 7px 10px; font-size: 9px; }
+.booking-management-workspace .page-footnote { margin-top: 14px; }
+@media (max-width: 1050px) { .delivery-fleet-workspace .stats-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } .slot-management-workspace .slots-grid { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media (max-width: 700px) {
+ .delivery-fleet-workspace .stats-grid, .delivery-fleet-workspace .customer-stats { grid-template-columns: 1fr; }
+ .delivery-fleet-workspace .booking-card { align-items: stretch; flex-direction: column; }
+ .delivery-fleet-workspace .booking-actions { width: 100%; }
+ .delivery-fleet-workspace .booking-actions select { min-width: 0; flex: 1; }
+ .delivery-fleet-workspace .customer-form { padding: 13px; }
+ .delivery-fleet-workspace .customer-form-actions { align-items: stretch; flex-direction: column; }
+ .delivery-fleet-workspace .customer-form-actions .primary-button { width: 100%; }
+ .slot-management-workspace .slot-summary { align-items: flex-start; flex-wrap: wrap; }
+ .slot-management-workspace .slot-summary > div:nth-child(2) { min-width: calc(100% - 65px); }
+ .slot-management-workspace .summary-metrics { width: 100%; justify-content: space-around; }
+ .slot-management-workspace .summary-metrics > div { text-align: center; }
+ .slot-management-workspace .slot-summary > input { width: 100%; }
+ .slot-management-workspace .slots-grid { grid-template-columns: 1fr; }
+ .booking-management-workspace .filter-date { align-items: flex-start; flex-wrap: wrap; }
+ .booking-management-workspace .filter-date label { width: calc(50% - 20px); }
+ .booking-management-workspace .filter-date select, .booking-management-workspace .filter-date input { flex: 1; min-width: 0; }
+ .booking-management-workspace .booking-card { grid-template-columns: 1fr; }
+ .booking-management-workspace .booking-actions { grid-column: auto; align-items: stretch; flex-direction: column; }
+ .booking-management-workspace .booking-actions select { min-width: 0; width: 100%; }
+}
