@@ -96,7 +96,36 @@ class DeliveryPartner(Base):
     vehicle_type: Mapped[str] = mapped_column(String(40), default="two_wheeler", nullable=False)
     is_available: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     max_active_assignments: Mapped[int] = mapped_column(Integer, default=5, nullable=False)
+    availability_enabled: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class DeliveryPartnerAvailability(Base):
+    """A recurring local-time availability window for one weekday."""
+
+    __tablename__ = "delivery_partner_availability"
+    __table_args__ = (
+        UniqueConstraint(
+            "partner_id", "weekday", "start_time", "end_time",
+            name="uq_partner_availability_window",
+        ),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    partner_id: Mapped[int] = mapped_column(
+        ForeignKey("delivery_partners.id", ondelete="CASCADE"),
+        nullable=False,
+        index=True,
+    )
+    weekday: Mapped[int] = mapped_column(Integer, nullable=False)
+    start_time: Mapped[time] = mapped_column(Time, nullable=False)
+    end_time: Mapped[time] = mapped_column(Time, nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
 
 
 class DeliveryAssignment(Base):
