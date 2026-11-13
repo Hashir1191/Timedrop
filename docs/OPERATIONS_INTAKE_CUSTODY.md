@@ -64,3 +64,18 @@ Additional endpoint:
 | POST | `/api/v1/operations/parcels/{parcel_id}/return` | Record physical receipt of a failed parcel back from its assigned partner |
 
 The request requires `package_condition` (`intact`, `damaged`, or `opened`) and a note of at least three characters. This endpoint does not itself retry delivery or change the failed assignment; a separate explicit reassignment is required.
+
+
+## Warehouse inventory and storage bins
+
+Operations can open **Warehouse** in the admin navigation to view live inventory counts, search by tracking number/recipient/city/PIN, filter by parcel status, and assign a storage-bin label.
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/api/v1/operations/warehouse/summary` | Live warehouse and delivery counts |
+| GET | `/api/v1/operations/warehouse/parcels` | Search/filter up to 200 parcels |
+| PATCH | `/api/v1/operations/warehouse/parcels/{parcel_id}/location` | Set or clear a storage-bin label |
+
+Storage-bin updates are operations-admin only and are accepted only while the latest custody event is `received` or `returned`. Clear a bin by sending `{"warehouse_location": null}`. Use a consistent format such as `A-01-02`. These labels are operator-entered and do not imply barcode scanning or automated physical-location verification.
+
+Apply the Alembic migration to add the nullable `warehouse_location` column. Migration revisions 0005–0007 are also copied into the configured `backend/migrations/versions` directory so Alembic can discover the complete 0001–0008 chain using the current `backend/alembic.ini`.
