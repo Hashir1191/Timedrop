@@ -1,4 +1,5 @@
 from datetime import date, datetime, time
+import math
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -224,6 +225,26 @@ class DeliveryRouteStop(BaseModel):
     leg_distance_m: int | None = None
     leg_duration_seconds: int | None = None
     map_url: str | None = None
+    # GeoJSON coordinate order: [longitude, latitude]. Present on the first
+    # stop only so each partner route path is transmitted once.
+    route_geometry: list[list[float]] | None = None
+
+    @field_validator("route_geometry")
+    @classmethod
+    def validate_route_geometry(cls, value):
+        if value is None:
+            return value
+        if len(value) < 2:
+            raise ValueError("Route geometry must contain at least two coordinates.")
+        for coordinate in value:
+            if len(coordinate) != 2:
+                raise ValueError("Each route coordinate must contain longitude and latitude.")
+            longitude, latitude = coordinate
+            if not (math.isfinite(longitude) and math.isfinite(latitude)):
+                raise ValueError("Route coordinates must be finite numbers.")
+            if not (-180 <= longitude <= 180 and -90 <= latitude <= 90):
+                raise ValueError("Route coordinates are outside valid geographic bounds.")
+        return value
 
 
 class DeliveryRoutePlanResponse(BaseModel):

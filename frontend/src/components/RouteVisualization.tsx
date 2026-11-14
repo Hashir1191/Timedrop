@@ -91,10 +91,14 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
     const world=project(point.stop.latitude!,point.stop.longitude!,zoom);
     return {...point,x:world.x-topLeft.x,y:world.y-topLeft.y};
   });
-  const routeLines=visibleGroups.map(group=>({
-    ...group,
-    points:mappedPoints.filter(point=>point.groupKey===group.key).sort((a,b)=>a.order-b.order)
-  }));
+  const routeLines=visibleGroups.map(group=>{
+    const geometryStop=group.stops.find(stop=>stop.route_geometry&&stop.route_geometry.length>=2);
+    const geometryPoints=(geometryStop?.route_geometry??[]).map(([longitude,latitude])=>{
+      const world=project(latitude,longitude,zoom);
+      return {x:world.x-topLeft.x,y:world.y-topLeft.y};
+    });
+    return {...group,points:mappedPoints.filter(point=>point.groupKey===group.key).sort((a,b)=>a.order-b.order),geometryPoints};
+  });
 
   function onPointerDown(event:ReactPointerEvent<HTMLDivElement>){
     if((event.target as HTMLElement).closest("button,a"))return;
@@ -129,7 +133,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
       <div ref={mapRef} className="route-viz-map" onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerUp} role="region" aria-label="Draggable street map with numbered delivery stops">
         <div className="route-viz-tiles" aria-hidden="true">{tiles.map(tile=><img key={tile.key} src={tile.url} alt="" draggable={false} onError={()=>setTileError(true)} style={{left:tile.left,top:tile.top}}/>)}</div>
         <svg className="route-viz-overlay" viewBox={`0 0 ${size.width} ${size.height}`} aria-hidden="true">
-          {routeLines.map(group=>{const color=colors[groupsWithCoordinates.findIndex(item=>item.key===group.key)%colors.length];return group.points.length>1?<polyline key={group.key} points={group.points.map(point=>`${point.x},${point.y}`).join(" ")} fill="none" stroke={color} strokeWidth="3" strokeDasharray="8 6" strokeLinecap="round" opacity=".9"/>:null;})}
+          {routeLines.map(group=>{const color=colors[groupsWithCoordinates.findIndex(item=>item.key===group.key)%colors.length];const roadPath=group.geometryPoints.length>1;const pathPoints=roadPath?group.geometryPoints:group.points;return pathPoints.length>1?<polyline key={group.key} points={pathPoints.map(point=>`${point.x},${point.y}`).join(" ")} fill="none" stroke={color} strokeWidth={roadPath?4:3} strokeDasharray={roadPath?undefined:"8 6"} strokeLinecap="round" strokeLinejoin="round" opacity={roadPath?".95":".75"}/>:null;})}
           {mappedPoints.map(point=>{const color=colors[groupsWithCoordinates.findIndex(item=>item.key===point.groupKey)%colors.length];const active=point.stop.parcel_id===selectedStop?.stop.parcel_id;return <g key={point.stop.parcel_id} transform={`translate(${point.x} ${point.y})`}><circle r={active?18:15} fill={active?"#fff":color} stroke={color} strokeWidth={active?4:2}/><text y="4" textAnchor="middle" fontSize="11" fontWeight="700" fill={active?color:"#fff"}>{point.order}</text></g>;})}
         </svg>
         <div className="route-viz-map-controls" onPointerDown={event=>event.stopPropagation()}>
@@ -137,7 +141,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
           <button type="button" aria-label="Zoom out" onClick={()=>changeZoom(-1)} disabled={zoom<=MIN_ZOOM}><Minus size={16}/></button>
           <button type="button" aria-label="Fit all visible stops" onClick={()=>fitGroups()}><RotateCcw size={15}/></button>
         </div>
-        <span className="route-viz-map-note">Dashed connectors show stop order, not road geometry</span>
+        <span className="route-viz-map-note">Solid paths follow OSRM road geometry; dashed lines are approximate stop-order connectors</span>
         <a className="route-viz-attribution" href={TILE_ATTRIBUTION_URL} target="_blank" rel="noopener noreferrer">{TILE_ATTRIBUTION}</a>
       </div>
       {tileError&&<p className="route-viz-tile-warning" role="status">Some map tiles could not be loaded. Stop details and assignment controls remain available.</p>}
@@ -145,7 +149,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
     <div className="route-viz-detail" aria-live="polite">
       {selectedStop&&<><span className="route-planning-kicker">SELECTED STOP {selectedStop.order}</span><h4>{selectedStop.stop.tracking_number}</h4><p>{selectedStop.stop.city}, {selectedStop.stop.state} · {selectedStop.stop.pincode}</p><dl><dt>Suggested partner</dt><dd>{selectedStop.partnerName}</dd><dt>Delivery window</dt><dd>{selectedStop.stop.slot_start.slice(0,5)}–{selectedStop.stop.slot_end.slice(0,5)}</dd><dt>Coordinates</dt><dd>{selectedStop.stop.latitude!.toFixed(5)}, {selectedStop.stop.longitude!.toFixed(5)}</dd>{selectedStop.stop.leg_distance_m!==null&&<><dt>Estimated preceding leg</dt><dd>{(selectedStop.stop.leg_distance_m/1000).toFixed(1)} km{selectedStop.stop.leg_duration_seconds!==null?` · ${Math.round(selectedStop.stop.leg_duration_seconds/60)} min`:""}</dd></>}</dl>
       {validMapUrl(groupsWithCoordinates.find(group=>group.key===selectedStop.groupKey)?.mapUrl??null)&&<a href={validMapUrl(groupsWithCoordinates.find(group=>group.key===selectedStop.groupKey)?.mapUrl??null)!} target="_blank" rel="noopener noreferrer"><Navigation2 size={15}/> Open external route map</a>}</>}
-      <span className="route-viz-disclaimer">Route suggestions require manual approval. Dashed connectors represent stop sequence only. Distances and durations are estimates from the routing service, not live traffic.</span>
+      <span className="route-viz-disclaimer">Route suggestions require manual approval. Solid paths are OSRM road-route geometry when available; dashed connectors are approximate stop-order fallbacks. Distances and durations are estimates, not live traffic.</span>
     </div>
     <div className="route-viz-stop-picker" aria-label="Select a delivery stop">{mappedPoints.map(point=><button type="button" key={point.stop.parcel_id} aria-pressed={point.stop.parcel_id===selectedStop?.stop.parcel_id} className={point.stop.parcel_id===selectedStop?.stop.parcel_id?"active":""} onClick={()=>setSelectedParcel(point.stop.parcel_id)}><span>{point.order}</span>{point.stop.tracking_number}</button>)}</div>
     <div className="route-viz-legend">{groupsWithCoordinates.map((group,index)=><button key={group.key} type="button" onClick={()=>selectGroup(selectedGroup===group.key?"all":group.key)} aria-pressed={selectedGroup===group.key}><span style={{background:colors[index%colors.length]}}/>{group.partnerName} ({group.stops.length})</button>)}</div>
