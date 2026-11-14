@@ -81,7 +81,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
   const firstTileX=Math.floor(topLeft.x/TILE),firstTileY=Math.floor(topLeft.y/TILE);
   const lastTileX=Math.floor((topLeft.x+size.width)/TILE),lastTileY=Math.floor((topLeft.y+size.height)/TILE);
   const tileCount=Math.pow(2,zoom);
-  const tiles=[];
+  const tiles:{key:string;url:string;left:number;top:number}[]=[];
   for(let y=firstTileY;y<=lastTileY;y++)for(let x=firstTileX;x<=lastTileX;x++){
     if(y<0||y>=tileCount)continue;
     const tileX=wrapTileX(x,tileCount);
@@ -103,7 +103,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
   }
   function onPointerMove(event:ReactPointerEvent<HTMLDivElement>){
     const drag=dragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;
-    setCenter({x:drag.center.x-(event.clientX-drag.x),y:drag.center.y-(event.clientY-drag.y)});
+    const worldSize=TILE*Math.pow(2,zoom);\n    setCenter({x:drag.center.x-(event.clientX-drag.x),y:clamp(drag.center.y-(event.clientY-drag.y),size.height/2,worldSize-size.height/2)});
   }
   function onPointerUp(event:ReactPointerEvent<HTMLDivElement>){
     if(dragRef.current?.pointerId===event.pointerId)dragRef.current=null;
