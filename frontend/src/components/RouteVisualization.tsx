@@ -103,7 +103,8 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
   }
   function onPointerMove(event:ReactPointerEvent<HTMLDivElement>){
     const drag=dragRef.current;if(!drag||drag.pointerId!==event.pointerId)return;
-    const worldSize=TILE*Math.pow(2,zoom);\n    setCenter({x:drag.center.x-(event.clientX-drag.x),y:clamp(drag.center.y-(event.clientY-drag.y),size.height/2,worldSize-size.height/2)});
+    const worldSize=TILE*Math.pow(2,zoom);
+    setCenter({x:drag.center.x-(event.clientX-drag.x),y:clamp(drag.center.y-(event.clientY-drag.y),size.height/2,worldSize-size.height/2)});
   }
   function onPointerUp(event:ReactPointerEvent<HTMLDivElement>){
     if(dragRef.current?.pointerId===event.pointerId)dragRef.current=null;
