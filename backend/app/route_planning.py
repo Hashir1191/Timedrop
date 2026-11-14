@@ -1,4 +1,5 @@
 import hashlib
+import math
 import time
 from urllib.parse import quote
 
@@ -87,7 +88,7 @@ def enrich_partner_route(db: Session, stops: list, partner_id: int) -> list:
     try:
         response = httpx.get(
             f"{settings.route_router_url.rstrip('/')}/trip/v1/driving/{coordinate_path}",
-            params={"roundtrip": "false", "source": "first", "destination": "last", "overview": "false", "steps": "false"},
+            params={"roundtrip": "false", "source": "first", "destination": "last", "overview": "full", "geometries": "geojson", "steps": "false"},
             timeout=settings.route_geocode_timeout_seconds,
         )
         response.raise_for_status()
@@ -111,9 +112,29 @@ def enrich_partner_route(db: Session, stops: list, partner_id: int) -> list:
             + quote(";".join(f"{latitude},{longitude}" for latitude, longitude in ordered_coords), safe=";,")
         )
         legs = trip.get("legs", [])
+        raw_geometry = trip.get("geometry", {})
+        geometry_coordinates = raw_geometry.get("coordinates", []) if isinstance(raw_geometry, dict) else []
+        route_geometry = []
+        if isinstance(geometry_coordinates, list):
+            for coordinate in geometry_coordinates:
+                if not isinstance(coordinate, (list, tuple)) or len(coordinate) != 2:
+                    continue
+                try:
+                    longitude, latitude = float(coordinate[0]), float(coordinate[1])
+                except (ValueError, TypeError):
+                    continue
+                if (math.isfinite(longitude) and math.isfinite(latitude)
+                    and -180 <= longitude <= 180 and -90 <= latitude <= 90):
+                    route_geometry.append([longitude, latitude])
+        if len(route_geometry) < 2:
+            route_geometry = []
+
         for index, stop in enumerate(ordered_stops):
             stop.route_sequence = index + 1
             stop.map_url = map_url
+            if index == 0 and route_geometry:
+                # Store the shared path once per partner route, not once per stop.
+                stop.route_geometry = route_geometry
             if index < len(legs):
                 stop.leg_distance_m = round(float(legs[index].get("distance", 0)))
                 stop.leg_duration_seconds = round(float(legs[index].get("duration", 0)))
