@@ -11,6 +11,7 @@ const colors=["#4569e8","#16a085","#a855f7","#e68b32","#cf4f75","#2788aa"];
 const MIN_ZOOM=3,MAX_ZOOM=18;
 const TILE_URL=(import.meta.env.VITE_ROUTE_TILE_URL as string|undefined)||"https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 const TILE_ATTRIBUTION=(import.meta.env.VITE_ROUTE_TILE_ATTRIBUTION as string|undefined)||"© OpenStreetMap contributors";
+const TILE_ATTRIBUTION_URL=(import.meta.env.VITE_ROUTE_TILE_ATTRIBUTION_URL as string|undefined)||"https://www.openstreetmap.org/copyright";
 
 function clamp(value:number,min:number,max:number){return Math.max(min,Math.min(max,value));}
 function wrapTileX(x:number,count:number){return ((x%count)+count)%count;}
@@ -74,7 +75,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
     observer.observe(element);return()=>observer.disconnect();
   },[]);
 
-  useEffect(()=>{fitGroups(visibleGroups);},[selectedGroup,groupsWithCoordinates.length]);
+  useEffect(()=>{fitGroups(visibleGroups);},[visibleGroups]);
 
   const topLeft={x:center.x-size.width/2,y:center.y-size.height/2};
   const firstTileX=Math.floor(topLeft.x/TILE),firstTileY=Math.floor(topLeft.y/TILE);
@@ -136,7 +137,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
           <button type="button" aria-label="Fit all visible stops" onClick={()=>fitGroups()}><RotateCcw size={15}/></button>
         </div>
         <span className="route-viz-map-note">Dashed connectors show stop order, not road geometry</span>
-        <span className="route-viz-attribution">{TILE_ATTRIBUTION}</span>
+        <a className="route-viz-attribution" href={TILE_ATTRIBUTION_URL} target="_blank" rel="noopener noreferrer">{TILE_ATTRIBUTION}</a>
       </div>
       {tileError&&<p className="route-viz-tile-warning" role="status">Some map tiles could not be loaded. Stop details and assignment controls remain available.</p>}
     </div>
@@ -147,6 +148,6 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
     </div>
     <div className="route-viz-stop-picker" aria-label="Select a delivery stop">{mappedPoints.map(point=><button type="button" key={point.stop.parcel_id} aria-pressed={point.stop.parcel_id===selectedStop?.stop.parcel_id} className={point.stop.parcel_id===selectedStop?.stop.parcel_id?"active":""} onClick={()=>setSelectedParcel(point.stop.parcel_id)}><span>{point.order}</span>{point.stop.tracking_number}</button>)}</div>
     <div className="route-viz-legend">{groupsWithCoordinates.map((group,index)=><button key={group.key} type="button" onClick={()=>selectGroup(selectedGroup===group.key?"all":group.key)} aria-pressed={selectedGroup===group.key}><span style={{background:colors[index%colors.length]}}/>{group.partnerName} ({group.stops.length})</button>)}</div>
-    <p className="route-viz-coverage">Showing {mappedPoints.length} of {groups.reduce((sum,group)=>sum+group.stops.length,0)} stops with valid coordinates. Stops without geocoding remain visible in the assignment list.</p>
+    <p className="route-viz-coverage">Showing {mappedPoints.length} of {visibleGroups.reduce((sum,group)=>sum+group.stops.length,0)} stops in this view with valid coordinates. Stops without geocoding remain visible in the assignment list.</p>
   </section>;
 }
