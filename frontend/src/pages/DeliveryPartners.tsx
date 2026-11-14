@@ -3,6 +3,7 @@ import { ArrowRight, CalendarClock, Clock3, MapPin, Plus, RefreshCw, Route, Truc
 import { createDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel, getDeliveryRoutePlan } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
+import RouteVisualization from "../components/RouteVisualization";
 import DeliveryTimeline from "../components/DeliveryTimeline";
 import StatusBadge from "../components/StatusBadge";
 import type { DeliveryAssignment, DeliveryPartner, Parcel, DeliveryRoutePlan, DeliveryRouteStop } from "../types";
@@ -137,6 +138,7 @@ export default function DeliveryPartners() {
         <div className={routePlan.mapping_enabled?"route-planning-mode road":"route-planning-mode zone"}>
           {routePlan.mapping_enabled?"Road routing enabled · OpenStreetMap geocoding and OSRM driving estimates are available.":"Zone-based planning is active. Enable route mapping to add geocoded stops and road-network estimates."}
         </div>
+        {routeGroups.length > 0 && <RouteVisualization groups={routeGroups}/>}
         {routeGroups.length ? <div className="route-groups">{routeGroups.map(group=><section className="route-group" key={group.key}>
           <div className="route-group-heading">
             <span className="route-partner-icon"><Truck size={17}/></span>
