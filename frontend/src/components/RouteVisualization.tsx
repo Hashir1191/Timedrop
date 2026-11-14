@@ -46,7 +46,7 @@ export default function RouteVisualization({groups}:{groups:RouteGroup[]}){
     ...group,
     stops:group.stops.filter(stop=>stop.latitude!==null&&stop.longitude!==null&&Number.isFinite(stop.latitude)&&Number.isFinite(stop.longitude)&&Math.abs(stop.latitude!)<=90&&Math.abs(stop.longitude!)<=180)
   })).filter(group=>group.stops.length>0),[groups]);
-  const visibleGroups=selectedGroup==="all"?groupsWithCoordinates:groupsWithCoordinates.filter(group=>group.key===selectedGroup);
+  const visibleGroups=useMemo(()=>selectedGroup==="all"?groupsWithCoordinates:groupsWithCoordinates.filter(group=>group.key===selectedGroup),[selectedGroup,groupsWithCoordinates]);
   const points=useMemo(()=>visibleGroups.flatMap(group=>group.stops.map((stop,index)=>({
     stop,order:stop.route_sequence??index+1,groupKey:group.key,partnerName:group.partnerName
   }))),[visibleGroups]);
