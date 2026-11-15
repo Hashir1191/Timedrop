@@ -58,6 +58,12 @@ class ServiceablePincodeCreate(BaseModel):
     def normalize_area_text(cls, value: str) -> str:
         return " ".join(value.split())
 
+    @model_validator(mode="after")
+    def validate_area_text(self):
+        if not self.city or not self.state:
+            raise ValueError("City and state cannot be blank.")
+        return self
+
 
 class ServiceablePincodeUpdate(BaseModel):
     pincode: str | None = Field(default=None, pattern=r"^[1-9][0-9]{5}$")
