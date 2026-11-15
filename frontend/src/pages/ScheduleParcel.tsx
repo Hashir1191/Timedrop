@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { ArrowLeft, CalendarClock, CheckCircle2, Clock3, ShieldCheck } from "lucide-react";
-import { bookParcel, cancelBooking, getParcelBooking, getParcels, getSlots, rescheduleBooking } from "../api";
+import { bookParcel, cancelBooking, getParcelBooking, getParcels, getSlots, getBlackoutStatus, rescheduleBooking } from "../api";
 import { useAuth } from "../auth";
 import type { Booking, DeliverySlot, Parcel } from "../types";
 import StatusBadge from "../components/StatusBadge";
@@ -12,7 +12,7 @@ function formatDate(value:string){return new Date(value+"T00:00:00").toLocaleDat
 export default function ScheduleParcel(){
  const {parcelId}=useParams();const id=Number(parcelId);const {token}=useAuth();
  const [parcel,setParcel]=useState<Parcel|null>(null);const [booking,setBooking]=useState<Booking|null>(null);const [slots,setSlots]=useState<DeliverySlot[]>([]);
- const [date,setDate]=useState(dateLocal());const [selected,setSelected]=useState("");const [error,setError]=useState("");const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(true);const [loadingSlots,setLoadingSlots]=useState(true);
+ const [date,setDate]=useState(dateLocal());const [selected,setSelected]=useState("");const [blackoutReason,setBlackoutReason]=useState<string|null>(null);const [error,setError]=useState("");const [message,setMessage]=useState("");const [busy,setBusy]=useState(false);const [loading,setLoading]=useState(true);const [loadingSlots,setLoadingSlots]=useState(true);
 
  async function load(){
   if(!token||!id)return;setLoading(true);setError("");
@@ -27,8 +27,8 @@ export default function ScheduleParcel(){
  }
  async function loadSlots(day:string){
   if(!token)return;setLoadingSlots(true);setSelected("");
-  try{setSlots(await getSlots(token,day));}
-  catch(err){setSlots([]);setError(err instanceof Error?err.message:"Unable to load delivery slots.");}
+  try{const [available,closure]=await Promise.all([getSlots(token,day),getBlackoutStatus(token,day)]);setSlots(available);setBlackoutReason(closure.is_blackout?closure.reason:null);}
+  catch(err){setSlots([]);setBlackoutReason(null);setError(err instanceof Error?err.message:"Unable to load delivery slots.");}
   finally{setLoadingSlots(false);}
  }
  useEffect(()=>{void load();},[token,id]);
@@ -73,7 +73,7 @@ export default function ScheduleParcel(){
    {loadingSlots?<div className="customer-slot-loading">{[1,2,3,4].map(item=><div key={item}/>)}</div>:
     slots.filter(slot=>slot.remaining_capacity>0).length?<div className="customer-slot-grid">{slots.map(slot=><button type="button" key={slot.id} disabled={slot.remaining_capacity<=0||busy||terminal} onClick={()=>setSelected(String(slot.id))} className={`customer-slot-option ${selected===String(slot.id)?"selected":""} ${slot.remaining_capacity<=0?"unavailable":""}`}>
       <span className="customer-slot-option-icon"><Clock3 size={16}/></span><strong>{slot.start_time.slice(0,5)} – {slot.end_time.slice(0,5)}</strong><small>{slot.remaining_capacity>0?`${slot.remaining_capacity} spaces remaining`:"Fully booked"}</small>{selected===String(slot.id)&&<span className="customer-slot-selected"><CheckCircle2 size={14}/></span>}
-     </button>)}</div>:<div className="customer-no-slots"><CalendarClock size={24}/><strong>No available slots for this date</strong><span>Choose another date to see more delivery windows.</span></div>
+     </button>)}</div>:<div className="customer-no-slots"><CalendarClock size={24}/><strong>{blackoutReason?"Deliveries are closed on this date":"No available slots for this date"}</strong><span>{blackoutReason||"Choose another date to see more delivery windows."}</span></div>
    }
    {selectedSlot&&<div className="customer-selected-summary"><span><CheckCircle2 size={16}/> Selected delivery window</span><strong>{formatDate(date)} · {selectedSlot.start_time.slice(0,5)} – {selectedSlot.end_time.slice(0,5)}</strong></div>}
    <div className="customer-schedule-submit"><div><ShieldCheck size={17}/><span>Your booking is confirmed only after you select and submit an available slot.</span></div><button className="primary-button" disabled={!selected||busy||terminal} onClick={()=>void submit()}>{busy?"Saving booking…":booking?"Confirm reschedule":"Confirm delivery slot"} <CheckCircle2 size={15}/></button></div>

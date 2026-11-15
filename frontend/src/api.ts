@@ -125,3 +125,20 @@ export const createServiceArea=(token:string,data:{pincode:string;city:string;st
  request<import("./types").ServiceArea>("/operations/service-areas/",token,{method:"POST",body:JSON.stringify(data)});
 export const updateServiceArea=(token:string,id:number,data:{pincode?:string;city?:string;state?:string;is_active?:boolean})=>
  request<import("./types").ServiceArea>(`/operations/service-areas/${id}`,token,{method:"PATCH",body:JSON.stringify(data)});
+
+
+export const getBlackoutDates=(token:string,fromDate="",toDate="",includeInactive=true)=>{
+ const params=new URLSearchParams();
+ if(fromDate)params.set("from_date",fromDate);
+ if(toDate)params.set("to_date",toDate);
+ params.set("include_inactive",String(includeInactive));
+ return request<import("./types").DeliveryBlackoutDate[]>(`/operations/blackout-dates?${params.toString()}`,token);
+};
+export const createBlackoutDate=(token:string,data:{delivery_date:string;reason:string})=>
+ request<import("./types").DeliveryBlackoutDate>("/operations/blackout-dates",token,{method:"POST",body:JSON.stringify(data)});
+export const updateBlackoutDate=(token:string,id:number,data:{reason?:string;is_active?:boolean})=>
+ request<import("./types").DeliveryBlackoutDate>(`/operations/blackout-dates/${id}`,token,{method:"PATCH",body:JSON.stringify(data)});
+
+
+export const getBlackoutStatus=(token:string,deliveryDate:string)=>
+ request<import("./types").DeliveryBlackoutStatus>(`/scheduling/blackout-status?delivery_date=${encodeURIComponent(deliveryDate)}`,token);

@@ -206,6 +206,32 @@ class RouteGeocodeCache(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class DeliveryBlackoutDate(Base):
+    """Operations-managed date when no new delivery slots or bookings are accepted."""
+
+    __tablename__ = "delivery_blackout_dates"
+    __table_args__ = (
+        UniqueConstraint("delivery_date", name="uq_delivery_blackout_date"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    delivery_date: Mapped[date] = mapped_column(Date, nullable=False, index=True)
+    reason: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class ServiceablePincode(Base):
     """Operations-managed PIN-code coverage for customer parcel registration."""
 

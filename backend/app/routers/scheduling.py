@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryBooking, DeliverySlot, Parcel, User
+from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliverySlot, Parcel, User
 from app.notifications import add_notification
 from app.schemas import (
     BookingCreate,
@@ -17,6 +17,7 @@ from app.schemas import (
     DeliverySlotCreate,
     ParcelResponse,
     DeliverySlotResponse,
+    DeliveryBlackoutStatusResponse,
 )
 from app.security import get_current_user, require_admin
 
@@ -26,6 +27,20 @@ INDIA_TZ = ZoneInfo("Asia/Kolkata")
 
 def _local_today() -> date:
     return datetime.now(INDIA_TZ).date()
+
+
+def _ensure_delivery_date_open(db: Session, delivery_date: date) -> None:
+    blackout = db.scalar(
+        select(DeliveryBlackoutDate).where(
+            DeliveryBlackoutDate.delivery_date == delivery_date,
+            DeliveryBlackoutDate.is_active.is_(True),
+        )
+    )
+    if blackout is not None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Delivery is closed for {delivery_date:%d %b %Y}: {blackout.reason}",
+        )
 
 
 def _get_accessible_parcel(db: Session, parcel_id: int, user: User) -> Parcel:
@@ -56,6 +71,7 @@ def _reserve_capacity(db: Session, slot_id: int) -> DeliverySlot:
         raise HTTPException(status_code=404, detail="Delivery slot not found or inactive.")
     if slot.delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Cannot book a slot in the past.")
+    _ensure_delivery_date_open(db, slot.delivery_date)
 
     result = db.execute(
         update(DeliverySlot)
@@ -97,6 +113,25 @@ def _release_capacity(db: Session, slot_id: int) -> None:
         raise HTTPException(status_code=409, detail="Slot capacity is inconsistent; contact operations.")
 
 
+@router.get("/blackout-status", response_model=DeliveryBlackoutStatusResponse)
+def get_blackout_status(
+    delivery_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    blackout = db.scalar(
+        select(DeliveryBlackoutDate).where(
+            DeliveryBlackoutDate.delivery_date == delivery_date,
+            DeliveryBlackoutDate.is_active.is_(True),
+        )
+    )
+    return DeliveryBlackoutStatusResponse(
+        delivery_date=delivery_date,
+        is_blackout=blackout is not None,
+        reason=blackout.reason if blackout is not None else None,
+    )
+
+
 @router.post("/slots", status_code=status.HTTP_201_CREATED)
 def create_delivery_slot(
     slot_data: DeliverySlotCreate,
@@ -105,6 +140,7 @@ def create_delivery_slot(
 ):
     if slot_data.delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Delivery date must be today or in the future.")
+    _ensure_delivery_date_open(db, slot_data.delivery_date)
 
     overlapping_slot = db.scalar(
         select(DeliverySlot).where(
@@ -148,6 +184,10 @@ def get_available_slots(
 ):
     if delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Cannot view availability for a past date.")
+
+    blackout = db.scalar(select(DeliveryBlackoutDate).where(DeliveryBlackoutDate.delivery_date == delivery_date, DeliveryBlackoutDate.is_active.is_(True)))
+    if blackout is not None:
+        return []
 
     slots = db.scalars(
         select(DeliverySlot)

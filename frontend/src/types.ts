@@ -72,3 +72,21 @@ export type ServiceabilityCheck = {
   state:string|null;
   message:string;
 };
+
+
+export type DeliveryBlackoutDate = {
+  id:number;
+  delivery_date:string;
+  reason:string;
+  is_active:boolean;
+  created_by_id:number;
+  created_at:string;
+  updated_at:string;
+};
+
+
+export type DeliveryBlackoutStatus = {
+  delivery_date:string;
+  is_blackout:boolean;
+  reason:string|null;
+};

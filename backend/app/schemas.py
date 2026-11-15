@@ -48,6 +48,61 @@ class ParcelStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class DeliveryBlackoutCreate(BaseModel):
+    delivery_date: date
+    reason: str = Field(min_length=3, max_length=255)
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_reason(cls, value: str) -> str:
+        return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def validate_reason(self):
+        if not self.reason:
+            raise ValueError("A blackout reason is required.")
+        return self
+
+
+class DeliveryBlackoutUpdate(BaseModel):
+    reason: str | None = Field(default=None, min_length=3, max_length=255)
+    is_active: bool | None = None
+
+    @field_validator("reason")
+    @classmethod
+    def normalize_updated_reason(cls, value: str | None) -> str | None:
+        return " ".join(value.split()) if value is not None else value
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide a reason or active status to update.")
+        for field_name in self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null.")
+        if self.reason is not None and not self.reason:
+            raise ValueError("A blackout reason cannot be blank.")
+        return self
+
+
+class DeliveryBlackoutStatusResponse(BaseModel):
+    delivery_date: date
+    is_blackout: bool
+    reason: str | None = None
+
+
+class DeliveryBlackoutResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    delivery_date: date
+    reason: str
+    is_active: bool
+    created_by_id: int
+    created_at: datetime
+    updated_at: datetime
+
+
 class ServiceablePincodeCreate(BaseModel):
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
     city: str = Field(min_length=2, max_length=100)
