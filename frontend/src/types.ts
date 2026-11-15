@@ -90,3 +90,16 @@ export type DeliveryBlackoutStatus = {
   is_blackout:boolean;
   reason:string|null;
 };
+
+
+export type OperationsAuditEvent = {
+  id:number;
+  actor_id:number;
+  actor_name:string;
+  action:string;
+  entity_type:string;
+  entity_id:number;
+  summary:string;
+  changed_fields:string[];
+  created_at:string;
+};

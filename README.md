@@ -532,3 +532,17 @@ Operations administrators can update individual delivery windows after creation.
 - Reactivating a slot is blocked when its date is in the past or has an active blackout.
 - Paused slots are hidden from customer availability but remain visible to operations for reactivation.
 - The delivery-slots screen now supports inline capacity changes and pause/reactivate controls. The backend remains authoritative for all safety checks.
+
+
+## Phase 32 — Operations audit trail
+
+TimeDrop now records an append-only history of important changes to operational configuration.
+
+- Admin API: `GET /api/v1/operations/audit-log?entity_type=&action=&from_date=&to_date=&skip=&limit=`.
+- Recorded events include delivery partner creation/profile updates/availability changes, service-area creation/updates, blackout-date creation/updates, and delivery-slot creation/updates.
+- Each event records the actor, action, entity type and ID, a short summary, changed field names, and timestamp.
+- Submitted field values are deliberately not stored. Phone numbers, email addresses, passwords, and other field values are excluded from audit entries.
+- The operations **Audit log** page supports entity and date filters and displays the latest 100 matching events.
+- Audit records have no update/delete API. They are retained as an append-only operational history.
+
+Apply Alembic revision `20261115_0014` after pulling this phase.

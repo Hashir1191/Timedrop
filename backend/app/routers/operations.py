@@ -1,4 +1,5 @@
-from datetime import date, datetime, timezone
+import json
+from datetime import date, datetime, time, timedelta, timezone
 from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -7,12 +8,64 @@ from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import record_operations_audit
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliveryPartner, DeliverySlot, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliveryPartner, DeliverySlot, OperationsAuditLog, Parcel, ParcelCustodyEvent, User
 from app.security import require_admin
-from app.schemas import DeliveryBlackoutCreate, DeliveryBlackoutResponse, DeliveryBlackoutUpdate, ParcelResponse
+from app.schemas import DeliveryBlackoutCreate, DeliveryBlackoutResponse, DeliveryBlackoutUpdate, OperationsAuditLogResponse, ParcelResponse
 
 router = APIRouter(prefix="/api/v1/operations", tags=["Operations intake and custody"])
+
+
+@router.get("/audit-log", response_model=list[OperationsAuditLogResponse])
+def list_operations_audit_log(
+    entity_type: str | None = None,
+    action: str | None = None,
+    from_date: date | None = None,
+    to_date: date | None = None,
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    if skip < 0 or limit < 1 or limit > 500:
+        raise HTTPException(status_code=422, detail="Use skip >= 0 and limit between 1 and 500.")
+    if from_date and to_date and from_date > to_date:
+        raise HTTPException(status_code=422, detail="from_date cannot be after to_date.")
+    statement = (
+        select(OperationsAuditLog, User.full_name)
+        .join(User, User.id == OperationsAuditLog.actor_id)
+        .order_by(OperationsAuditLog.created_at.desc(), OperationsAuditLog.id.desc())
+    )
+    if entity_type:
+        statement = statement.where(OperationsAuditLog.entity_type == entity_type)
+    if action:
+        statement = statement.where(OperationsAuditLog.action == action)
+    if from_date:
+        start = datetime.combine(from_date, time.min, tzinfo=ZoneInfo("Asia/Kolkata"))
+        statement = statement.where(OperationsAuditLog.created_at >= start)
+    if to_date:
+        end = datetime.combine(to_date + timedelta(days=1), time.min, tzinfo=ZoneInfo("Asia/Kolkata"))
+        statement = statement.where(OperationsAuditLog.created_at < end)
+    rows = db.execute(statement.offset(skip).limit(limit)).all()
+    results = []
+    for log, actor_name in rows:
+        try:
+            changed_fields = json.loads(log.changed_fields_json or "[]")
+        except (TypeError, ValueError):
+            changed_fields = []
+        results.append(OperationsAuditLogResponse(
+            id=log.id,
+            actor_id=log.actor_id,
+            actor_name=actor_name,
+            action=log.action,
+            entity_type=log.entity_type,
+            entity_id=log.entity_id,
+            summary=log.summary,
+            changed_fields=changed_fields,
+            created_at=log.created_at,
+        ))
+    return results
 
 
 def _active_bookings_for_date(db: Session, delivery_date: date) -> int:
@@ -65,6 +118,13 @@ def create_blackout_date(
     )
     db.add(blackout)
     try:
+        db.flush()
+        record_operations_audit(
+            db, actor_id=admin.id, action="blackout_date.created",
+            entity_type="blackout_date", entity_id=blackout.id,
+            summary=f"Created delivery blackout for {blackout.delivery_date.isoformat()}",
+            changed_fields=["delivery_date", "reason", "is_active"],
+        )
         db.commit()
         db.refresh(blackout)
     except IntegrityError:
@@ -95,6 +155,12 @@ def update_blackout_date(
             )
     for field_name, value in changes.items():
         setattr(blackout, field_name, value)
+    record_operations_audit(
+        db, actor_id=admin.id, action="blackout_date.updated",
+        entity_type="blackout_date", entity_id=blackout.id,
+        summary=f"Updated delivery blackout for {blackout.delivery_date.isoformat()}",
+        changed_fields=list(changes.keys()),
+    )
     db.commit()
     db.refresh(blackout)
     return blackout

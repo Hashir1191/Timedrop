@@ -6,6 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import record_operations_audit
 from app.database import get_db
 from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliverySlot, Parcel, User
 from app.notifications import add_notification
@@ -160,6 +161,13 @@ def create_delivery_slot(
     slot = DeliverySlot(**slot_data.model_dump())
     db.add(slot)
     try:
+        db.flush()
+        record_operations_audit(
+            db, actor_id=current_user.id, action="delivery_slot.created",
+            entity_type="delivery_slot", entity_id=slot.id,
+            summary=f"Created delivery slot #{slot.id} for {slot.delivery_date.isoformat()}",
+            changed_fields=["delivery_date", "start_time", "end_time", "capacity"],
+        )
         db.commit()
         db.refresh(slot)
     except IntegrityError:
@@ -205,6 +213,12 @@ def update_delivery_slot(
             raise HTTPException(status_code=400, detail="A past delivery slot cannot be reactivated.")
     for field_name, value in changes.items():
         setattr(slot, field_name, value)
+    record_operations_audit(
+        db, actor_id=current_user.id, action="delivery_slot.updated",
+        entity_type="delivery_slot", entity_id=slot.id,
+        summary=f"Updated delivery slot #{slot.id} for {slot.delivery_date.isoformat()}",
+        changed_fields=list(changes.keys()),
+    )
     db.commit()
     db.refresh(slot)
     return DeliverySlotAvailability(

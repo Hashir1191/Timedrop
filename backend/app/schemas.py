@@ -48,6 +48,18 @@ class ParcelStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class OperationsAuditLogResponse(BaseModel):
+    id: int
+    actor_id: int
+    actor_name: str
+    action: str
+    entity_type: str
+    entity_id: int
+    summary: str
+    changed_fields: list[str]
+    created_at: datetime
+
+
 class DeliveryBlackoutCreate(BaseModel):
     delivery_date: date
     reason: str = Field(min_length=3, max_length=255)

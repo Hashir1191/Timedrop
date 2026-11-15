@@ -3,6 +3,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import record_operations_audit
 from app.database import get_db
 from app.models import ServiceablePincode, User
 from app.schemas import (
@@ -73,6 +74,13 @@ def create_service_area(
     )
     db.add(area)
     try:
+        db.flush()
+        record_operations_audit(
+            db, actor_id=admin.id, action="service_area.created",
+            entity_type="service_area", entity_id=area.id,
+            summary=f"Added service area for PIN code {area.pincode}",
+            changed_fields=["pincode", "city", "state", "is_active"],
+        )
         db.commit()
         db.refresh(area)
     except IntegrityError:
@@ -91,9 +99,16 @@ def update_service_area(
     area = db.get(ServiceablePincode, area_id)
     if area is None:
         raise HTTPException(status_code=404, detail="Service area not found.")
-    for field_name, value in data.model_dump(exclude_unset=True).items():
+    changes = data.model_dump(exclude_unset=True)
+    for field_name, value in changes.items():
         setattr(area, field_name, value)
     try:
+        record_operations_audit(
+            db, actor_id=admin.id, action="service_area.updated",
+            entity_type="service_area", entity_id=area.id,
+            summary=f"Updated service area for PIN code {area.pincode}",
+            changed_fields=list(changes.keys()),
+        )
         db.commit()
         db.refresh(area)
     except IntegrityError:
