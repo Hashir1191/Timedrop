@@ -234,6 +234,7 @@ class DeliverySlotAvailability(BaseModel):
     capacity: int
     booked_count: int
     remaining_capacity: int
+    is_active: bool = True
 
 
 class DeliverySlotUpdate(BaseModel):
