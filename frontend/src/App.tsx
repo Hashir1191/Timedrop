@@ -23,6 +23,7 @@ import WarehousePage from "./pages/Warehouse";
 import Analytics from "./pages/Analytics";
 import PartnerAvailability from "./pages/PartnerAvailability";
 import ServiceAreas from "./pages/ServiceAreas";
+import BlackoutDates from "./pages/BlackoutDates";
 
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ token: localStorage.getItem("timedrop_token"), user: null, loading: true });
@@ -42,7 +43,7 @@ export default function App() {
     <Route path="/login" element={auth.user ? <Navigate to="/" replace /> : <Login />} />
     {auth.user ? <Route path="/" element={authenticatedLayout}>
       {role === "admin" ? <>
-        <Route index element={<Dashboard />} /><Route path="parcels" element={<Parcels />} /><Route path="slots" element={<Slots />} /><Route path="bookings" element={<Bookings />} /><Route path="delivery-partners" element={<DeliveryPartners />} /><Route path="intake" element={<Intake />} /><Route path="warehouse" element={<WarehousePage />} /><Route path="analytics" element={<Analytics />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="service-areas" element={<ServiceAreas />} />
+        <Route index element={<Dashboard />} /><Route path="parcels" element={<Parcels />} /><Route path="slots" element={<Slots />} /><Route path="bookings" element={<Bookings />} /><Route path="delivery-partners" element={<DeliveryPartners />} /><Route path="intake" element={<Intake />} /><Route path="warehouse" element={<WarehousePage />} /><Route path="analytics" element={<Analytics />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="service-areas" element={<ServiceAreas />} /><Route path="blackout-dates" element={<BlackoutDates />} />
       </> : role === "delivery_partner" ? <>
         <Route index element={<PartnerDashboard />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="availability" element={<PartnerAvailability />} />
       </> : <>
