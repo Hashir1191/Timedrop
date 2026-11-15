@@ -12,7 +12,7 @@ function formatTimestamp(value: string) {
 }
 
 function actionLabel(action: string) {
-  return action.replaceAll(".", " · ").replaceAll("_", " ");
+  return action.replace(/\./g, " · ").replace(/_/g, " ");
 }
 
 export default function AuditLog() {
@@ -72,8 +72,8 @@ export default function AuditLog() {
           <div className="audit-event-main">
             <div className="audit-event-top"><span className="audit-action">{actionLabel(event.action)}</span><time>{formatTimestamp(event.created_at)}</time></div>
             <strong>{event.summary}</strong>
-            <div className="audit-event-meta"><span><UserRound size={12}/>{event.actor_name}</span><span>{event.entity_type.replaceAll("_"," ")} #{event.entity_id}</span></div>
-            {event.changed_fields.length>0&&<div className="audit-field-tags">{event.changed_fields.map(field=><span key={field}>{field.replaceAll("_"," ")}</span>)}</div>}
+            <div className="audit-event-meta"><span><UserRound size={12}/>{event.actor_name}</span><span>{event.entity_type.replace(/_/g," ")} #{event.entity_id}</span></div>
+            {event.changed_fields.length>0&&<div className="audit-field-tags">{event.changed_fields.map(field=><span key={field}>{field.replace(/_/g," ")}</span>)}</div>}
           </div>
         </article>)}
       </div>
