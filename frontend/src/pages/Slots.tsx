@@ -21,7 +21,7 @@ export default function Slots() {
   const [busy, setBusy] = useState(false);
   const [slotBusy, setSlotBusy] = useState<number | null>(null);
   const [capacityDrafts, setCapacityDrafts] = useState<Record<number, string>>({});
-  async function load() { if (!token || !date) return; try { setError(""); const [available, closures] = await Promise.all([getSlots(token, date, true), getBlackoutDates(token, date, date, true)]); setSlots(available); setBlackout(closures.find(item => item.is_active) ?? null); } catch (err) { setError(err instanceof Error ? err.message : "Unable to load slots."); } }
+  async function load() { if (!token || !date) return; try { setError(""); const [available, closures] = await Promise.all([getSlots(token, date, true), getBlackoutDates(token, date, date, true)]); setSlots(available); setCapacityDrafts(current => ({ ...current, ...Object.fromEntries(available.map(item => [item.id, String(item.capacity)])) })); setBlackout(closures.find(item => item.is_active) ?? null); } catch (err) { setError(err instanceof Error ? err.message : "Unable to load slots."); } }
   useEffect(() => { void load(); }, [token, date]);
 
   async function saveCapacity(slot: DeliverySlot) {
