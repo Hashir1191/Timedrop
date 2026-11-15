@@ -10,6 +10,7 @@ Let operations mark dates when TimeDrop cannot accept new delivery slots or book
 - A reason is required for each closure.
 - Slot creation is blocked on active blackout dates.
 - Customer slot availability returns no slots for a blackout date.
+- Customer booking screen can retrieve a safe closure status and display the operations-provided reason.
 - Booking and rescheduling use the same backend closure check.
 - Existing confirmed bookings prevent a date from being closed until operations reschedules or cancels them.
 - Deactivating a blackout reopens previously created active slots.
@@ -20,6 +21,7 @@ Let operations mark dates when TimeDrop cannot accept new delivery slots or book
 - `GET /api/v1/operations/blackout-dates?from_date=&to_date=&include_inactive=`
 - `POST /api/v1/operations/blackout-dates`
 - `PATCH /api/v1/operations/blackout-dates/{blackout_id}`
+- `GET /api/v1/scheduling/blackout-status?delivery_date=YYYY-MM-DD`
 
 ## Rules
 
