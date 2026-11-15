@@ -168,15 +168,17 @@ def get_operations_analytics(
     for item in partner_groups.values():
         terminal = item["delivered"] + item["failed"]
         partner_durations = item.pop("durations")
+        eta_covered = item.pop("eta_covered")
+        partner_on_time = item.pop("on_time_delivered")
+        partner_late = item.pop("late_delivered")
         partners.append(PartnerPerformance(
             **item,
             success_rate=round(item["delivered"] / terminal * 100, 1) if terminal else 0.0,
             average_delivery_hours=round(sum(partner_durations) / len(partner_durations), 2)
             if partner_durations else None,
-            on_time_delivered=item["on_time_delivered"],
-            late_delivered=item["late_delivered"],
-            on_time_rate=round(item["on_time_delivered"] / item["eta_covered"] * 100, 1)
-            if item["eta_covered"] else 0.0,
+            on_time_delivered=partner_on_time,
+            late_delivered=partner_late,
+            on_time_rate=round(partner_on_time / eta_covered * 100, 1) if eta_covered else 0.0,
         ))
     partners.sort(key=lambda item: (-item.delivered, -item.total_assignments, item.partner_name.lower()))
 
