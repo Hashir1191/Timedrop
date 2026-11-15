@@ -60,6 +60,13 @@ def create_partner(data: DeliveryPartnerCreate, db: Session = Depends(get_db), a
     partner.user_id = user.id
     db.add(partner)
     try:
+        db.flush()
+        record_operations_audit(
+            db, actor_id=admin.id, action="delivery_partner.created",
+            entity_type="delivery_partner", entity_id=partner.id,
+            summary=f"Created delivery partner #{partner.id}",
+            changed_fields=["full_name", "email", "phone", "vehicle_type", "max_active_assignments"],
+        )
         db.commit()
         db.refresh(partner)
         db.refresh(user)
