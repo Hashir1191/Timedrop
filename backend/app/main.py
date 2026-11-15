@@ -12,6 +12,7 @@ from app.routers.notifications import router as notifications_router
 from app.routers.phone_verification import router as phone_verification_router
 from app.routers.operations import router as operations_router
 from app.routers.analytics import router as analytics_router
+from app.routers.serviceability import public_router as serviceability_router, operations_router as service_areas_router
 
 
 @asynccontextmanager
@@ -36,6 +37,8 @@ app.include_router(notifications_router)
 app.include_router(phone_verification_router)
 app.include_router(operations_router)
 app.include_router(analytics_router)
+app.include_router(serviceability_router)
+app.include_router(service_areas_router)
 
 
 @app.get("/", tags=["General"])
