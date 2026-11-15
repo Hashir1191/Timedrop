@@ -156,3 +156,16 @@
  .blackout-status { margin-left:54px; }
  .blackout-toggle { margin-left:auto; }
 }
+
+
+/* Phase 31 — delivery slot lifecycle controls */
+.slot-card-paused { border-color:#e9dfe0; background:linear-gradient(180deg,#fff,#fcf9f9); }
+.slot-management-actions { display:flex; align-items:end; gap:7px; padding-top:12px; margin-top:12px; border-top:1px solid #edf1f6; }
+.slot-management-actions label { display:grid; gap:4px; color:#7d899b; font-size:9px; font-weight:700; }
+.slot-management-actions input { width:64px; height:32px; border:1px solid #dfe6f0; border-radius:7px; padding:4px 7px; color:#30415a; font-size:11px; }
+.slot-management-actions .secondary-button,.slot-management-actions .danger-button { min-height:32px; padding:6px 9px; font-size:10px; white-space:nowrap; }
+@media(max-width:600px) {
+ .slot-management-actions { flex-wrap:wrap; }
+ .slot-management-actions label { flex:1; }
+ .slot-management-actions input { width:100%; }
+}
