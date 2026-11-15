@@ -85,6 +85,12 @@ class DeliveryBlackoutUpdate(BaseModel):
         return self
 
 
+class DeliveryBlackoutStatusResponse(BaseModel):
+    delivery_date: date
+    is_blackout: bool
+    reason: str | None = None
+
+
 class DeliveryBlackoutResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
