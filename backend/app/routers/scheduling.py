@@ -232,7 +232,7 @@ def get_available_slots(
         raise HTTPException(status_code=400, detail="Cannot view availability for a past date.")
 
     blackout = db.scalar(select(DeliveryBlackoutDate).where(DeliveryBlackoutDate.delivery_date == delivery_date, DeliveryBlackoutDate.is_active.is_(True)))
-    if blackout is not None and current_user.role != "admin":
+    if blackout is not None and not include_inactive:
         return []
 
     statement = select(DeliverySlot).where(DeliverySlot.delivery_date == delivery_date)
