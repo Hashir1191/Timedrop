@@ -519,3 +519,16 @@ Operations administrators can close specific delivery dates for holidays, planne
 - The operations **Blackout dates** screen provides closure management, status controls, and an audit-friendly reason for each entry.
 
 Apply Alembic revision `20261115_0013` after pulling this phase.
+
+
+## Phase 31 — Delivery slot lifecycle and capacity management
+
+Operations administrators can update individual delivery windows after creation.
+
+- Admin update: `PATCH /api/v1/scheduling/slots/{slot_id}` accepts `capacity` (1–500) and/or `is_active`.
+- Admin slot listing can include inactive slots with `GET /api/v1/scheduling/slots?delivery_date=YYYY-MM-DD&include_inactive=true`. This parameter is admin-only.
+- Capacity cannot be reduced below the number of confirmed bookings already on the slot.
+- A slot with confirmed bookings cannot be paused. Operations must reschedule or cancel those bookings first.
+- Reactivating a slot is blocked when its date is in the past or has an active blackout.
+- Paused slots are hidden from customer availability but remain visible to operations for reactivation.
+- The delivery-slots screen now supports inline capacity changes and pause/reactivate controls. The backend remains authoritative for all safety checks.
