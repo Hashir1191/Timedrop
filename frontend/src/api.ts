@@ -138,3 +138,7 @@ export const createBlackoutDate=(token:string,data:{delivery_date:string;reason:
  request<import("./types").DeliveryBlackoutDate>("/operations/blackout-dates",token,{method:"POST",body:JSON.stringify(data)});
 export const updateBlackoutDate=(token:string,id:number,data:{reason?:string;is_active?:boolean})=>
  request<import("./types").DeliveryBlackoutDate>(`/operations/blackout-dates/${id}`,token,{method:"PATCH",body:JSON.stringify(data)});
+
+
+export const getBlackoutStatus=(token:string,deliveryDate:string)=>
+ request<import("./types").DeliveryBlackoutStatus>(`/scheduling/blackout-status?delivery_date=${encodeURIComponent(deliveryDate)}`,token);
