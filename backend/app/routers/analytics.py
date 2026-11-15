@@ -21,6 +21,9 @@ class PartnerPerformance(BaseModel):
     active: int
     success_rate: float
     average_delivery_hours: float | None
+    on_time_delivered: int
+    late_delivered: int
+    on_time_rate: float
 
 
 class DailyDeliveryMetric(BaseModel):
@@ -28,6 +31,8 @@ class DailyDeliveryMetric(BaseModel):
     assigned: int
     delivered: int
     failed: int
+    on_time: int
+    late: int
 
 
 class OperationsAnalyticsResponse(BaseModel):
@@ -40,6 +45,12 @@ class OperationsAnalyticsResponse(BaseModel):
     active: int
     success_rate: float
     average_delivery_hours: float | None
+    eta_covered_deliveries: int
+    on_time_delivered: int
+    late_delivered: int
+    on_time_rate: float
+    average_delay_minutes: float | None
+    overdue_active: int
     partner_count: int
     partners: list[PartnerPerformance]
     daily: list[DailyDeliveryMetric]
@@ -95,12 +106,45 @@ def get_operations_analytics(
     ]
     average_hours = round(sum(durations) / len(durations), 2) if durations else None
 
+    now = datetime.now(timezone.utc)
+    eta_deliveries = [
+        assignment for assignment, _, _ in rows
+        if assignment.status == "delivered"
+        and assignment.delivered_at is not None
+        and assignment.estimated_delivery_start is not None
+        and assignment.estimated_delivery_end is not None
+    ]
+    on_time_delivered = sum(
+        1 for assignment in eta_deliveries
+        if _utc(assignment.delivered_at) <= _utc(assignment.estimated_delivery_end)
+    )
+    late_deliveries = [
+        assignment for assignment in eta_deliveries
+        if _utc(assignment.delivered_at) > _utc(assignment.estimated_delivery_end)
+    ]
+    late_delivered = len(late_deliveries)
+    on_time_rate = round(on_time_delivered / len(eta_deliveries) * 100, 1) if eta_deliveries else 0.0
+    delay_minutes = [
+        (_utc(assignment.delivered_at) - _utc(assignment.estimated_delivery_end)).total_seconds() / 60
+        for assignment in late_deliveries
+    ]
+    average_delay_minutes = round(sum(delay_minutes) / len(delay_minutes), 1) if delay_minutes else None
+    overdue_active = sum(
+        1 for assignment, _, _ in rows
+        if assignment.status in {"assigned", "accepted", "out_for_delivery"}
+        and assignment.estimated_delivery_end is not None
+        and _utc(assignment.estimated_delivery_end) < now
+    )
+
     partner_groups: dict[int, dict] = {}
     for assignment, partner, user in rows:
         item = partner_groups.setdefault(partner.id, {
             "partner_id": partner.id, "partner_name": user.full_name,
             "total_assignments": 0, "delivered": 0, "failed": 0, "active": 0,
             "durations": [],
+            "eta_covered": 0,
+            "on_time_delivered": 0,
+            "late_delivered": 0,
         })
         item["total_assignments"] += 1
         if assignment.status == "delivered":
@@ -109,6 +153,12 @@ def get_operations_analytics(
                 elapsed = (_utc(assignment.delivered_at) - _utc(assignment.assigned_at)).total_seconds() / 3600
                 if elapsed >= 0:
                     item["durations"].append(elapsed)
+            if assignment.delivered_at is not None and assignment.estimated_delivery_start is not None and assignment.estimated_delivery_end is not None:
+                item["eta_covered"] += 1
+                if _utc(assignment.delivered_at) <= _utc(assignment.estimated_delivery_end):
+                    item["on_time_delivered"] += 1
+                else:
+                    item["late_delivered"] += 1
         elif assignment.status == "failed":
             item["failed"] += 1
         elif assignment.status in {"assigned", "accepted", "out_for_delivery"}:
@@ -123,11 +173,15 @@ def get_operations_analytics(
             success_rate=round(item["delivered"] / terminal * 100, 1) if terminal else 0.0,
             average_delivery_hours=round(sum(partner_durations) / len(partner_durations), 2)
             if partner_durations else None,
+            on_time_delivered=item["on_time_delivered"],
+            late_delivered=item["late_delivered"],
+            on_time_rate=round(item["on_time_delivered"] / item["eta_covered"] * 100, 1)
+            if item["eta_covered"] else 0.0,
         ))
     partners.sort(key=lambda item: (-item.delivered, -item.total_assignments, item.partner_name.lower()))
 
     daily_map = {
-        selected_start + timedelta(days=offset): {"assigned": 0, "delivered": 0, "failed": 0}
+        selected_start + timedelta(days=offset): {"assigned": 0, "delivered": 0, "failed": 0, "on_time": 0, "late": 0}
         for offset in range((selected_end - selected_start).days + 1)
     }
     for assignment, _, _ in rows:
@@ -138,6 +192,11 @@ def get_operations_analytics(
             outcome_day = _utc(assignment.delivered_at).date()
             if outcome_day in daily_map:
                 daily_map[outcome_day]["delivered"] += 1
+                if assignment.estimated_delivery_start is not None and assignment.estimated_delivery_end is not None:
+                    if _utc(assignment.delivered_at) <= _utc(assignment.estimated_delivery_end):
+                        daily_map[outcome_day]["on_time"] += 1
+                    else:
+                        daily_map[outcome_day]["late"] += 1
         elif assignment.status == "failed":
             outcome_day = _utc(assignment.updated_at).date()
             if outcome_day in daily_map:
@@ -153,6 +212,12 @@ def get_operations_analytics(
         active=active,
         success_rate=success_rate,
         average_delivery_hours=average_hours,
+        eta_covered_deliveries=len(eta_deliveries),
+        on_time_delivered=on_time_delivered,
+        late_delivered=late_delivered,
+        on_time_rate=on_time_rate,
+        average_delay_minutes=average_delay_minutes,
+        overdue_active=overdue_active,
         partner_count=len(partner_groups),
         partners=partners,
         daily=[
