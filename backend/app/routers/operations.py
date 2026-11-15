@@ -1,4 +1,5 @@
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
@@ -7,11 +8,96 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryPartner, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliveryPartner, DeliverySlot, Parcel, ParcelCustodyEvent, User
 from app.security import require_admin
-from app.schemas import ParcelResponse
+from app.schemas import DeliveryBlackoutCreate, DeliveryBlackoutResponse, DeliveryBlackoutUpdate, ParcelResponse
 
 router = APIRouter(prefix="/api/v1/operations", tags=["Operations intake and custody"])
+
+
+def _active_bookings_for_date(db: Session, delivery_date: date) -> int:
+    return db.scalar(
+        select(func.count(DeliveryBooking.id))
+        .join(DeliverySlot, DeliverySlot.id == DeliveryBooking.slot_id)
+        .where(
+            DeliverySlot.delivery_date == delivery_date,
+            DeliveryBooking.status == "booked",
+        )
+    ) or 0
+
+
+@router.get("/blackout-dates", response_model=list[DeliveryBlackoutResponse])
+def list_blackout_dates(
+    from_date: date | None = None,
+    to_date: date | None = None,
+    include_inactive: bool = True,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    statement = select(DeliveryBlackoutDate).order_by(DeliveryBlackoutDate.delivery_date)
+    if from_date is not None:
+        statement = statement.where(DeliveryBlackoutDate.delivery_date >= from_date)
+    if to_date is not None:
+        statement = statement.where(DeliveryBlackoutDate.delivery_date <= to_date)
+    if not include_inactive:
+        statement = statement.where(DeliveryBlackoutDate.is_active.is_(True))
+    return db.scalars(statement).all()
+
+
+@router.post("/blackout-dates", response_model=DeliveryBlackoutResponse, status_code=status.HTTP_201_CREATED)
+def create_blackout_date(
+    data: DeliveryBlackoutCreate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+    if data.delivery_date < today:
+        raise HTTPException(status_code=400, detail="A blackout date must be today or in the future.")
+    if _active_bookings_for_date(db, data.delivery_date):
+        raise HTTPException(
+            status_code=409,
+            detail="This date already has active bookings. Reschedule or cancel them before creating a blackout.",
+        )
+    blackout = DeliveryBlackoutDate(
+        delivery_date=data.delivery_date,
+        reason=data.reason,
+        created_by_id=admin.id,
+    )
+    db.add(blackout)
+    try:
+        db.commit()
+        db.refresh(blackout)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A blackout-date record already exists for this date.")
+    return blackout
+
+
+@router.patch("/blackout-dates/{blackout_id}", response_model=DeliveryBlackoutResponse)
+def update_blackout_date(
+    blackout_id: int,
+    data: DeliveryBlackoutUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    blackout = db.get(DeliveryBlackoutDate, blackout_id)
+    if blackout is None:
+        raise HTTPException(status_code=404, detail="Blackout date not found.")
+    changes = data.model_dump(exclude_unset=True)
+    if changes.get("is_active") is True:
+        today = datetime.now(ZoneInfo("Asia/Kolkata")).date()
+        if blackout.delivery_date < today:
+            raise HTTPException(status_code=400, detail="A past blackout date cannot be reactivated.")
+        if _active_bookings_for_date(db, blackout.delivery_date):
+            raise HTTPException(
+                status_code=409,
+                detail="This date already has active bookings. Reschedule or cancel them before activating the blackout.",
+            )
+    for field_name, value in changes.items():
+        setattr(blackout, field_name, value)
+    db.commit()
+    db.refresh(blackout)
+    return blackout
 
 
 class ParcelIntakeCreate(BaseModel):
