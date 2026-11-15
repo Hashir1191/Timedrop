@@ -177,10 +177,15 @@ class DeliveryPartnerUpdate(BaseModel):
     def require_update(self):
         if not self.model_fields_set:
             raise ValueError("Provide at least one partner field to update.")
+        for field_name in self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null.")
         for field_name in ("full_name", "phone", "vehicle_type"):
             value = getattr(self, field_name)
             if value is not None and not value:
                 raise ValueError(f"{field_name} cannot be blank.")
+        if self.is_active is False and self.is_available is True:
+            raise ValueError("An inactive partner cannot be available for assignments.")
         return self
 
 
