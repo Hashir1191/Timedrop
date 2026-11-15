@@ -10,8 +10,10 @@ export async function login(email:string,password:string){const response=await f
 export const getMe=(token:string)=>request<User>("/auth/me",token);
 export const getParcels=(token:string)=>request<Parcel[]>("/parcels/?skip=0&limit=100",token);
 export const updateParcelStatus=(token:string,id:number,status:string)=>request<Parcel>(`/parcels/${id}/status`,token,{method:"PATCH",body:JSON.stringify({status})});
-export const getSlots=(token:string,date:string)=>request<DeliverySlot[]>(`/scheduling/slots?delivery_date=${date}`,token);
+export const getSlots=(token:string,date:string,includeInactive=false)=>request<DeliverySlot[]>(`/scheduling/slots?delivery_date=${encodeURIComponent(date)}&include_inactive=${includeInactive}`,token);
 export const createSlot=(token:string,data:{delivery_date:string;start_time:string;end_time:string;capacity:number})=>request<DeliverySlot>("/scheduling/slots",token,{method:"POST",body:JSON.stringify(data)});
+export const updateSlot=(token:string,slotId:number,data:{capacity?:number;is_active?:boolean})=>
+ request<DeliverySlot>(`/scheduling/slots/${slotId}`,token,{method:"PATCH",body:JSON.stringify(data)});
 export const cancelBooking=(token:string,parcelId:number)=>request<void>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"DELETE"});
 export const rescheduleBooking=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"PATCH",body:JSON.stringify({slot_id:slotId})});
 export const getAdminBookings=(token:string,status:"booked"|"cancelled"|"all"="booked",deliveryDate="")=>{const params=new URLSearchParams();if(status!=="all")params.set("status",status);if(deliveryDate)params.set("delivery_date",deliveryDate);const query=params.toString();return request<AdminBooking[]>(`/scheduling/bookings${query?`?${query}`:""}`,token);};
