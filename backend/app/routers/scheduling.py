@@ -17,6 +17,7 @@ from app.schemas import (
     DeliverySlotCreate,
     ParcelResponse,
     DeliverySlotResponse,
+    DeliveryBlackoutStatusResponse,
 )
 from app.security import get_current_user, require_admin
 
@@ -110,6 +111,25 @@ def _release_capacity(db: Session, slot_id: int) -> None:
     )
     if result.rowcount != 1:
         raise HTTPException(status_code=409, detail="Slot capacity is inconsistent; contact operations.")
+
+
+@router.get("/blackout-status", response_model=DeliveryBlackoutStatusResponse)
+def get_blackout_status(
+    delivery_date: date = Query(...),
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    blackout = db.scalar(
+        select(DeliveryBlackoutDate).where(
+            DeliveryBlackoutDate.delivery_date == delivery_date,
+            DeliveryBlackoutDate.is_active.is_(True),
+        )
+    )
+    return DeliveryBlackoutStatusResponse(
+        delivery_date=delivery_date,
+        is_blackout=blackout is not None,
+        reason=blackout.reason if blackout is not None else None,
+    )
 
 
 @router.post("/slots", status_code=status.HTTP_201_CREATED)
