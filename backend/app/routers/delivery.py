@@ -17,7 +17,7 @@ from app.schemas import (
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
     DeliveryRoutePlanResponse, DeliveryRouteStop,
-    PartnerAvailabilitySettings,
+    PartnerAvailabilitySettings, DeliveryPartnerUpdate,
 )
 from app.security import get_current_user, hash_password, verify_password, require_admin, require_delivery_partner
 
@@ -91,6 +91,71 @@ def list_partners(db: Session = Depends(get_db), admin: User = Depends(require_a
             availability_enabled=partner.availability_enabled,
         ))
     return result
+
+
+@router.patch("/partners/{partner_id}", response_model=DeliveryPartnerResponse)
+def update_partner(
+    partner_id: int,
+    data: DeliveryPartnerUpdate,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    """Update partner profile and assignment eligibility without disrupting active work."""
+    partner = db.get(DeliveryPartner, partner_id)
+    if partner is None:
+        raise HTTPException(status_code=404, detail="Delivery partner not found.")
+    user = db.get(User, partner.user_id)
+    active_count = db.scalar(
+        select(func.count(DeliveryAssignment.id)).where(
+            DeliveryAssignment.partner_id == partner.id,
+            DeliveryAssignment.status.in_(["assigned", "accepted", "out_for_delivery"]),
+        )
+    ) or 0
+    changes = data.model_dump(exclude_unset=True)
+
+    next_capacity = changes.get("max_active_assignments", partner.max_active_assignments)
+    if next_capacity < active_count:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Capacity cannot be lower than the {active_count} active assignment(s) already in progress.",
+        )
+    if changes.get("is_active") is False and active_count:
+        raise HTTPException(
+            status_code=409,
+            detail="This partner has active deliveries. Pause new assignments first and complete or reassign active work before deactivating the account.",
+        )
+    if changes.get("is_available") is True and not user.is_active and changes.get("is_active") is not True:
+        raise HTTPException(
+            status_code=409,
+            detail="Reactivate the partner account before making the partner available.",
+        )
+
+    if "full_name" in changes:
+        user.full_name = changes["full_name"]
+    if "is_active" in changes:
+        user.is_active = changes["is_active"]
+        if not user.is_active:
+            partner.is_available = False
+    for field_name in ("phone", "vehicle_type", "max_active_assignments", "is_available"):
+        if field_name in changes:
+            setattr(partner, field_name, changes[field_name])
+
+    db.commit()
+    db.refresh(partner)
+    db.refresh(user)
+    return DeliveryPartnerResponse(
+        id=partner.id,
+        user_id=user.id,
+        full_name=user.full_name,
+        email=user.email,
+        phone=partner.phone,
+        vehicle_type=partner.vehicle_type,
+        is_available=partner.is_available,
+        is_active=user.is_active,
+        active_assignments=active_count,
+        max_active_assignments=partner.max_active_assignments,
+        availability_enabled=partner.availability_enabled,
+    )
 
 
 def _partner_availability_response(db: Session, partner: DeliveryPartner) -> PartnerAvailabilitySettings:
