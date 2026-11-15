@@ -206,6 +206,30 @@ class RouteGeocodeCache(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class ServiceablePincode(Base):
+    """Operations-managed PIN-code coverage for customer parcel registration."""
+
+    __tablename__ = "serviceable_pincodes"
+    __table_args__ = (UniqueConstraint("pincode", name="uq_serviceable_pincodes_pincode"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    pincode: Mapped[str] = mapped_column(String(6), nullable=False, index=True)
+    city: Mapped[str] = mapped_column(String(100), nullable=False)
+    state: Mapped[str] = mapped_column(String(100), nullable=False)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        default=lambda: datetime.now(timezone.utc),
+        onupdate=lambda: datetime.now(timezone.utc),
+        nullable=False,
+    )
+
+
 class ParcelCustodyEvent(Base):
     """Append-only record of physical parcel receipt and handover."""
 

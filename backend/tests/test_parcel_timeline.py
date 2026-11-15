@@ -9,7 +9,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import User
+from app.models import ServiceablePincode, User
 from app.security import hash_password
 
 
@@ -24,6 +24,7 @@ def client():
     Base.metadata.create_all(bind=engine)
     db = session_factory()
     db.add_all([
+        ServiceablePincode(pincode="211001", city="Prayagraj", state="Uttar Pradesh"),
         User(email="timeline-admin@example.com", full_name="Timeline Admin",
              password_hash=hash_password("StrongTestPassword123!"), role="admin"),
         User(email="timeline-owner@example.com", full_name="Parcel Owner",

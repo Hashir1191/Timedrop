@@ -8,7 +8,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import User
+from app.models import ServiceablePincode, User
 from app.security import hash_password
 
 
@@ -32,6 +32,7 @@ def client():
             is_active=True,
         )
     )
+    db.add(ServiceablePincode(pincode="211001", city="Prayagraj", state="Uttar Pradesh"))
     db.commit()
     db.close()
 

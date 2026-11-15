@@ -48,6 +48,68 @@ class ParcelStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
+class ServiceablePincodeCreate(BaseModel):
+    pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
+    city: str = Field(min_length=2, max_length=100)
+    state: str = Field(min_length=2, max_length=100)
+
+    @field_validator("city", "state")
+    @classmethod
+    def normalize_area_text(cls, value: str) -> str:
+        return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def validate_area_text(self):
+        if not self.city or not self.state:
+            raise ValueError("City and state cannot be blank.")
+        return self
+
+
+class ServiceablePincodeUpdate(BaseModel):
+    pincode: str | None = Field(default=None, pattern=r"^[1-9][0-9]{5}$")
+    city: str | None = Field(default=None, min_length=2, max_length=100)
+    state: str | None = Field(default=None, min_length=2, max_length=100)
+    is_active: bool | None = None
+
+    @field_validator("city", "state")
+    @classmethod
+    def normalize_updated_area_text(cls, value: str | None) -> str | None:
+        return " ".join(value.split()) if value is not None else value
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one service area field to update.")
+        for field_name in self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null.")
+        for field_name in ("city", "state"):
+            value = getattr(self, field_name)
+            if value is not None and not value:
+                raise ValueError(f"{field_name} cannot be blank.")
+        return self
+
+
+class ServiceablePincodeResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    pincode: str
+    city: str
+    state: str
+    is_active: bool
+    created_at: datetime
+    updated_at: datetime
+
+
+class ServiceabilityCheckResponse(BaseModel):
+    pincode: str
+    serviceable: bool
+    city: str | None = None
+    state: str | None = None
+    message: str
+
+
 class ParcelCreate(BaseModel):
     tracking_number: str = Field(min_length=3, max_length=64)
     recipient_name: str = Field(min_length=2, max_length=100)

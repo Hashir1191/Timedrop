@@ -118,3 +118,31 @@
 .operations-hero-refresh:hover { background: rgba(255,255,255,.15); }
 .operations-hero-refresh:disabled { opacity: .5; cursor: wait; }
 @media (max-width: 700px) { .operations-hero-actions { flex-wrap: wrap; gap: 12px; } }
+
+
+/* Phase 29 — serviceability and coverage management */
+.service-areas-workspace { max-width: 1320px; margin: 0 auto; }
+.service-area-stats { margin-bottom: 20px; }
+.service-area-create { margin-bottom: 27px; }
+.service-area-create .customer-form { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.service-area-create .customer-form-actions { grid-column: 1 / -1; }
+.service-area-list-heading { margin-top: 10px; }
+.service-area-search { display:flex; align-items:center; gap:9px; max-width:420px; padding:0 12px; margin-bottom:12px; border:1px solid #e2e8f1; border-radius:10px; background:#fff; color:#8492a7; }
+.service-area-search input { width:100%; height:40px; border:0; outline:0; background:transparent; color:#34445b; font-size:11px; }
+.service-area-search input:focus-visible { outline:0; }
+.service-area-status { display:inline-flex; align-items:center; gap:7px; padding:6px 9px; border-radius:99px; font-size:10px; font-weight:700; }
+.service-area-status > span { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.service-area-status.active { color:#21835f; background:#eaf8f0; }
+.service-area-status.paused { color:#9b6d2c; background:#fff5e7; }
+.service-area-toggle { min-height:32px; padding:6px 10px; font-size:10px; }
+.service-area-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:42px 20px; color:#8996a9; text-align:center; }
+.service-area-empty strong { color:#35465e; font-size:13px; }
+.service-area-empty span { max-width:440px; font-size:11px; line-height:1.6; }
+.serviceability-hint { display:block; margin-top:6px; color:#8290a4; font-size:10px; line-height:1.4; }
+.serviceability-hint.serviceable { color:#21835f; }
+.serviceability-hint.unavailable { color:#bd5b51; }
+@media(max-width:760px) {
+ .service-area-create .customer-form { grid-template-columns:1fr; }
+ .service-area-create .customer-form-actions { grid-column:auto; }
+ .service-area-search { max-width:none; }
+}

@@ -6,7 +6,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ServiceablePincode, User
 from app.schemas import ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
 from app.security import get_current_user, require_admin
 
@@ -28,6 +28,17 @@ def create_parcel(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    service_area = db.scalar(
+        select(ServiceablePincode).where(
+            ServiceablePincode.pincode == parcel_data.pincode,
+            ServiceablePincode.is_active.is_(True),
+        )
+    )
+    if service_area is None:
+        raise HTTPException(
+            status_code=409,
+            detail=f"TimeDrop does not currently serve PIN code {parcel_data.pincode}. Please choose a supported delivery area.",
+        )
     parcel = Parcel(**parcel_data.model_dump(), owner_id=current_user.id)
     db.add(parcel)
     try:

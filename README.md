@@ -481,3 +481,24 @@ Operations administrators can update partner profiles and control whether accoun
 - Capacity cannot be reduced below the partner's current active assignment count.
 - An inactive account cannot be made available. Reactivation and enabling new assignments are separate actions so operations can review the partner before restoring their assignment eligibility.
 - The operations delivery-team screen exposes capacity editing, pause/resume, and safe deactivate/reactivate controls. All changes use the admin-only API; customer and partner roles cannot manage other partner accounts.
+
+
+## Phase 29 — PIN-code serviceability management
+
+TimeDrop now uses an operations-managed allowlist of six-digit Indian PIN codes for customer parcel registration.
+
+- Public lookup: `GET /api/v1/serviceability/{pincode}` returns whether the PIN code is currently serviceable and its configured city/state reference.
+- Admin list: `GET /api/v1/operations/service-areas/?q=&include_inactive=`.
+- Admin create: `POST /api/v1/operations/service-areas/` with `pincode`, `city`, and `state`.
+- Admin update: `PATCH /api/v1/operations/service-areas/{area_id}` can update the PIN code, city, state, or active status.
+- Customer parcel registration is rejected with HTTP 409 when the destination PIN code is missing from the allowlist or its record is paused.
+- The customer parcel form checks coverage when the PIN code is completed and again before submission; the backend remains authoritative.
+- Operations can pause and reactivate coverage without deleting its history. Pausing an area affects new registrations only; existing parcels and bookings remain unchanged.
+- The service-area manager is available in the operations navigation. No geographic coverage is pre-seeded; operations must add only areas that TimeDrop is ready and authorized to serve.
+
+Apply the new Alembic migration after pulling this phase:
+
+```powershell
+$env:PYTHONPATH = "backend"
+python -m alembic -c backend\\alembic.ini upgrade head
+```
