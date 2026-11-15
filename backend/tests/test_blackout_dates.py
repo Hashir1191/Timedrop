@@ -142,10 +142,26 @@ def test_reopening_blackout_restores_existing_slots(client):
         "password": "StrongReopenCustomerPassword123!",
     })
     customer = auth(client, "reopen-customer@example.com", "StrongReopenCustomerPassword123!")
+    parcel = client.post("/api/v1/parcels/", headers=customer, json={
+        "tracking_number": "TD-BLACKOUT-REOPEN",
+        "recipient_name": "Synthetic Recipient",
+        "phone": "9876543210",
+        "address_line": "12 Example Test Street",
+        "city": "Prayagraj",
+        "state": "Uttar Pradesh",
+        "pincode": "211001",
+    })
+    assert parcel.status_code == 201
     assert client.get(
         f"/api/v1/scheduling/slots?delivery_date={delivery_date}",
         headers=customer,
     ).json() == []
+    blocked_booking = client.post(
+        f"/api/v1/scheduling/parcels/{parcel.json()['id']}/bookings",
+        headers=customer,
+        json={"slot_id": slot.json()["id"]},
+    )
+    assert blocked_booking.status_code == 409
 
     reopened = client.patch(
         f"/api/v1/operations/blackout-dates/{blackout.json()['id']}",
@@ -160,6 +176,12 @@ def test_reopening_blackout_restores_existing_slots(client):
     )
     assert restored.status_code == 200
     assert [item["id"] for item in restored.json()] == [slot.json()["id"]]
+    booking = client.post(
+        f"/api/v1/scheduling/parcels/{parcel.json()['id']}/bookings",
+        headers=customer,
+        json={"slot_id": slot.json()["id"]},
+    )
+    assert booking.status_code == 201
 
 
 def test_only_admin_can_manage_blackout_dates(client):
