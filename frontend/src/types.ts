@@ -54,3 +54,21 @@ export type OperationsAnalytics = {
  average_delivery_hours:number|null; partner_count:number;
  partners:PartnerPerformance[]; daily:DailyDeliveryMetric[];
 };
+
+
+export type ServiceArea = {
+  id:number;
+  pincode:string;
+  city:string;
+  state:string;
+  is_active:boolean;
+  created_at:string;
+  updated_at:string;
+};
+export type ServiceabilityCheck = {
+  pincode:string;
+  serviceable:boolean;
+  city:string|null;
+  state:string|null;
+  message:string;
+};
