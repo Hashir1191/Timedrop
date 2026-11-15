@@ -1,3 +1,5 @@
+import pytest
+
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
@@ -25,9 +27,6 @@ def parcel_payload(tracking="TD-SERVICEABILITY-001", pincode="211001"):
         "state": "Uttar Pradesh",
         "pincode": pincode,
     }
-
-
-import pytest
 
 
 @pytest.fixture()
