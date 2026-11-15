@@ -107,3 +107,17 @@
  .booking-management-workspace .booking-actions { grid-column: auto; align-items: stretch; flex-direction: column; }
  .booking-management-workspace .booking-actions select { min-width: 0; width: 100%; }
 }
+
+
+/* Phase 28 — delivery partner lifecycle controls */
+.partner-capacity-control { display:flex; align-items:center; gap:7px; min-width:190px; }
+.partner-capacity-control > span { color:#77869b; font-size:10px; white-space:nowrap; }
+.partner-capacity-control input { width:58px; min-width:58px; height:32px; padding:4px 7px; border:1px solid #dfe6f0; border-radius:7px; color:#30415a; background:#fff; font-size:11px; }
+.partner-capacity-control .secondary-button { min-height:31px; padding:5px 9px; font-size:10px; }
+.partner-lifecycle-actions { display:flex; align-items:center; gap:7px; min-width:205px; }
+.partner-lifecycle-actions .secondary-button,.partner-lifecycle-actions .danger-button { min-height:32px; padding:6px 9px; font-size:10px; white-space:nowrap; }
+.partner-lifecycle-actions .danger-button:disabled { opacity:.45; cursor:not-allowed; }
+@media(max-width:700px) {
+ .partner-capacity-control { min-width:175px; }
+ .partner-lifecycle-actions { min-width:190px; }
+}

@@ -21,6 +21,9 @@ export const getParcelBooking=(token:string,parcelId:number)=>request<Booking>(`
 export const bookParcel=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"POST",body:JSON.stringify({slot_id:slotId})});
 export const getDeliveryPartners=(token:string)=>request<DeliveryPartner[]>("/delivery/partners",token);
 export const createDeliveryPartner=(token:string,data:{email:string;full_name:string;password:string;phone:string;vehicle_type:string;max_active_assignments:number})=>request<DeliveryPartner>("/delivery/partners",token,{method:"POST",body:JSON.stringify(data)});
+export type DeliveryPartnerUpdate = Partial<Pick<DeliveryPartner, "full_name" | "phone" | "vehicle_type" | "max_active_assignments" | "is_available" | "is_active">>;
+export const updateDeliveryPartner=(token:string,partnerId:number,data:DeliveryPartnerUpdate)=>
+ request<DeliveryPartner>(`/delivery/partners/${partnerId}`,token,{method:"PATCH",body:JSON.stringify(data)});
 export const getDeliveryAssignments=(token:string)=>request<DeliveryAssignment[]>("/delivery/assignments",token);
 export const getDeliveryRoutePlan=(token:string,date:string)=>request<DeliveryRoutePlan>(`/delivery/route-plan?delivery_date=${encodeURIComponent(date)}`,token);
 export const assignParcel=(token:string,parcelId:number,partnerId:number)=>request<DeliveryAssignment>(`/delivery/parcels/${parcelId}/assignments`,token,{method:"POST",body:JSON.stringify({partner_id:partnerId})});

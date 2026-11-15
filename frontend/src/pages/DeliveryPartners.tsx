@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { ArrowRight, CalendarClock, Clock3, MapPin, Plus, RefreshCw, Route, Truck } from "lucide-react";
-import { createDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel, getDeliveryRoutePlan } from "../api";
+import { createDeliveryPartner, updateDeliveryPartner, getDeliveryPartners, getDeliveryAssignments, getParcels, assignParcel, getDeliveryRoutePlan } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import RouteVisualization from "../components/RouteVisualization";
@@ -19,6 +19,8 @@ export default function DeliveryPartners() {
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [partnerBusy, setPartnerBusy] = useState<number | null>(null);
+  const [capacityDrafts, setCapacityDrafts] = useState<Record<number, string>>({});
   const [routeDate, setRouteDate] = useState(() => { const d = new Date(); return [d.getFullYear(), String(d.getMonth()+1).padStart(2,"0"), String(d.getDate()).padStart(2,"0")].join("-"); });
   const [routePlan, setRoutePlan] = useState<DeliveryRoutePlan | null>(null);
   const [routeLoading, setRouteLoading] = useState(false);
@@ -44,6 +46,31 @@ export default function DeliveryPartners() {
       await load();
     } catch (err) { setError(err instanceof Error ? err.message : "Unable to create partner."); }
     finally { setBusy(false); }
+  }
+
+
+  async function changePartner(partnerId: number, changes: Parameters<typeof updateDeliveryPartner>[2], message: string) {
+    if (!token) return;
+    setPartnerBusy(partnerId); setError(""); setNotice("");
+    try {
+      const updated = await updateDeliveryPartner(token, partnerId, changes);
+      setPartners(current => current.map(partner => partner.id === partnerId ? updated : partner));
+      setCapacityDrafts(current => ({ ...current, [partnerId]: String(updated.max_active_assignments) }));
+      setNotice(message);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unable to update delivery partner.");
+    } finally {
+      setPartnerBusy(null);
+    }
+  }
+
+  async function savePartnerCapacity(partner: DeliveryPartner) {
+    const value = Number(capacityDrafts[partner.id] ?? partner.max_active_assignments);
+    if (!Number.isInteger(value) || value < 1 || value > 50) {
+      setError("Partner capacity must be a whole number between 1 and 50.");
+      return;
+    }
+    await changePartner(partner.id, { max_active_assignments: value }, "Partner capacity updated.");
   }
 
   async function assign(parcelId: number) {
@@ -124,7 +151,7 @@ export default function DeliveryPartners() {
       </form>
     </section>
     <div className="section-title-row"><h2>Delivery team</h2><span className="result-count">{partners.length} partners</span></div>
-    {loading ? <div className="panel table-loading">Loading delivery partners…</div> : partners.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>PARTNER</th><th>CONTACT</th><th>VEHICLE</th><th>ACTIVE JOBS / CAPACITY</th><th>ACCOUNT</th></tr></thead><tbody>{partners.map(p=><tr key={p.id}><td><strong className="cell-strong">{p.full_name}</strong><span className="cell-sub">Partner #{p.id}</span></td><td>{p.email}<span className="cell-sub">{p.phone}</span></td><td>{p.vehicle_type.replace(/_/g," ")}</td><td>{p.active_assignments} / {p.max_active_assignments}</td><td><StatusBadge status={p.is_active ? (p.is_available ? "available" : "busy") : "inactive"}/></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No delivery partners yet" description="Create the first partner account using the form above."/></div>}
+    {loading ? <div className="panel table-loading">Loading delivery partners…</div> : partners.length ? <div className="panel list-panel"><div className="table-wrap"><table><thead><tr><th>PARTNER</th><th>CONTACT</th><th>VEHICLE</th><th>ACTIVE JOBS / CAPACITY</th><th>ACCOUNT</th><th>MANAGEMENT</th></tr></thead><tbody>{partners.map(p=><tr key={p.id}><td><strong className="cell-strong">{p.full_name}</strong><span className="cell-sub">Partner #{p.id}</span></td><td>{p.email}<span className="cell-sub">{p.phone}</span></td><td>{p.vehicle_type.replace(/_/g," ")}</td><td><div className="partner-capacity-control"><span>{p.active_assignments} active</span><label><span className="sr-only">Maximum active assignments for {p.full_name}</span><input aria-label={`Maximum active assignments for ${p.full_name}`} type="number" min={1} max={50} value={capacityDrafts[p.id] ?? String(p.max_active_assignments)} onChange={event=>setCapacityDrafts(current=>({...current,[p.id]:event.target.value}))}/></label><button type="button" className="secondary-button" disabled={partnerBusy===p.id || Number(capacityDrafts[p.id] ?? p.max_active_assignments)===p.max_active_assignments} onClick={()=>void savePartnerCapacity(p)}>Save</button></div></td><td><StatusBadge status={!p.is_active ? "inactive" : p.is_available ? "available" : "busy"}/><span className="cell-sub">{!p.is_active ? "Account disabled" : p.is_available ? "Accepting assignments" : "New assignments paused"}</span></td><td><div className="partner-lifecycle-actions">{p.is_active ? <><button type="button" className="secondary-button" disabled={partnerBusy===p.id} onClick={()=>void changePartner(p.id,{is_available:!p.is_available},p.is_available?"New assignments paused for this partner.":"Partner is accepting new assignments.")}>{p.is_available ? "Pause new jobs" : "Resume new jobs"}</button><button type="button" className="danger-button" title={p.active_assignments>0?"Complete or reassign active deliveries before deactivation.":"Deactivate partner account"} disabled={partnerBusy===p.id || p.active_assignments>0} onClick={()=>void changePartner(p.id,{is_active:false},"Partner account deactivated.")}>Deactivate</button></> : <button type="button" className="secondary-button" disabled={partnerBusy===p.id} onClick={()=>void changePartner(p.id,{is_active:true},"Partner account reactivated. Enable new assignments separately when ready.")}>Reactivate</button>}</div></td></tr>)}</tbody></table></div></div> : <div className="panel"><EmptyState title="No delivery partners yet" description="Create the first partner account using the form above."/></div>}
     <div className="section-title-row"><h2>Unassigned scheduled parcels</h2><span className="result-count">{eligibleParcels.length} parcels</span></div>
     {eligibleParcels.length ? <div className="booking-list">{eligibleParcels.map(parcel=><div className="panel booking-card" key={parcel.id}><div className="booking-main"><div className="booking-icon"><Truck size={19}/></div><div><strong>{parcel.tracking_number}</strong><span>{parcel.recipient_name} · {parcel.city}, {parcel.state}</span><span>{parcel.address_line} · {parcel.pincode}</span></div></div><div className="booking-actions"><select value={selected[parcel.id] || ""} onChange={e=>setSelected({...selected,[parcel.id]:e.target.value})}><option value="">Choose partner…</option>{partners.filter(p=>p.is_active && p.is_available).map(p=><option key={p.id} value={p.id}>{p.full_name} · {p.active_assignments} active</option>)}</select><button className="primary-button" disabled={busy || !selected[parcel.id]} onClick={()=>void assign(parcel.id)}>Assign parcel</button></div></div>)}</div> : <div className="panel"><EmptyState title="No parcels awaiting assignment" description="Only parcels with an active delivery booking can be assigned."/></div>}
     <section className="panel customer-form-panel">

@@ -469,3 +469,15 @@ VITE_ROUTE_TILE_ATTRIBUTION_URL=https://www.openstreetmap.org/copyright
 The tile URL must be a raster XYZ template containing `{z}`, `{x}`, and `{y}`. The attribution string and attribution URL must match the selected provider's requirements. These are public frontend values, not secrets. The public OpenStreetMap tile service is intended for modest interactive use and is not a production tile CDN; use a suitable hosted provider or self-hosted tile infrastructure for production-scale traffic. The map uses browser requests directly to the tile provider, so review its privacy, availability, caching, and usage policies before deployment.
 
 The map displays actual basemap tiles and geocoded stop markers. Phase 27 adds OSRM GeoJSON road-route geometry: solid paths follow the returned road network when available, while dashed connectors remain an explicitly approximate stop-order fallback when geometry is missing. The backend stores each partner route's coordinate path once on its first stop, using GeoJSON longitude/latitude order, and validates finite geographic bounds before returning it. Per-leg distance and duration remain estimates supplied by the routing service. This does not add GPS tracking, live traffic, or turn-by-turn navigation. Stops without valid coordinates remain in the assignment list and are excluded from the map rather than being assigned fabricated positions.
+
+
+## Phase 28 — Delivery partner lifecycle management
+
+Operations administrators can update partner profiles and control whether accounts may receive new delivery assignments.
+
+- `PATCH /api/v1/delivery/partners/{partner_id}` updates one or more of: full name, phone, vehicle type, maximum active assignments (1–50), assignment availability, and account activation.
+- Pausing assignment availability does not interrupt deliveries already in progress.
+- Deactivating a partner account is blocked while the partner has active assignments (`assigned`, `accepted`, or `out_for_delivery`). Complete or reassign those deliveries first.
+- Capacity cannot be reduced below the partner's current active assignment count.
+- An inactive account cannot be made available. Reactivation and enabling new assignments are separate actions so operations can review the partner before restoring their assignment eligibility.
+- The operations delivery-team screen exposes capacity editing, pause/resume, and safe deactivate/reactivate controls. All changes use the admin-only API; customer and partner roles cannot manage other partner accounts.
