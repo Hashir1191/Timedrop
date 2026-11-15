@@ -17,6 +17,7 @@ from app.schemas import (
     DeliverySlotCreate,
     ParcelResponse,
     DeliverySlotResponse,
+    DeliverySlotUpdate,
     DeliveryBlackoutStatusResponse,
 )
 from app.security import get_current_user, require_admin
@@ -176,27 +177,68 @@ def create_delivery_slot(
     }
 
 
+@router.patch("/slots/{slot_id}", response_model=DeliverySlotAvailability)
+def update_delivery_slot(
+    slot_id: int,
+    data: DeliverySlotUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(require_admin),
+):
+    slot = db.get(DeliverySlot, slot_id)
+    if slot is None:
+        raise HTTPException(status_code=404, detail="Delivery slot not found.")
+    changes = data.model_dump(exclude_unset=True)
+    next_capacity = changes.get("capacity", slot.capacity)
+    if next_capacity < slot.booked_count:
+        raise HTTPException(
+            status_code=409,
+            detail=f"Capacity cannot be lower than the {slot.booked_count} confirmed booking(s) on this slot.",
+        )
+    if changes.get("is_active") is False and slot.booked_count:
+        raise HTTPException(
+            status_code=409,
+            detail="This slot has confirmed bookings. Reschedule or cancel them before pausing the slot.",
+        )
+    if changes.get("is_active") is True:
+        _ensure_delivery_date_open(db, slot.delivery_date)
+        if slot.delivery_date < _local_today():
+            raise HTTPException(status_code=400, detail="A past delivery slot cannot be reactivated.")
+    for field_name, value in changes.items():
+        setattr(slot, field_name, value)
+    db.commit()
+    db.refresh(slot)
+    return DeliverySlotAvailability(
+        id=slot.id,
+        delivery_date=slot.delivery_date,
+        start_time=slot.start_time,
+        end_time=slot.end_time,
+        capacity=slot.capacity,
+        booked_count=slot.booked_count,
+        remaining_capacity=slot.capacity - slot.booked_count,
+        is_active=slot.is_active,
+    )
+
+
 @router.get("/slots", response_model=list[DeliverySlotAvailability])
 def get_available_slots(
     delivery_date: date = Query(...),
+    include_inactive: bool = Query(default=False),
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
+    if include_inactive and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only operations administrators can view inactive slots.")
     if delivery_date < _local_today():
         raise HTTPException(status_code=400, detail="Cannot view availability for a past date.")
 
     blackout = db.scalar(select(DeliveryBlackoutDate).where(DeliveryBlackoutDate.delivery_date == delivery_date, DeliveryBlackoutDate.is_active.is_(True)))
-    if blackout is not None:
+    if blackout is not None and current_user.role != "admin":
         return []
 
-    slots = db.scalars(
-        select(DeliverySlot)
-        .where(
-            DeliverySlot.delivery_date == delivery_date,
-            DeliverySlot.is_active.is_(True),
-        )
-        .order_by(DeliverySlot.start_time)
-    ).all()
+    statement = select(DeliverySlot).where(DeliverySlot.delivery_date == delivery_date)
+    if not include_inactive:
+        statement = statement.where(DeliverySlot.is_active.is_(True))
+    slots = db.scalars(statement.order_by(DeliverySlot.start_time)).all()
 
     return [
         DeliverySlotAvailability(
@@ -207,6 +249,7 @@ def get_available_slots(
             capacity=slot.capacity,
             booked_count=slot.booked_count,
             remaining_capacity=slot.capacity - slot.booked_count,
+            is_active=slot.is_active,
         )
         for slot in slots
     ]
