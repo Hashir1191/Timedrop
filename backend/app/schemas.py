@@ -236,6 +236,20 @@ class DeliverySlotAvailability(BaseModel):
     remaining_capacity: int
 
 
+class DeliverySlotUpdate(BaseModel):
+    capacity: int | None = Field(default=None, ge=1, le=500)
+    is_active: bool | None = None
+
+    @model_validator(mode="after")
+    def validate_update(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide a new capacity or active status.")
+        for field_name in self.model_fields_set:
+            if getattr(self, field_name) is None:
+                raise ValueError(f"{field_name} cannot be null.")
+        return self
+
+
 class BookingCreate(BaseModel):
     slot_id: int = Field(gt=0)
 
