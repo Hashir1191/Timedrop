@@ -111,3 +111,17 @@ export const updateMyAvailability=(token:string,data:PartnerAvailabilitySettings
  request<PartnerAvailabilitySettings>("/delivery/my-availability",token,{
   method:"PUT",body:JSON.stringify(data)
 });
+
+
+export const checkPincodeServiceability=(token:string,pincode:string)=>
+ request<import("./types").ServiceabilityCheck>(`/serviceability/${encodeURIComponent(pincode)}`,token);
+export const getServiceAreas=(token:string,q="")=>{
+ const params=new URLSearchParams();
+ if(q.trim())params.set("q",q.trim());
+ const query=params.toString();
+ return request<import("./types").ServiceArea[]>(`/operations/service-areas/${query?`?${query}`:""}`,token);
+};
+export const createServiceArea=(token:string,data:{pincode:string;city:string;state:string})=>
+ request<import("./types").ServiceArea>("/operations/service-areas/",token,{method:"POST",body:JSON.stringify(data)});
+export const updateServiceArea=(token:string,id:number,data:{pincode?:string;city?:string;state?:string;is_active?:boolean})=>
+ request<import("./types").ServiceArea>(`/operations/service-areas/${id}`,token,{method:"PATCH",body:JSON.stringify(data)});
