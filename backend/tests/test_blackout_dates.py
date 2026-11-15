@@ -80,6 +80,13 @@ def test_blackout_prevents_slot_creation_and_customer_availability(client):
         "password": "StrongBlackoutCustomerPassword123!",
     })
     customer = auth(client, "blackout-customer@example.com", "StrongBlackoutCustomerPassword123!")
+    closure_status = client.get(
+        f"/api/v1/scheduling/blackout-status?delivery_date={delivery_date}",
+        headers=customer,
+    )
+    assert closure_status.status_code == 200
+    assert closure_status.json()["is_blackout"] is True
+    assert closure_status.json()["reason"] == "Public holiday"
     availability = client.get(
         f"/api/v1/scheduling/slots?delivery_date={delivery_date}",
         headers=customer,
@@ -170,6 +177,12 @@ def test_reopening_blackout_restores_existing_slots(client):
     )
     assert reopened.status_code == 200
     assert reopened.json()["is_active"] is False
+    reopened_status = client.get(
+        f"/api/v1/scheduling/blackout-status?delivery_date={delivery_date}",
+        headers=customer,
+    )
+    assert reopened_status.status_code == 200
+    assert reopened_status.json()["is_blackout"] is False
     restored = client.get(
         f"/api/v1/scheduling/slots?delivery_date={delivery_date}",
         headers=customer,
