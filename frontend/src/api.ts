@@ -144,3 +144,10 @@ export const updateBlackoutDate=(token:string,id:number,data:{reason?:string;is_
 
 export const getBlackoutStatus=(token:string,deliveryDate:string)=>
  request<import("./types").DeliveryBlackoutStatus>(`/scheduling/blackout-status?delivery_date=${encodeURIComponent(deliveryDate)}`,token);
+
+
+export const getOperationsAuditLog=(token:string,filters:{entity_type?:string;action?:string;from_date?:string;to_date?:string;skip?:number;limit?:number}={})=>{
+ const params=new URLSearchParams();
+ Object.entries(filters).forEach(([key,value])=>{if(value!==undefined&&value!=="")params.set(key,String(value));});
+ return request<import("./types").OperationsAuditEvent[]>(`/operations/audit-log?${params.toString()}`,token);
+};
