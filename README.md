@@ -513,6 +513,7 @@ Operations administrators can close specific delivery dates for holidays, planne
 - Admin update: `PATCH /api/v1/operations/blackout-dates/{blackout_id}` can update the reason or activate/deactivate the closure.
 - Creating a delivery slot on an active blackout date is rejected with HTTP 409.
 - Customer slot availability returns an empty list for an active blackout date, and booking/rescheduling attempts are rejected by the backend.
+- Customer-facing status: `GET /api/v1/scheduling/blackout-status?delivery_date=YYYY-MM-DD` returns the closure reason so the booking screen can explain why no slots are available.
 - A blackout cannot be created or activated while confirmed bookings remain for that date. Operations must first reschedule or cancel those bookings.
 - Pausing a blackout reopens any existing active slots for the date; slots are not deleted or modified by the closure.
 - The operations **Blackout dates** screen provides closure management, status controls, and an audit-friendly reason for each entry.
