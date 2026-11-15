@@ -590,3 +590,93 @@ def test_assignment_must_fit_inside_enabled_partner_availability(client):
     )
     assert rejected.status_code == 409
     assert "not available" in rejected.json()["detail"]
+
+
+def test_admin_can_update_partner_profile_capacity_and_availability(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "managed-rider@example.com", "full_name": "Managed Rider",
+        "password": "StrongManagedPassword123!", "phone": "9876543210",
+    })
+    assert created.status_code == 201
+    updated = client.patch(f"/api/v1/delivery/partners/{created.json()['id']}", headers=admin, json={
+        "full_name": "Managed Rider Two",
+        "phone": "9876543211",
+        "vehicle_type": "three_wheeler",
+        "max_active_assignments": 8,
+        "is_available": False,
+    })
+    assert updated.status_code == 200
+    assert updated.json()["full_name"] == "Managed Rider Two"
+    assert updated.json()["phone"] == "9876543211"
+    assert updated.json()["vehicle_type"] == "three_wheeler"
+    assert updated.json()["max_active_assignments"] == 8
+    assert updated.json()["is_available"] is False
+    assert updated.json()["is_active"] is True
+
+
+def test_only_admin_can_update_partner_and_invalid_capacity_is_rejected(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "managed-rider-two@example.com", "full_name": "Managed Rider",
+        "password": "StrongManagedPassword123!", "phone": "9876543210",
+    })
+    partner_id = created.json()["id"]
+    client.post("/api/v1/auth/register", json={
+        "email": "partner-update-customer@example.com", "full_name": "Customer",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "partner-update-customer@example.com", "CustomerPassword123!")
+    assert client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=customer,
+        json={"is_available": False},
+    ).status_code == 403
+    assert client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={"max_active_assignments": 0},
+    ).status_code == 422
+    assert client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={},
+    ).status_code == 422
+
+
+def test_partner_cannot_be_deactivated_while_active_deliveries_exist(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "lifecycle-owner@example.com", "full_name": "Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "lifecycle-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, "TD-PARTNER-LIFECYCLE-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "active-lifecycle-rider@example.com", "full_name": "Active Rider",
+        "password": "StrongLifecyclePassword123!", "phone": "9876543210",
+    }).json()
+    assigned = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner["id"]},
+    )
+    assert assigned.status_code == 201
+
+    paused = client.patch(
+        f"/api/v1/delivery/partners/{partner['id']}",
+        headers=admin,
+        json={"is_available": False},
+    )
+    assert paused.status_code == 200
+    assert paused.json()["is_available"] is False
+    assert paused.json()["is_active"] is True
+
+    rejected = client.patch(
+        f"/api/v1/delivery/partners/{partner['id']}",
+        headers=admin,
+        json={"is_active": False},
+    )
+    assert rejected.status_code == 409
+    assert "active deliveries" in rejected.json()["detail"]
