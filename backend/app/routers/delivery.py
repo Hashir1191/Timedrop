@@ -7,6 +7,7 @@ from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app.audit import record_operations_audit
 from app.database import get_db
 from app.config import settings
 from app.route_planning import enrich_partner_route
@@ -140,6 +141,12 @@ def update_partner(
         if field_name in changes:
             setattr(partner, field_name, changes[field_name])
 
+    record_operations_audit(
+        db, actor_id=admin.id, action="delivery_partner.updated",
+        entity_type="delivery_partner", entity_id=partner.id,
+        summary=f"Updated delivery partner #{partner.id}",
+        changed_fields=list(changes.keys()),
+    )
     db.commit()
     db.refresh(partner)
     db.refresh(user)
@@ -227,6 +234,12 @@ def update_my_availability(
             end_time=window.end_time,
             is_active=window.is_active,
         ))
+    record_operations_audit(
+        db, actor_id=partner_user.id, action="delivery_partner.availability_updated",
+        entity_type="delivery_partner", entity_id=partner.id,
+        summary=f"Updated weekly availability for delivery partner #{partner.id}",
+        changed_fields=["availability_enabled", "windows"],
+    )
     db.commit()
     db.refresh(partner)
     return _partner_availability_response(db, partner)
