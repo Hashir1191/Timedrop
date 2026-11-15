@@ -83,3 +83,10 @@ export type DeliveryBlackoutDate = {
   created_at:string;
   updated_at:string;
 };
+
+
+export type DeliveryBlackoutStatus = {
+  delivery_date:string;
+  is_blackout:boolean;
+  reason:string|null;
+};
