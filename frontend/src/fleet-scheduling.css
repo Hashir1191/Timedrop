@@ -121,3 +121,38 @@
  .partner-capacity-control { min-width:175px; }
  .partner-lifecycle-actions { min-width:190px; }
 }
+
+
+/* Phase 30 — delivery blackout calendar */
+.blackout-workspace { max-width: 1120px; margin: 0 auto; }
+.blackout-stats { margin-bottom: 20px; }
+.blackout-create { margin-bottom: 27px; }
+.blackout-create .customer-form { grid-template-columns: repeat(3,minmax(0,1fr)); }
+.blackout-create .customer-form-actions { grid-column: 1 / -1; }
+.blackout-list-heading { margin-top: 10px; }
+.blackout-filter { display:inline-flex; align-items:center; gap:7px; color:#7c899c; font-size:10px; font-weight:600; }
+.blackout-filter input { accent-color:#456fe5; }
+.blackout-list { display:grid; gap:10px; }
+.blackout-card { display:flex; align-items:center; gap:14px; padding:16px 18px; }
+.blackout-date-icon { display:grid; place-items:center; width:40px; height:40px; flex:0 0 40px; border-radius:11px; color:#bd6b42; background:#fff2e9; }
+.blackout-date-copy { display:grid; gap:4px; flex:1; min-width:0; }
+.blackout-date-copy strong { color:#2c3c54; font-size:12px; }
+.blackout-date-copy span { color:#78869a; font-size:11px; }
+.blackout-date-copy small { color:#a0aaba; font-size:9px; }
+.blackout-status { display:inline-flex; align-items:center; gap:7px; padding:6px 9px; border-radius:99px; font-size:10px; font-weight:700; white-space:nowrap; }
+.blackout-status > span { width:6px; height:6px; border-radius:50%; background:currentColor; }
+.blackout-status.active { color:#b45f39; background:#fff0e8; }
+.blackout-status.inactive { color:#77869a; background:#f0f3f7; }
+.blackout-toggle { min-height:32px; padding:6px 10px; font-size:10px; white-space:nowrap; }
+.blackout-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; gap:9px; padding:42px 20px; color:#8996a9; text-align:center; }
+.blackout-empty strong { color:#35465e; font-size:13px; }
+.blackout-empty span { max-width:440px; font-size:11px; line-height:1.6; }
+.slot-blackout-notice { display:flex; align-items:center; gap:8px; }
+@media(max-width:760px) {
+ .blackout-create .customer-form { grid-template-columns:1fr; }
+ .blackout-create .customer-form-actions { grid-column:auto; }
+ .blackout-card { align-items:flex-start; flex-wrap:wrap; }
+ .blackout-date-copy { min-width:calc(100% - 60px); }
+ .blackout-status { margin-left:54px; }
+ .blackout-toggle { margin-left:auto; }
+}
