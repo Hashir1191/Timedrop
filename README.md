@@ -502,3 +502,19 @@ Apply the new Alembic migration after pulling this phase:
 $env:PYTHONPATH = "backend"
 python -m alembic -c backend\\alembic.ini upgrade head
 ```
+
+
+## Phase 30 — Delivery blackout calendar
+
+Operations administrators can close specific delivery dates for holidays, planned shutdowns, severe weather, or other operational constraints.
+
+- Admin list: `GET /api/v1/operations/blackout-dates?from_date=&to_date=&include_inactive=`.
+- Admin create: `POST /api/v1/operations/blackout-dates` with `delivery_date` and `reason`.
+- Admin update: `PATCH /api/v1/operations/blackout-dates/{blackout_id}` can update the reason or activate/deactivate the closure.
+- Creating a delivery slot on an active blackout date is rejected with HTTP 409.
+- Customer slot availability returns an empty list for an active blackout date, and booking/rescheduling attempts are rejected by the backend.
+- A blackout cannot be created or activated while confirmed bookings remain for that date. Operations must first reschedule or cancel those bookings.
+- Pausing a blackout reopens any existing active slots for the date; slots are not deleted or modified by the closure.
+- The operations **Blackout dates** screen provides closure management, status controls, and an audit-friendly reason for each entry.
+
+Apply Alembic revision `20261115_0013` after pulling this phase.
