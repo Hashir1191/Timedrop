@@ -680,3 +680,59 @@ def test_partner_cannot_be_deactivated_while_active_deliveries_exist(client):
     )
     assert rejected.status_code == 409
     assert "active deliveries" in rejected.json()["detail"]
+
+
+def test_partner_cannot_manage_own_admin_lifecycle_fields(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "self-manage-rider@example.com", "full_name": "Self Manage Rider",
+        "password": "StrongSelfManagePassword123!", "phone": "9876543210",
+    })
+    rider = auth(client, "self-manage-rider@example.com", "StrongSelfManagePassword123!")
+    response = client.patch(
+        f"/api/v1/delivery/partners/{created.json()['id']}",
+        headers=rider,
+        json={"is_available": False},
+    )
+    assert response.status_code == 403
+
+
+def test_reactivation_does_not_automatically_restore_assignment_availability(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    created = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "reactivation-rider@example.com", "full_name": "Reactivation Rider",
+        "password": "StrongReactivatePassword123!", "phone": "9876543210",
+    })
+    partner_id = created.json()["id"]
+    deactivated = client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={"is_active": False},
+    )
+    assert deactivated.status_code == 200
+    assert deactivated.json()["is_active"] is False
+    assert deactivated.json()["is_available"] is False
+
+    unavailable = client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={"is_available": True},
+    )
+    assert unavailable.status_code == 409
+
+    reactivated = client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={"is_active": True},
+    )
+    assert reactivated.status_code == 200
+    assert reactivated.json()["is_active"] is True
+    assert reactivated.json()["is_available"] is False
+
+    resumed = client.patch(
+        f"/api/v1/delivery/partners/{partner_id}",
+        headers=admin,
+        json={"is_available": True},
+    )
+    assert resumed.status_code == 200
+    assert resumed.json()["is_available"] is True
