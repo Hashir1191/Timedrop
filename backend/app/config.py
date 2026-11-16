@@ -13,6 +13,9 @@ class Settings(BaseSettings):
     notification_from_email: str = "TimeDrop <onboarding@resend.dev>"
     notification_worker_poll_seconds: int = 5
     notification_max_attempts: int = 5
+    notification_delivery_lease_seconds: int = 300
+    notification_retry_base_seconds: int = 5
+    notification_retry_max_seconds: int = 300
     msg91_auth_key: str = ""
     msg91_flow_template_id: str = ""
     msg91_otp_template_id: str = ""
@@ -33,6 +36,16 @@ class Settings(BaseSettings):
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
     def validate_for_startup(self) -> None:
+        if self.notification_worker_poll_seconds < 1:
+            raise RuntimeError("NOTIFICATION_WORKER_POLL_SECONDS must be at least 1.")
+        if self.notification_max_attempts < 1:
+            raise RuntimeError("NOTIFICATION_MAX_ATTEMPTS must be at least 1.")
+        if self.notification_delivery_lease_seconds < 20:
+            raise RuntimeError("NOTIFICATION_DELIVERY_LEASE_SECONDS must be at least 20.")
+        if self.notification_retry_base_seconds < 1:
+            raise RuntimeError("NOTIFICATION_RETRY_BASE_SECONDS must be at least 1.")
+        if self.notification_retry_max_seconds < self.notification_retry_base_seconds:
+            raise RuntimeError("NOTIFICATION_RETRY_MAX_SECONDS must be at least the retry base.")
         if self.app_env.lower() == "production":
             if self.secret_key == "development-only-change-this-secret" or len(self.secret_key) < 32:
                 raise RuntimeError("Production requires a SECRET_KEY of at least 32 characters.")
