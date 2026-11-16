@@ -188,8 +188,11 @@ def test_customer_to_partner_delivery_journey_is_visible_across_portals(journey_
         headers=customer,
     )
     assert delivery_events.status_code == 200, delivery_events.text
-    event_types = {event["event_type"] for event in delivery_events.json()}
-    assert {"assigned", "accepted", "out_for_delivery", "proof_of_delivery"}.issubset(event_types)
+    delivery_event_rows = delivery_events.json()
+    event_types = {event["event_type"] for event in delivery_event_rows}
+    status_transitions = {event["to_status"] for event in delivery_event_rows}
+    assert {"assigned", "status_changed", "proof_of_delivery"}.issubset(event_types)
+    assert {"accepted", "out_for_delivery", "delivered"}.issubset(status_transitions)
 
     notifications = client.get("/api/v1/notifications/?limit=100", headers=customer)
     assert notifications.status_code == 200, notifications.text
