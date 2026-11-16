@@ -22,6 +22,7 @@ export default function NewParcel() {
   try{
    const result=await checkPincodeServiceability(token,pincode);
    if(requestId!==coverageRequestId.current||currentPincode.current!==pincode)return null;
+   if(result.pincode!==pincode){setCoverageError("The serviceability response did not match the entered PIN code. Please retry.");return null;}
    setCoverage(result);return result.serviceable;
   }catch(err){
    if(requestId===coverageRequestId.current&&currentPincode.current===pincode)setCoverageError(err instanceof Error?err.message:"Unable to check delivery coverage.");
@@ -42,6 +43,7 @@ export default function NewParcel() {
    <section className="panel customer-form-panel customer-create-form-panel">
     <div className="panel-heading"><div><span className="customer-form-kicker">PARCEL INFORMATION</span><h2><Package size={18}/> Delivery details</h2><p>Make sure the tracking number and recipient details are accurate.</p></div><span className="customer-form-step-mark">01 / 02</span></div>
     <form className="customer-form customer-create-form" onSubmit={submit}>
+     <fieldset className="customer-create-fields" disabled={busy}>
      <div className="customer-form-section-label"><span>01</span><div><strong>Parcel reference</strong><small>Identify the shipment.</small></div></div>
      <label>Tracking number<input required minLength={3} maxLength={64} value={form.tracking_number} onChange={e=>update("tracking_number",e.target.value.trim())} placeholder="TD-2026-0001"/></label>
      <div className="customer-form-section-label"><span>02</span><div><strong>Recipient information</strong><small>Who will receive this parcel?</small></div></div>
@@ -51,9 +53,10 @@ export default function NewParcel() {
      <label className="span-two">Street address<input required minLength={5} value={form.address_line} onChange={e=>update("address_line",e.target.value)} placeholder="House number, street and locality"/></label>
      <label>City<input required value={form.city} onChange={e=>update("city",e.target.value)} placeholder="City"/></label>
      <label>State<input required value={form.state} onChange={e=>update("state",e.target.value)} placeholder="State"/></label>
-     <label>PIN code<input required pattern="[1-9][0-9]{5}" maxLength={6} value={form.pincode} onChange={e=>update("pincode",e.target.value.replace(/\\D/g,"").slice(0,6))} onBlur={()=>void checkCoverage()} aria-describedby="pincode-feedback" placeholder="6-digit PIN code"/><small id="pincode-feedback" className="serviceability-hint" aria-live="polite">{checkingCoverage?"Checking delivery coverage…":coverage?.pincode===form.pincode?(coverage.serviceable?`Available in ${coverage.city}, ${coverage.state}`:coverage.message):coverageError||"Enter a valid 6-digit PIN code to check delivery coverage."}</small>{coverageError&&<button type="button" className="secondary-button serviceability-retry" onClick={()=>void checkCoverage()} disabled={checkingCoverage||busy}>Retry coverage check</button>}</label>
+     <label>PIN code<input required pattern="[1-9][0-9]{5}" maxLength={6} value={form.pincode} onChange={e=>update("pincode",e.target.value.replace(/\D/g,"").slice(0,6))} onBlur={()=>void checkCoverage()} aria-describedby="pincode-feedback" placeholder="6-digit PIN code"/><small id="pincode-feedback" className="serviceability-hint" aria-live="polite">{checkingCoverage?"Checking delivery coverage…":coverage?.pincode===form.pincode?(coverage.serviceable?`Available in ${coverage.city}, ${coverage.state}`:coverage.message):coverageError||"Enter a valid 6-digit PIN code to check delivery coverage."}</small>{coverageError&&<button type="button" className="secondary-button serviceability-retry" onClick={()=>void checkCoverage()} disabled={checkingCoverage||busy}>Retry coverage check</button>}</label>
      <label>Preferred delivery date<input type="date" min={todayLocal()} value={form.preferred_delivery_date} onChange={e=>update("preferred_delivery_date",e.target.value)}/></label>
      <label className="span-two">Delivery instructions <span className="customer-optional-label">OPTIONAL</span><textarea rows={3} maxLength={500} value={form.delivery_instructions} onChange={e=>update("delivery_instructions",e.target.value)} placeholder="Landmark, gate code or helpful delivery notes"/></label>
+     </fieldset>
      <div className="customer-form-actions"><span>Next, you'll choose an available delivery slot.</span><button className="primary-button" disabled={busy}>{busy?"Creating parcel…":"Continue to delivery slot"} <ArrowRight size={16}/></button></div>
     </form>
    </section>
