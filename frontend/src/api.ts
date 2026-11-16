@@ -174,3 +174,16 @@ export const getNotificationDeliveries=(token:string,filters:{status?:Notificati
 };
 export const retryNotificationDelivery=(token:string,id:number)=>
  request<NotificationDeliveryOperationsItem>(`/operations/notification-deliveries/${id}/retry`,token,{method:"POST"});
+
+
+export type OperationsSystemHealth = {
+ database_status:"ok";
+ notification_worker_status:"healthy"|"stale"|"not_seen";
+ worker_last_seen_at:string|null;
+ worker_age_seconds:number|null;
+ worker_stale_after_seconds:number;
+ notification_queue:Record<string,number>;
+ checked_at:string;
+};
+export const getOperationsSystemHealth=(token:string)=>
+ request<OperationsSystemHealth>("/operations/system-health",token);

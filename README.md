@@ -566,3 +566,8 @@ CI now exercises a complete synthetic customer-to-partner delivery journey, incl
 ## Phase 39 — Versioned container releases
 
 Pushing a semantic version tag (for example v1.0.0) builds and publishes the API and web images to GitHub Container Registry with version tags, SBOM, and build provenance. The workflow publishes images but does not deploy automatically. Production Compose consumes explicitly pinned image tags. See docs/phase-39-release-pipeline.md.
+
+
+## Phase 40 — System health monitoring
+
+The notification worker reports a database heartbeat, and the admin portal includes a System health page showing database connectivity, worker freshness, and database-wide notification queue counts. Admin API: GET /api/v1/operations/system-health. See docs/phase-40-system-health.md.

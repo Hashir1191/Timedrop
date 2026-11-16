@@ -28,6 +28,20 @@ class NotificationDelivery(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class WorkerHeartbeat(Base):
+    """Latest heartbeat for a named background worker process."""
+
+    __tablename__ = "worker_heartbeats"
+    __table_args__ = (
+        UniqueConstraint("worker_name", name="uq_worker_heartbeats_worker_name"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    worker_name: Mapped[str] = mapped_column(String(80), nullable=False)
+    last_seen_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+
+
 class User(Base):
     __tablename__ = "users"
 
