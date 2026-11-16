@@ -1,0 +1,8 @@
+/* Phase 48 — delivery slot loading and recovery */
+.customer-slot-load-error { display:flex; align-items:center; gap:10px; padding:14px; margin-top:13px; border:1px solid #f0dada; border-radius:12px; color:#9e4d4d; background:#fffafa; font-size:10px; }
+.customer-slot-load-error > span { flex:1; min-width:0; overflow-wrap:anywhere; }
+.customer-slot-load-error .secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; min-height:38px; flex:0 0 auto; }
+@media (max-width:700px) {
+ .customer-slot-load-error { align-items:stretch; flex-wrap:wrap; }
+ .customer-slot-load-error .secondary-button { width:100%; }
+}
