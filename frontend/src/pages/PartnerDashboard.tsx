@@ -128,9 +128,9 @@ export default function PartnerDashboard() {
       <div className="partner-welcome-decoration" aria-hidden="true"><div/><div/><div/></div>
     </section>
 
-    {error && <div className="alert-error">{error}</div>}
+    {error && <div className="alert-error" role="alert">{error}</div>}
 
-    <section className="partner-metrics">
+    <section className="partner-metrics" aria-label="Delivery performance">
       <PartnerMetric icon={Package} label="Total assigned" value={items.length} tone="blue" note="All assigned parcels"/>
       <PartnerMetric icon={Truck} label="In progress" value={active.length} tone="amber" note="Needs your attention"/>
       <PartnerMetric icon={CheckCircle2} label="Delivered" value={delivered} tone="green" note="Completed handovers"/>
@@ -139,7 +139,7 @@ export default function PartnerDashboard() {
     <section className="partner-queue">
       <div className="partner-queue-heading">
         <div><span className="partner-section-kicker">YOUR TASK LIST</span><h2>Delivery assignments</h2><p>Work through your booked delivery windows and keep customers informed.</p></div>
-        <button className="secondary-button" onClick={() => void load()}><RefreshCw size={14}/> Refresh</button>
+        <button className="secondary-button" onClick={() => void load()} disabled={loading} aria-label="Refresh delivery assignments"><RefreshCw size={14}/> {loading ? "Refreshing…" : "Refresh"}</button>
       </div>
 
       <div className="partner-queue-toolbar">
@@ -150,7 +150,7 @@ export default function PartnerDashboard() {
         <span className="partner-result-count">{visibleItems.length} shown</span>
       </div>
 
-      {loading ? <div className="partner-loading-grid">{[1,2].map((item) => <div className="partner-loading-card" key={item}/>)}</div> : items.length===0 ? <div className="partner-empty"><EmptyState title="Your queue is clear" description="New delivery assignments from operations will appear here."/><Link to="/availability" className="partner-empty-link">Review your working hours <ArrowRight size={14}/></Link></div> :
+      {loading ? <div className="partner-loading-grid" role="status" aria-label="Loading delivery assignments">{[1,2].map((item) => <div className="partner-loading-card" key={item}/>)}</div> : items.length===0 ? <div className="partner-empty"><EmptyState title="Your queue is clear" description="New delivery assignments from operations will appear here."/><Link to="/availability" className="partner-empty-link">Review your working hours <ArrowRight size={14}/></Link></div> :
        visibleItems.length===0 ? <div className="partner-empty"><EmptyState title="No matching deliveries" description="Try another search or switch the assignment filter."/></div> :
        <div className="partner-assignment-list">{visibleItems.map((item) => <article className="partner-assignment-card" key={item.id}>
         <div className="partner-assignment-main">
