@@ -1,0 +1,114 @@
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:?Set POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER:?Set POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD}
+    volumes:
+      - timedrop_production_postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+    networks:
+      - data
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    environment:
+      APP_NAME: ${APP_NAME:-TimeDrop API}
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY:?Set a unique SECRET_KEY of at least 32 characters}
+      JWT_ALGORITHM: ${JWT_ALGORITHM:-HS256}
+      ACCESS_TOKEN_EXPIRE_MINUTES: ${ACCESS_TOKEN_EXPIRE_MINUTES:-30}
+      CORS_ORIGINS: ${CORS_ORIGINS:?Set CORS_ORIGINS to the public HTTPS origin}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      NOTIFICATION_FROM_EMAIL: ${NOTIFICATION_FROM_EMAIL:?Set NOTIFICATION_FROM_EMAIL}
+      NOTIFICATION_WORKER_POLL_SECONDS: ${NOTIFICATION_WORKER_POLL_SECONDS:-5}
+      NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      MSG91_FLOW_TEMPLATE_ID: ${MSG91_FLOW_TEMPLATE_ID:-}
+      MSG91_OTP_TEMPLATE_ID: ${MSG91_OTP_TEMPLATE_ID:-}
+      SMS_NOTIFICATIONS_ENABLED: ${SMS_NOTIFICATIONS_ENABLED:-false}
+      PHONE_OTP_EXPOSE_IN_DEVELOPMENT: "false"
+      PHONE_OTP_EXPIRE_MINUTES: ${PHONE_OTP_EXPIRE_MINUTES:-5}
+      PHONE_OTP_MAX_ATTEMPTS: ${PHONE_OTP_MAX_ATTEMPTS:-5}
+      ROUTE_MAPPING_ENABLED: ${ROUTE_MAPPING_ENABLED:-false}
+      ROUTE_GEOCODER_URL: ${ROUTE_GEOCODER_URL:-https://nominatim.openstreetmap.org/search}
+      ROUTE_ROUTER_URL: ${ROUTE_ROUTER_URL:-https://router.project-osrm.org}
+      ROUTE_PROVIDER_USER_AGENT: ${ROUTE_PROVIDER_USER_AGENT:?Set a descriptive ROUTE_PROVIDER_USER_AGENT}
+      ROUTE_GEOCODE_TIMEOUT_SECONDS: ${ROUTE_GEOCODE_TIMEOUT_SECONDS:-8}
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+    networks:
+      - edge
+      - data
+
+  notification-worker:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    restart: unless-stopped
+    command: ["python", "-m", "app.notification_worker"]
+    environment:
+      APP_ENV: production
+      DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+      SECRET_KEY: ${SECRET_KEY:?Set SECRET_KEY}
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      NOTIFICATION_FROM_EMAIL: ${NOTIFICATION_FROM_EMAIL:?Set NOTIFICATION_FROM_EMAIL}
+      NOTIFICATION_WORKER_POLL_SECONDS: ${NOTIFICATION_WORKER_POLL_SECONDS:-5}
+      NOTIFICATION_MAX_ATTEMPTS: ${NOTIFICATION_MAX_ATTEMPTS:-5}
+      MSG91_AUTH_KEY: ${MSG91_AUTH_KEY:-}
+      MSG91_FLOW_TEMPLATE_ID: ${MSG91_FLOW_TEMPLATE_ID:-}
+      SMS_NOTIFICATIONS_ENABLED: ${SMS_NOTIFICATIONS_ENABLED:-false}
+    depends_on:
+      db:
+        condition: service_healthy
+      api:
+        condition: service_healthy
+    networks:
+      - data
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: /api/v1
+    restart: unless-stopped
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://127.0.0.1/health/ready"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - edge
+
+networks:
+  edge:
+  data:
+    internal: true
+
+volumes:
+  timedrop_production_postgres_data:
