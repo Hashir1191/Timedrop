@@ -84,3 +84,6 @@ jobs:
 
       - name: Validate production Compose configuration
         run: docker compose -f docker-compose.production.yml config --quiet
+
+      - name: Check backup and restore script syntax
+        run: bash -n scripts/backup_postgres.sh scripts/restore_postgres_backup.sh
