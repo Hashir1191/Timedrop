@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Clock3, Package, Plus, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, ArrowUpRight, CalendarClock, CheckCircle2, Clock3, Package, Plus, RefreshCw, ShieldCheck, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
 import { getParcels } from "../api";
 import { useAuth } from "../auth";
@@ -48,7 +48,7 @@ export default function CustomerDashboard() {
       <div className="customer-hero-foot"><span><ShieldMark/> Secure parcel management</span><span>One place for every delivery</span></div>
     </section>
 
-    {error && <div className="alert-error">{error}</div>}
+    {error && <div className="alert-error customer-load-error" role="alert"><span>{error}</span><button type="button" className="secondary-button" onClick={() => { if (!token) return; setLoading(true); setError(""); getParcels(token).then(setParcels).catch((err) => setError(err instanceof Error ? err.message : "Unable to load parcels.")).finally(() => setLoading(false)); }}><RefreshCw size={14}/> Try again</button></div>}
 
     <section className="customer-overview">
       <div className="customer-section-heading">
@@ -62,12 +62,12 @@ export default function CustomerDashboard() {
       </div>
     </section>
 
-    <section className="customer-recent-section">
+    <section className="customer-recent-section" aria-labelledby="customer-recent-title">
       <div className="customer-section-heading">
-        <div><span className="customer-section-kicker">LATEST ACTIVITY</span><h2>Recent parcels</h2><p>Your most recently registered deliveries.</p></div>
+        <div><span className="customer-section-kicker">LATEST ACTIVITY</span><h2 id="customer-recent-title">Recent parcels</h2><p>Your most recently registered deliveries.</p></div>
         <Link to="/my-parcels" className="customer-subtle-link">See all <ArrowRight size={15}/></Link>
       </div>
-      {loading ? <div className="customer-parcel-skeletons">{[1,2,3].map((item) => <div className="customer-parcel-skeleton" key={item}/>)}</div> :
+      {loading ? <div className="customer-parcel-skeletons" aria-label="Loading recent parcels" role="status">{[1,2,3].map((item) => <div className="customer-parcel-skeleton" key={item}/>)}</div> :
         recent.length ? <div className="customer-recent-grid">{recent.map((parcel) => <article className="customer-recent-card" key={parcel.id}>
           <div className="customer-recent-card-top"><span className="customer-parcel-icon"><Package size={18}/></span><StatusBadge status={parcel.status}/></div>
           <span className="customer-tracking-label">TRACKING NUMBER</span>
