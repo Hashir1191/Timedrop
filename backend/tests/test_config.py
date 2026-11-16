@@ -42,3 +42,20 @@ def test_production_accepts_postgresql_and_long_secret():
     )
 
     settings.validate_for_startup()
+
+
+def test_notification_worker_settings_reject_invalid_retry_configuration():
+    settings = Settings(
+        notification_max_attempts=0,
+        notification_retry_base_seconds=10,
+        notification_retry_max_seconds=5,
+    )
+
+    with pytest.raises(RuntimeError, match="NOTIFICATION_MAX_ATTEMPTS"):
+        settings.validate_for_startup()
+
+
+def test_notification_worker_settings_accept_defaults():
+    settings = Settings()
+
+    settings.validate_for_startup()
