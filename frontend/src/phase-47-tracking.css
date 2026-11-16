@@ -1,0 +1,19 @@
+/* Phase 47 — parcel tracking activity states */
+.parcel-timeline-content { padding: 0 19px 10px; }
+.parcel-timeline-toolbar { display:flex; align-items:center; justify-content:space-between; gap:12px; padding: 4px 0 10px; color:#8b98aa; font-size:9px; }
+.parcel-timeline-toolbar button { min-height:34px; }
+.parcel-timeline-state { display:flex; align-items:center; gap:9px; padding:14px 19px 17px; color:#8190a5; font-size:10px; line-height:1.5; }
+.parcel-timeline-error { color:#a64c4c; flex-wrap:wrap; }
+.parcel-timeline-error .customer-card-action { margin-left:auto; }
+.parcel-timeline-spinner { width:16px; height:16px; flex:0 0 16px; border:2px solid #dce5f5; border-top-color:#5276d2; border-radius:50%; animation:parcel-timeline-spin .75s linear infinite; }
+.parcel-timeline time { display:block; margin-top:4px; color:#8b98aa; font-size:9px; }
+.parcel-timeline li p { overflow-wrap:anywhere; }
+@keyframes parcel-timeline-spin { to { transform:rotate(360deg); } }
+@media (max-width:700px) {
+ .parcel-timeline-content { padding:0 14px 9px; }
+ .parcel-timeline-toolbar { align-items:flex-start; }
+ .parcel-timeline-toolbar button { min-height:38px; }
+ .parcel-timeline-error { align-items:flex-start; }
+ .parcel-timeline-error .customer-card-action { margin-left:26px; }
+}
+@media (prefers-reduced-motion:reduce) { .parcel-timeline-spinner { animation:none; border-top-color:#dce5f5; } }
