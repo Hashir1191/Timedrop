@@ -1,5 +1,6 @@
 from datetime import date, datetime, time
 import math
+import re
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
@@ -187,6 +188,34 @@ class ParcelCreate(BaseModel):
     pincode: str = Field(pattern=r"^[1-9][0-9]{5}$")
     delivery_instructions: str | None = Field(default=None, max_length=500)
     preferred_delivery_date: date | None = None
+
+    @field_validator("tracking_number", "recipient_name", "address_line", "city", "state")
+    @classmethod
+    def normalize_parcel_text(cls, value: str) -> str:
+        normalized = " ".join(value.split())
+        if not normalized:
+            raise ValueError("This field cannot be blank.")
+        return normalized
+
+    @field_validator("phone")
+    @classmethod
+    def validate_parcel_phone(cls, value: str) -> str:
+        normalized = value.strip()
+        digits = "".join(character for character in normalized if character.isdigit())
+        if (
+            not re.fullmatch(r"[+]?[0-9][0-9 ().-]*", normalized)
+            or not 10 <= len(digits) <= 15
+        ):
+            raise ValueError("Enter a valid phone number containing 10 to 15 digits.")
+        return normalized
+
+    @field_validator("delivery_instructions")
+    @classmethod
+    def normalize_delivery_instructions(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = " ".join(value.split())
+        return normalized or None
 
 
 class ParcelResponse(BaseModel):

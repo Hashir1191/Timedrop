@@ -146,3 +146,54 @@ def test_only_admin_can_manage_service_areas_and_duplicate_pincodes_are_rejected
     duplicate = client.post("/api/v1/operations/service-areas/", headers=admin, json=payload)
     assert duplicate.status_code == 409
     assert client.get("/api/v1/serviceability/012345").status_code == 422
+
+
+def test_parcel_registration_normalizes_text_and_rejects_invalid_contact_data(client):
+    client.post("/api/v1/auth/register", json={
+        "email": "parcel-validation@example.com",
+        "full_name": "Parcel Validation",
+        "password": "StrongCustomerPassword123!",
+    })
+    customer = auth(client, "parcel-validation@example.com", "StrongCustomerPassword123!")
+    admin = auth(client, "service-ops@example.com", "StrongServiceAdminPassword123!")
+    area = client.post(
+        "/api/v1/operations/service-areas/",
+        headers=admin,
+        json={"pincode": "211001", "city": "Prayagraj", "state": "Uttar Pradesh"},
+    )
+    assert area.status_code == 201
+
+    normalized = parcel_payload("  TD-VALIDATION-001  ")
+    normalized.update({
+        "recipient_name": "  Synthetic   Recipient  ",
+        "address_line": "  12   Example   Test Street ",
+        "city": "  Prayagraj  ",
+        "state": " Uttar   Pradesh ",
+        "phone": " +91 (98765) 43210 ",
+        "delivery_instructions": "  Leave   at   reception  ",
+    })
+    created = client.post("/api/v1/parcels/", headers=customer, json=normalized)
+    assert created.status_code == 201, created.text
+    result = created.json()
+    assert result["tracking_number"] == "TD-VALIDATION-001"
+    assert result["recipient_name"] == "Synthetic Recipient"
+    assert result["address_line"] == "12 Example Test Street"
+    assert result["city"] == "Prayagraj"
+    assert result["state"] == "Uttar Pradesh"
+    assert result["phone"] == "+91 (98765) 43210"
+    assert result["delivery_instructions"] == "Leave at reception"
+
+    blank_recipient = parcel_payload("TD-VALIDATION-002")
+    blank_recipient["recipient_name"] = "   "
+    rejected_name = client.post("/api/v1/parcels/", headers=customer, json=blank_recipient)
+    assert rejected_name.status_code == 422
+
+    invalid_phone = parcel_payload("TD-VALIDATION-003")
+    invalid_phone["phone"] = "call me maybe"
+    rejected_phone = client.post("/api/v1/parcels/", headers=customer, json=invalid_phone)
+    assert rejected_phone.status_code == 422
+
+    short_phone = parcel_payload("TD-VALIDATION-004")
+    short_phone["phone"] = "123456789"
+    rejected_short_phone = client.post("/api/v1/parcels/", headers=customer, json=short_phone)
+    assert rejected_short_phone.status_code == 422
