@@ -190,7 +190,7 @@ SMS remains disabled by default. To enable it, configure these values in the unc
 
 The MSG91 Flow must have two variables with these exact case-sensitive names: `VAR1` for the notification title and `VAR2` for the notification message. The template text must be approved and match the Indian DLT-registered entity, sender/header, and template details. Do not enable the feature until MSG91 reports the template as DLT-verified. TimeDrop sends only to the account's own normalized Indian mobile number, and only when `phone_verified_at` and `sms_consent_at` are both present. Parcel recipient numbers and the legacy delivery-partner contact field are never used as SMS recipients. Withdrawing consent prevents future SMS jobs; it does not cancel messages already submitted to the provider.
 
-The worker uses MSG91's Flow endpoint `POST https://control.msg91.com/api/v5/flow` with the `authkey` header, `template_id`, and a recipient object containing `mobiles`, `VAR1`, and `VAR2`. Provider failures are recorded in the outbox and retried using the same idempotency key at the application layer. MSG91 acceptance is not proof of handset delivery; use MSG91 delivery logs for final delivery status. See the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [MSG91 DLT template setup guide](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
+The worker uses MSG91's Flow endpoint `POST https://control.msg91.com/api/v5/flow` with the `authkey` header, `template_id`, and a recipient object containing `mobiles`, `VAR1`, and `VAR2`. The outbox uses capped exponential retry backoff and recovers expired worker leases. Resend email requests carry the stable outbox idempotency key; MSG91 Flow does not currently receive a provider-supported idempotency token, so a timeout after provider acceptance can result in a duplicate SMS retry. MSG91 acceptance is not proof of handset delivery; use MSG91 delivery logs for final delivery status. See the [MSG91 Send SMS API](https://docs.msg91.com/sms/send-sms) and [MSG91 DLT template setup guide](https://msg91.com/help/template/how-to-create-flow-id-to-send-sms-via-api).
 
 ### Phone verification and SMS consent
 
@@ -546,3 +546,8 @@ TimeDrop now records an append-only history of important changes to operational 
 - Audit records have no update/delete API. They are retained as an append-only operational history.
 
 Apply Alembic revision `20261115_0014` after pulling this phase.
+
+
+## Phase 36 — Notification delivery reliability
+
+The notification worker uses a configurable lease and capped exponential backoff. Expired processing leases count toward the maximum attempt limit and are recovered under row locks so concurrent workers do not recover the same job twice. The worker validates retry settings at startup. Admins can inspect masked outbox records and manually requeue failed jobs through the operations API; every manual retry is audited. See docs/phase-36-notification-reliability.md for delivery guarantees, configuration, and operational review queries.
