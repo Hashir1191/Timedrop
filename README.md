@@ -561,3 +561,8 @@ The admin portal includes a responsive Notification queue workspace for reviewin
 ## Phase 38 — Integration and end-to-end verification
 
 CI now exercises a complete synthetic customer-to-partner delivery journey, including booking, assignment, one-time proof of delivery, customer timeline, delivery events, notifications, and access isolation. A separate PostgreSQL 16 CI job applies the Alembic chain to a fresh database and verifies repeatable upgrades. Historical migrations were hardened to detect schema objects already created by the baseline adoption migration. See docs/phase-38-integration-e2e.md.
+
+
+## Phase 39 — Versioned container releases
+
+Pushing a semantic version tag (for example v1.0.0) builds and publishes the API and web images to GitHub Container Registry with version tags, SBOM, and build provenance. The workflow publishes images but does not deploy automatically. Production Compose consumes explicitly pinned image tags. See docs/phase-39-release-pipeline.md.
