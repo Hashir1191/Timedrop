@@ -129,3 +129,6 @@ jobs:
 
       - name: Verify database migration revision
         run: python -m alembic -c backend/alembic.ini current
+
+      - name: Confirm migration upgrade is idempotent
+        run: python -m alembic -c backend/alembic.ini upgrade head
