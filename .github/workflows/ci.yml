@@ -88,8 +88,8 @@ jobs:
       - name: Validate production Compose configuration
         run: docker compose -f docker-compose.production.yml config --quiet
 
-      - name: Check backup and restore script syntax
-        run: bash -n scripts/backup_postgres.sh scripts/restore_postgres_backup.sh
+      - name: Check operational script syntax
+        run: bash -n scripts/backup_postgres.sh scripts/restore_postgres_backup.sh scripts/smoke_test_release.sh
 
   postgres-migrations:
     name: PostgreSQL migration integration
