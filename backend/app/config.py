@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     jwt_algorithm: str = "HS256"
     access_token_expire_minutes: int = 30
     cors_origins: str = "http://localhost:5173,http://127.0.0.1:5173"
+    trusted_hosts: str = ""
     resend_api_key: str = ""
     notification_from_email: str = "TimeDrop <onboarding@resend.dev>"
     notification_worker_poll_seconds: int = 5
@@ -35,6 +36,15 @@ class Settings(BaseSettings):
     def allowed_origins(self) -> list[str]:
         return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
 
+    @property
+    def allowed_hosts(self) -> list[str]:
+        hosts = [host.strip() for host in self.trusted_hosts.split(",") if host.strip()]
+        if hosts:
+            return hosts
+        if self.app_env.lower() == "production":
+            return []
+        return ["localhost", "127.0.0.1", "testserver"]
+
     def validate_for_startup(self) -> None:
         if self.notification_worker_poll_seconds < 1:
             raise RuntimeError("NOTIFICATION_WORKER_POLL_SECONDS must be at least 1.")
@@ -51,5 +61,11 @@ class Settings(BaseSettings):
                 raise RuntimeError("Production requires a SECRET_KEY of at least 32 characters.")
             if self.database_url.startswith("sqlite"):
                 raise RuntimeError("Production must use PostgreSQL; SQLite is only supported for local development.")
+            hosts = self.allowed_hosts
+            if not hosts or "*" in hosts or not any(host not in {"localhost", "127.0.0.1", "testserver"} for host in hosts):
+                raise RuntimeError("Production requires TRUSTED_HOSTS with at least one explicit public hostname.")
+            origins = self.allowed_origins
+            if not origins or "*" in origins or any(not origin.startswith("https://") for origin in origins):
+                raise RuntimeError("Production CORS_ORIGINS must contain only explicit HTTPS origins.")
 
 settings = Settings()

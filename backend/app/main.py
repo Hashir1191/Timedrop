@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config import settings
 from app.routers.auth import router as auth_router
@@ -25,6 +26,10 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(title=settings.app_name, version="0.9.0", description="Backend API for the TimeDrop delivery scheduling pilot.", lifespan=lifespan)
+app.add_middleware(
+    TrustedHostMiddleware,
+    allowed_hosts=settings.allowed_hosts,
+)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.allowed_origins,

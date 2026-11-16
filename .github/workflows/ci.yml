@@ -78,6 +78,7 @@ jobs:
       TIMEDROP_WEB_IMAGE: ghcr.io/example/timedrop-web:ci
       SECRET_KEY: ci-only-secret-key-not-for-deployment
       CORS_ORIGINS: https://timedrop.example.invalid
+      TRUSTED_HOSTS: timedrop.example.invalid,127.0.0.1
       NOTIFICATION_FROM_EMAIL: "TimeDrop <ci@example.invalid>"
       ROUTE_PROVIDER_USER_AGENT: "TimeDrop/CI (contact: ci@example.invalid)"
     steps:
@@ -162,8 +163,12 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=/api/v1
           push: false
+          load: true
           tags: timedrop-web:ci
           cache-from: type=gha,scope=timedrop-web-ci
+
+      - name: Validate Nginx configuration with service DNS stub
+        run: docker run --rm --add-host api:127.0.0.1 timedrop-web:ci nginx -t
 
   workflow-yaml-validation:
     name: GitHub Actions workflow validation
