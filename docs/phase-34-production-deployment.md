@@ -26,7 +26,7 @@ Do not commit production .env files, passwords, API keys, or customer data.
 
 ## Configure and start
 
-Create a deployment .env beside docker-compose.production.yml. Set at least:
+Create a deployment .env beside docker-compose.production.yml. Set the published image tags and the following values:
 
 ~~~dotenv
 POSTGRES_DB=timedrop
@@ -37,6 +37,8 @@ CORS_ORIGINS=https://app.example.com
 NOTIFICATION_FROM_EMAIL=TimeDrop <notifications@example.com>
 ROUTE_PROVIDER_USER_AGENT=TimeDrop/1.0 (production; contact: ops@example.com)
 WEB_PORT=8080
+TIMEDROP_API_IMAGE=ghcr.io/hashir1191/timedrop-api:1.0.0
+TIMEDROP_WEB_IMAGE=ghcr.io/hashir1191/timedrop-web:1.0.0
 ~~~
 
 Add provider credentials only when the corresponding email/SMS feature has been approved and configured. Keep SMS disabled until the MSG91 Flow template and Indian DLT requirements are satisfied. Production phone OTP exposure is forced off by the Compose configuration.
@@ -45,13 +47,13 @@ Validate interpolation and service configuration before starting:
 
 ~~~bash
 docker compose --env-file .env -f docker-compose.production.yml config
-docker compose --env-file .env -f docker-compose.production.yml build
+docker compose --env-file .env -f docker-compose.production.yml pull
 docker compose --env-file .env -f docker-compose.production.yml up -d
 docker compose --env-file .env -f docker-compose.production.yml ps
 docker compose --env-file .env -f docker-compose.production.yml logs -f api
 ~~~
 
-The public application is served on the configured WEB_PORT. Configure the TLS proxy to forward to that port and preserve the original host and forwarded protocol headers.
+Authenticate the deployment host to GitHub Container Registry before pulling private packages. The release workflow publishes immutable semantic-version tags and a latest tag; pin an explicit version in production rather than relying on latest. The public application is served on the configured WEB_PORT. Configure the TLS proxy to forward to that port and preserve the original host and forwarded protocol headers.
 
 ## Deployment and migration behavior
 
