@@ -32,6 +32,7 @@ def _recover_stale_deliveries(db: Session, now: datetime) -> int:
             NotificationDelivery.locked_at.is_not(None),
             NotificationDelivery.locked_at < stale_before,
         )
+        .with_for_update(skip_locked=True)
     ).all()
 
     for item in stale:
@@ -146,6 +147,7 @@ def process_one() -> bool:
 
 
 def main() -> None:
+    settings.validate_for_startup()
     logger.info("TimeDrop notification worker started")
     while True:
         try:
