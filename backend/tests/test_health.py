@@ -53,3 +53,9 @@ def test_root_returns_api_welcome_message() -> None:
 
     assert response.status_code == 200
     assert response.json()["message"] == "Welcome to TimeDrop API"
+
+
+def test_health_rejects_untrusted_host_header() -> None:
+    response = client.get("/health", headers={"Host": "attacker.example"})
+
+    assert response.status_code == 400
