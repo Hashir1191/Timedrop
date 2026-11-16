@@ -13,6 +13,7 @@ from app.routers.phone_verification import router as phone_verification_router
 from app.routers.operations import router as operations_router
 from app.routers.analytics import router as analytics_router
 from app.routers.serviceability import public_router as serviceability_router, operations_router as service_areas_router
+from app.routers.health import router as health_router
 
 
 @asynccontextmanager
@@ -39,6 +40,7 @@ app.include_router(operations_router)
 app.include_router(analytics_router)
 app.include_router(serviceability_router)
 app.include_router(service_areas_router)
+app.include_router(health_router)
 
 
 @app.get("/", tags=["General"])
