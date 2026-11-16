@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Navigate, Route, Routes } from "react-router-dom";
-import { getMe } from "./api";
+import { getMe, SESSION_EXPIRED_EVENT } from "./api";
 import { AuthContext, type AuthState } from "./auth";
 import Login from "./pages/Login";
 import LandingPage from "./pages/LandingPage";
@@ -31,12 +31,22 @@ import SystemHealth from "./pages/SystemHealth";
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ token: localStorage.getItem("timedrop_token"), user: null, loading: true });
   useEffect(() => {
-    const token = auth.token;
-    if (!token) { setAuth({ token: null, user: null, loading: false }); return; }
-    getMe(token).then(user => setAuth({ token, user, loading: false })).catch(() => {
+    const clearExpiredSession = () => {
       localStorage.removeItem("timedrop_token");
       setAuth({ token: null, user: null, loading: false });
-    });
+    };
+    window.addEventListener(SESSION_EXPIRED_EVENT, clearExpiredSession);
+
+    const token = auth.token;
+    if (!token) {
+      setAuth({ token: null, user: null, loading: false });
+    } else {
+      getMe(token).then(user => setAuth({ token, user, loading: false })).catch(() => {
+        clearExpiredSession();
+      });
+    }
+
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, clearExpiredSession);
   }, []);
   const logout = () => { localStorage.removeItem("timedrop_token"); setAuth({ token: null, user: null, loading: false }); };
   if (auth.loading) return <div className="screen-center"><div className="loader" /></div>;
