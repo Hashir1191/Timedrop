@@ -17,6 +17,7 @@ import "./auth-experience.css";
 import "./route-visualization.css";
 import "./accessibility-polish.css";
 import "./communication-settings.css";
+import "./notification-queue.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
