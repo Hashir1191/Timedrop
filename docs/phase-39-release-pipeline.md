@@ -9,7 +9,7 @@ A version tag matching vMAJOR.MINOR.PATCH triggers the release image workflow. I
 
 Each image receives semantic-version and latest tags. The workflow also publishes image labels, an SBOM, and build provenance. It uses the repository-scoped GITHUB_TOKEN with packages: write; no long-lived registry password is stored in GitHub secrets.
 
-The workflow publishes images only. It does not deploy to a server or modify a database.
+The workflow publishes images only. It does not deploy to a server or modify a database. Pull-request CI also builds both production Docker images without publishing them and parses the CI/release workflow YAML, so Dockerfile and workflow syntax are checked before a version tag is created.
 
 ## Create a release
 
