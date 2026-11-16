@@ -1,0 +1,20 @@
+/* Phase 46 — responsive and interaction finishing layer */
+.customer-load-error { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.customer-load-error .secondary-button { display:inline-flex; align-items:center; justify-content:center; gap:7px; flex:0 0 auto; }
+.customer-dashboard button:disabled, .partner-dashboard button:disabled { cursor:not-allowed; opacity:.62; }
+.customer-dashboard a, .partner-dashboard a, .customer-dashboard button, .partner-dashboard button { -webkit-tap-highlight-color:transparent; }
+.customer-recent-card, .partner-assignment-card, .customer-metric-card, .partner-metric-card { min-width:0; }
+.customer-tracking-number, .partner-assignment-id strong { overflow-wrap:anywhere; }
+.customer-dashboard :focus-visible, .partner-dashboard :focus-visible { outline:3px solid rgba(66,104,232,.38); outline-offset:3px; }
+@media (max-width: 700px) {
+  .customer-load-error { align-items:stretch; flex-direction:column; }
+  .customer-load-error .secondary-button { width:100%; min-height:42px; }
+  .customer-hero-actions { flex-wrap:wrap; gap:12px; }
+  .customer-hero-primary, .customer-hero-secondary, .partner-welcome-action { min-height:42px; }
+  .customer-recent-card-foot { align-items:flex-start; flex-direction:column; }
+  .customer-recent-card-foot a { min-height:36px; }
+  .partner-assignment-actions button { min-height:42px !important; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .customer-recent-card, .customer-dashboard *, .partner-dashboard * { scroll-behavior:auto !important; transition-duration:.01ms !important; }
+}
