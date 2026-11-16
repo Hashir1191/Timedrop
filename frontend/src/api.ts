@@ -151,3 +151,26 @@ export const getOperationsAuditLog=(token:string,filters:{entity_type?:string;ac
  Object.entries(filters).forEach(([key,value])=>{if(value!==undefined&&value!=="")params.set(key,String(value));});
  return request<import("./types").OperationsAuditEvent[]>(`/operations/audit-log?${params.toString()}`,token);
 };
+
+
+export type NotificationDeliveryOperationsItem = {
+ id:number;
+ channel:"email"|"sms";
+ masked_recipient:string;
+ subject:string;
+ status:"pending"|"processing"|"sent"|"failed"|"cancelled";
+ attempts:number;
+ next_attempt_at:string;
+ locked_at:string|null;
+ sent_at:string|null;
+ provider_message_id:string|null;
+ last_error:string|null;
+ created_at:string;
+};
+export const getNotificationDeliveries=(token:string,filters:{status?:NotificationDeliveryOperationsItem["status"];channel?:NotificationDeliveryOperationsItem["channel"];skip?:number;limit?:number}={})=>{
+ const params=new URLSearchParams();
+ Object.entries(filters).forEach(([key,value])=>{if(value!==undefined)params.set(key,String(value));});
+ return request<NotificationDeliveryOperationsItem[]>(`/operations/notification-deliveries?${params.toString()}`,token);
+};
+export const retryNotificationDelivery=(token:string,id:number)=>
+ request<NotificationDeliveryOperationsItem>(`/operations/notification-deliveries/${id}/retry`,token,{method:"POST"});
