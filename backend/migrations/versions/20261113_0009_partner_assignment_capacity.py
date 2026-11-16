@@ -13,10 +13,12 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "delivery_partners",
-        sa.Column("max_active_assignments", sa.Integer(), nullable=False, server_default="5"),
-    )
+    columns = {item["name"] for item in sa.inspect(op.get_bind()).get_columns("delivery_partners")}
+    if "max_active_assignments" not in columns:
+        op.add_column(
+            "delivery_partners",
+            sa.Column("max_active_assignments", sa.Integer(), nullable=False, server_default="5"),
+        )
 
 
 def downgrade() -> None:
