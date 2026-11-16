@@ -1,0 +1,52 @@
+/* Phase 40 — Operations system health */
+.system-health-workspace { max-width: 1420px; margin: 0 auto; }
+.system-health-service-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; margin: 18px 0; }
+.system-health-service-card { display: flex; align-items: center; gap: 13px; padding: 17px; min-width: 0; }
+.system-health-service-icon { width: 42px; height: 42px; flex: 0 0 42px; display: grid; place-items: center; border-radius: 12px; }
+.system-health-service-icon.database { color: #287eaa; background: #eaf6fb; }
+.system-health-service-icon.worker { color: #755cc3; background: #f1efff; }
+.system-health-service-copy { display: grid; gap: 4px; min-width: 0; flex: 1; }
+.system-health-service-copy > span { color: #8290a4; font-size: 8px; font-weight: 800; letter-spacing: .8px; }
+.system-health-service-copy strong { color: #263750; font-size: 12px; }
+.system-health-service-copy small { color: #8996a8; font-size: 9px; overflow-wrap: anywhere; }
+.system-health-status { display: inline-flex; align-items: center; gap: 5px; flex: 0 0 auto; padding: 6px 9px; border-radius: 999px; font-size: 8px; font-weight: 800; }
+.system-health-status.healthy { color: #23855e; background: #eaf8f1; }
+.system-health-status.stale, .system-health-status.not_seen { color: #b65b45; background: #fff1eb; }
+.system-health-detail-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 13px; }
+.system-health-detail-card { padding: 18px; min-width: 0; }
+.system-health-section-heading { display: flex; align-items: center; gap: 8px; color: #60738f; }
+.system-health-section-heading strong { color: #2d405c; font-size: 12px; }
+.system-health-heartbeat-value { margin: 20px 0 4px; color: #263750; font-size: 30px; font-weight: 800; letter-spacing: -.7px; }
+.system-health-detail-card p { margin: 5px 0 16px; color: #8996a8; font-size: 9px; line-height: 1.6; }
+.system-health-detail-line { display: flex; justify-content: space-between; gap: 12px; padding: 9px 0; border-top: 1px solid #edf0f5; color: #8491a3; font-size: 9px; }
+.system-health-detail-line strong { color: #53657e; font-size: 9px; text-align: right; }
+.system-health-queue-grid { display: grid; grid-template-columns: repeat(5,minmax(0,1fr)); gap: 7px; margin-top: 21px; }
+.system-health-queue-item { display: grid; justify-items: center; gap: 5px; padding: 12px 5px; border-radius: 9px; background: #f5f7fb; }
+.system-health-queue-item strong { color: #344963; font-size: 20px; }
+.system-health-queue-item span { color: #8290a4; font-size: 8px; text-transform: capitalize; }
+.system-health-queue-item.failed { background: #fff1f1; }
+.system-health-queue-item.failed strong { color: #b94e58; }
+.system-health-queue-item.pending { background: #fff7eb; }
+.system-health-queue-item.pending strong { color: #a8752d; }
+.system-health-warning { display: flex; align-items: flex-start; gap: 10px; margin: 15px 0; padding: 12px 14px; border: 1px solid #f1d5c8; border-radius: 10px; color: #a45440; background: #fff7f2; }
+.system-health-warning svg { flex: 0 0 auto; margin-top: 1px; }
+.system-health-warning div { display: grid; gap: 4px; }
+.system-health-warning strong { font-size: 10px; }
+.system-health-warning span { color: #987b72; font-size: 9px; line-height: 1.5; }
+.system-health-loading { display: grid; justify-items: center; gap: 9px; padding: 40px 16px; color: #8492a5; font-size: 10px; }
+.system-health-loading strong { color: #30415a; font-size: 13px; }
+.system-health-loading .loader { width: 23px; height: 23px; }
+.system-health-footnote { margin: 14px 2px 0; color: #8794a6; font-size: 9px; line-height: 1.7; }
+.system-health-spin { animation: system-health-spin 1s linear infinite; }
+@keyframes system-health-spin { to { transform: rotate(360deg); } }
+@media (max-width: 900px) {
+  .system-health-service-grid, .system-health-detail-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 560px) {
+  .system-health-service-card { align-items: flex-start; flex-wrap: wrap; padding: 13px; }
+  .system-health-status { margin-left: 55px; }
+  .system-health-detail-card { padding: 14px; }
+  .system-health-queue-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .system-health-detail-line { align-items: flex-start; flex-direction: column; gap: 4px; }
+  .system-health-detail-line strong { text-align: left; }
+}
