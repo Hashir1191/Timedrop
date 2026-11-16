@@ -1,6 +1,6 @@
 import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem, DeliveryRoutePlan, ParcelTimelineEvent } from "./types";
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1").replace(/\\/+$/, "");
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1").replace(/\/+$/, "");
 export const SESSION_EXPIRED_EVENT = "timedrop:session-expired";
 
 export class ApiError extends Error {
