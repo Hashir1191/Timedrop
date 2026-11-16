@@ -78,6 +78,7 @@ jobs:
       TIMEDROP_WEB_IMAGE: ghcr.io/example/timedrop-web:ci
       SECRET_KEY: ci-only-secret-key-not-for-deployment
       CORS_ORIGINS: https://timedrop.example.invalid
+      TRUSTED_HOSTS: timedrop.example.invalid,127.0.0.1
       NOTIFICATION_FROM_EMAIL: "TimeDrop <ci@example.invalid>"
       ROUTE_PROVIDER_USER_AGENT: "TimeDrop/CI (contact: ci@example.invalid)"
     steps:
