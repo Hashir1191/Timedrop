@@ -105,3 +105,35 @@ def test_production_accepts_explicit_https_origin_and_host():
     )
 
     settings.validate_for_startup()
+
+
+def test_allowed_hosts_are_parsed_and_whitespace_is_removed():
+    settings = Settings(trusted_hosts=" app.example.com, 127.0.0.1 ,, ")
+
+    assert settings.allowed_hosts == ["app.example.com", "127.0.0.1"]
+
+
+def test_production_rejects_wildcard_trusted_hosts():
+    settings = Settings(
+        app_env="production",
+        secret_key="a" * 48,
+        database_url="postgresql+psycopg://user:password@localhost/timedrop",
+        cors_origins="https://app.example.com",
+        trusted_hosts="*,app.example.com",
+    )
+
+    with pytest.raises(RuntimeError, match="TRUSTED_HOSTS"):
+        settings.validate_for_startup()
+
+
+def test_production_rejects_wildcard_cors_origin():
+    settings = Settings(
+        app_env="production",
+        secret_key="a" * 48,
+        database_url="postgresql+psycopg://user:password@localhost/timedrop",
+        cors_origins="*",
+        trusted_hosts="app.example.com,127.0.0.1",
+    )
+
+    with pytest.raises(RuntimeError, match="HTTPS"):
+        settings.validate_for_startup()
