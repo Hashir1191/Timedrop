@@ -17,7 +17,7 @@ All test records use synthetic identities, addresses, phone numbers, and trackin
 
 ## PostgreSQL migration integration
 
-CI now starts a PostgreSQL 16 service and applies the complete Alembic migration chain to a fresh database. The job then reports the current migration revision. This complements the API tests and production Compose configuration validation by checking migrations against the production database engine.
+CI now starts a PostgreSQL 16 service and applies the complete Alembic migration chain to a fresh database, reports the current revision, and applies upgrade head a second time to verify repeatability. This surfaced a baseline-adoption issue: the bootstrap revision creates the current SQLAlchemy metadata on a fresh database, while several later historical revisions attempted to add those same columns and tables again. Those revisions now inspect existing schema objects before adding them, preserving the existing adoption behavior for older pilot databases while making a clean PostgreSQL upgrade safe.
 
 ## CI coverage
 
