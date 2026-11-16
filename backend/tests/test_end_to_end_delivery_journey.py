@@ -24,7 +24,7 @@ def journey_client():
 
     with sessions() as db:
         db.add(User(
-            email="journey-ops@example.test",
+            email="journey-ops@example.com",
             full_name="Journey Operations",
             password_hash=hash_password("StrongJourneyOpsPassword123!"),
             role="admin",
@@ -62,18 +62,18 @@ def _login(client, email: str, password: str) -> dict[str, str]:
 
 def test_customer_to_partner_delivery_journey_is_visible_across_portals(journey_client):
     client = journey_client
-    admin = _login(client, "journey-ops@example.test", "StrongJourneyOpsPassword123!")
+    admin = _login(client, "journey-ops@example.com", "StrongJourneyOpsPassword123!")
 
     registration = client.post(
         "/api/v1/auth/register",
         json={
-            "email": "journey-customer@example.test",
+            "email": "journey-customer@example.com",
             "full_name": "Journey Customer",
             "password": "StrongJourneyCustomerPassword123!",
         },
     )
     assert registration.status_code == 201, registration.text
-    customer = _login(client, "journey-customer@example.test", "StrongJourneyCustomerPassword123!")
+    customer = _login(client, "journey-customer@example.com", "StrongJourneyCustomerPassword123!")
 
     parcel_response = client.post(
         "/api/v1/parcels/",
@@ -115,7 +115,7 @@ def test_customer_to_partner_delivery_journey_is_visible_across_portals(journey_
         "/api/v1/delivery/partners",
         headers=admin,
         json={
-            "email": "journey-rider@example.test",
+            "email": "journey-rider@example.com",
             "full_name": "Journey Rider",
             "password": "StrongJourneyRiderPassword123!",
             "phone": "9876543211",
@@ -124,7 +124,7 @@ def test_customer_to_partner_delivery_journey_is_visible_across_portals(journey_
     )
     assert partner_response.status_code == 201, partner_response.text
     partner_id = partner_response.json()["id"]
-    rider = _login(client, "journey-rider@example.test", "StrongJourneyRiderPassword123!")
+    rider = _login(client, "journey-rider@example.com", "StrongJourneyRiderPassword123!")
 
     assignment_response = client.post(
         f"/api/v1/delivery/parcels/{parcel_id}/assignments",
@@ -219,12 +219,12 @@ def test_customer_cannot_read_another_customers_parcel_journey(journey_client):
     client.post(
         "/api/v1/auth/register",
         json={
-            "email": "journey-owner@example.test",
+            "email": "journey-owner@example.com",
             "full_name": "Parcel Owner",
             "password": "StrongJourneyOwnerPassword123!",
         },
     )
-    owner = _login(client, "journey-owner@example.test", "StrongJourneyOwnerPassword123!")
+    owner = _login(client, "journey-owner@example.com", "StrongJourneyOwnerPassword123!")
     parcel = client.post(
         "/api/v1/parcels/",
         headers=owner,
@@ -243,12 +243,12 @@ def test_customer_cannot_read_another_customers_parcel_journey(journey_client):
     client.post(
         "/api/v1/auth/register",
         json={
-            "email": "journey-other@example.test",
+            "email": "journey-other@example.com",
             "full_name": "Other Customer",
             "password": "StrongJourneyOtherPassword123!",
         },
     )
-    other = _login(client, "journey-other@example.test", "StrongJourneyOtherPassword123!")
+    other = _login(client, "journey-other@example.com", "StrongJourneyOtherPassword123!")
 
     response = client.get(
         f"/api/v1/parcels/{parcel.json()['id']}/timeline",
