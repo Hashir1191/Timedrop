@@ -31,4 +31,4 @@ The TLS reverse proxy must terminate HTTPS and forward the original Host and X-F
 
 ## Verification
 
-Tests cover allowed-host parsing, rejection of wildcard trusted hosts, rejection of wildcard/non-HTTPS production CORS, and HTTP requests with untrusted Host headers. CI builds the Nginx image and runs the complete backend suite.
+Tests cover allowed-host parsing, rejection of wildcard trusted hosts, rejection of wildcard/non-HTTPS production CORS, and HTTP requests with untrusted Host headers. CI builds the Nginx image, then runs nginx -t inside the built image with an API hostname stub so the upstream can resolve during configuration validation. CI also runs the complete backend suite.
