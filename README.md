@@ -550,4 +550,4 @@ Apply Alembic revision `20261115_0014` after pulling this phase.
 
 ## Phase 36 — Notification delivery reliability
 
-The notification worker uses a configurable lease and capped exponential backoff. Expired processing leases count toward the maximum attempt limit and are recovered under row locks so concurrent workers do not recover the same job twice. The worker validates retry settings at startup. See docs/phase-36-notification-reliability.md for delivery guarantees, configuration, and operational review queries.
+The notification worker uses a configurable lease and capped exponential backoff. Expired processing leases count toward the maximum attempt limit and are recovered under row locks so concurrent workers do not recover the same job twice. The worker validates retry settings at startup. Admins can inspect masked outbox records and manually requeue failed jobs through the operations API; every manual retry is audited. See docs/phase-36-notification-reliability.md for delivery guarantees, configuration, and operational review queries.
