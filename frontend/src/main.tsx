@@ -22,6 +22,7 @@ import "./system-health.css";
 import "./phase-46-experience.css";
 import "./phase-47-tracking.css";
 import "./phase-48-scheduling.css";
+import "./phase-49-registration.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
