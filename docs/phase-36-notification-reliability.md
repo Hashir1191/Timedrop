@@ -24,6 +24,12 @@ The outbox provides durable, at-least-once dispatch attempts, not universal exac
 
 The worker continues to re-check account activation, phone verification, and SMS consent immediately before dispatch. A withdrawn consent or inactive account cancels a queued SMS job before provider submission.
 
+## Operations API
+
+Administrators can inspect the latest outbox records using GET /api/v1/operations/notification-deliveries with optional status, channel, skip, and limit filters. Recipient values are masked in the response. The endpoint is admin-only.
+
+A failed delivery can be manually requeued with POST /api/v1/operations/notification-deliveries/{id}/retry. Only failed records can be requeued; the action is written to the append-only operations audit log. The original attempt count is retained. The worker re-checks SMS verification and consent before any retry is submitted.
+
 ## Operational review
 
 Inspect failed and currently processing jobs without selecting recipient contact details:
