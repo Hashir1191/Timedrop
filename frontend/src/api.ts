@@ -1,12 +1,76 @@
 import type { AdminBooking, Booking, DeliverySlot, Parcel, ParcelCreate, User, DeliveryPartner, DeliveryAssignment, DeliveryEvent, NotificationItem, DeliveryRoutePlan, ParcelTimelineEvent } from "./types";
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1";
-export class ApiError extends Error { status:number; constructor(message:string,status:number){super(message);this.status=status;} }
-async function request<T>(path:string,token:string,init:RequestInit={}):Promise<T>{
- const response=await fetch(`${API_BASE}${path}`,{...init,headers:{"Content-Type":"application/json",Authorization:`Bearer ${token}`,...init.headers}});
- if(!response.ok){let message=`Request failed (${response.status})`;try{const body=await response.json();message=body.detail||message;}catch{/* no json */}throw new ApiError(message,response.status);}
- if(response.status===204)return undefined as T;return response.json() as Promise<T>;
+
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || "http://127.0.0.1:8000/api/v1").replace(/\\/+$/, "");
+export const SESSION_EXPIRED_EVENT = "timedrop:session-expired";
+
+export class ApiError extends Error {
+  status: number;
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
 }
-export async function login(email:string,password:string){const response=await fetch(`${API_BASE}/auth/login`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email,password})});if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(body.detail||"Unable to sign in.",response.status);}return response.json() as Promise<{access_token:string;token_type:string}>;}
+
+function responseErrorMessage(body: unknown, fallback: string): string {
+  if (!body || typeof body !== "object" || !("detail" in body)) return fallback;
+  const detail = (body as { detail?: unknown }).detail;
+  if (typeof detail === "string" && detail.trim()) return detail;
+  if (Array.isArray(detail)) {
+    const messages = detail
+      .map((item) => item && typeof item === "object" && "msg" in item
+        ? String((item as { msg: unknown }).msg)
+        : "")
+      .filter(Boolean);
+    if (messages.length) return messages.join("; ");
+  }
+  return fallback;
+}
+
+async function fetchJson<T>(path: string, init: RequestInit = {}, token?: string): Promise<T> {
+  const headers = new Headers(init.headers);
+  if (!headers.has("Content-Type")) headers.set("Content-Type", "application/json");
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+
+  let response: Response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, { ...init, headers });
+  } catch (error) {
+    const message = error instanceof Error && error.name === "AbortError"
+      ? "The request timed out. Please try again."
+      : "Unable to reach TimeDrop. Check your internet connection and try again.";
+    throw new ApiError(message, 0);
+  }
+
+  if (!response.ok) {
+    let body: unknown = null;
+    try { body = await response.json(); } catch { /* The server may return an empty or non-JSON error. */ }
+    const fallback = `Request failed (${response.status})`;
+    const message = responseErrorMessage(body, fallback);
+    if (response.status === 401 && token && typeof window !== "undefined") {
+      window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+    }
+    throw new ApiError(message, response.status);
+  }
+
+  if (response.status === 204) return undefined as T;
+  try {
+    return await response.json() as T;
+  } catch {
+    throw new ApiError("TimeDrop returned an unreadable response. Please try again.", response.status);
+  }
+}
+
+function request<T>(path: string, token: string, init: RequestInit = {}): Promise<T> {
+  return fetchJson<T>(path, init, token);
+}
+
+export function login(email: string, password: string) {
+  return fetchJson<{ access_token: string; token_type: string }>(
+    "/auth/login",
+    { method: "POST", body: JSON.stringify({ email, password }) },
+  );
+}
 export const getMe=(token:string)=>request<User>("/auth/me",token);
 export const getParcels=(token:string)=>request<Parcel[]>("/parcels/?skip=0&limit=100",token);
 export const updateParcelStatus=(token:string,id:number,status:string)=>request<Parcel>(`/parcels/${id}/status`,token,{method:"PATCH",body:JSON.stringify({status})});
@@ -17,7 +81,7 @@ export const updateSlot=(token:string,slotId:number,data:{capacity?:number;is_ac
 export const cancelBooking=(token:string,parcelId:number)=>request<void>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"DELETE"});
 export const rescheduleBooking=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"PATCH",body:JSON.stringify({slot_id:slotId})});
 export const getAdminBookings=(token:string,status:"booked"|"cancelled"|"all"="booked",deliveryDate="")=>{const params=new URLSearchParams();if(status!=="all")params.set("status",status);if(deliveryDate)params.set("delivery_date",deliveryDate);const query=params.toString();return request<AdminBooking[]>(`/scheduling/bookings${query?`?${query}`:""}`,token);};
-export const register=(data:{email:string;full_name:string;password:string})=>fetch(`${API_BASE}/auth/register`,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(data)}).then(async response=>{if(!response.ok){const body=await response.json().catch(()=>({}));throw new ApiError(body.detail||"Unable to create account.",response.status);}return response.json() as Promise<User>;});
+export const register=(data:{email:string;full_name:string;password:string})=>fetchJson<User>("/auth/register",{method:"POST",body:JSON.stringify(data)});
 export const createParcel=(token:string,data:ParcelCreate)=>request<Parcel>("/parcels/",token,{method:"POST",body:JSON.stringify(data)});
 export const getParcelBooking=(token:string,parcelId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token);
 export const bookParcel=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"POST",body:JSON.stringify({slot_id:slotId})});
