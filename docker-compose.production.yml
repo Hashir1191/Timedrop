@@ -18,9 +18,7 @@ services:
       - data
 
   api:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${TIMEDROP_API_IMAGE:?Set TIMEDROP_API_IMAGE to a published API image tag}
     restart: unless-stopped
     environment:
       APP_NAME: ${APP_NAME:-TimeDrop API}
@@ -63,9 +61,7 @@ services:
       - data
 
   notification-worker:
-    build:
-      context: .
-      dockerfile: backend/Dockerfile
+    image: ${TIMEDROP_API_IMAGE:?Set TIMEDROP_API_IMAGE to a published API image tag}
     restart: unless-stopped
     command: ["python", "-m", "app.notification_worker"]
     environment:
@@ -91,11 +87,7 @@ services:
       - data
 
   web:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: /api/v1
+    image: ${TIMEDROP_WEB_IMAGE:?Set TIMEDROP_WEB_IMAGE to a published web image tag}
     restart: unless-stopped
     ports:
       - "${WEB_PORT:-8080}:80"
