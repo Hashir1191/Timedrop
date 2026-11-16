@@ -163,8 +163,12 @@ jobs:
           build-args: |
             VITE_API_BASE_URL=/api/v1
           push: false
+          load: true
           tags: timedrop-web:ci
           cache-from: type=gha,scope=timedrop-web-ci
+
+      - name: Validate Nginx configuration with service DNS stub
+        run: docker run --rm --add-host api:127.0.0.1 timedrop-web:ci nginx -t
 
   workflow-yaml-validation:
     name: GitHub Actions workflow validation
