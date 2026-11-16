@@ -34,6 +34,7 @@ POSTGRES_USER=timedrop_app
 POSTGRES_PASSWORD=replace-with-a-long-url-safe-random-password
 SECRET_KEY=replace-with-a-unique-random-secret-of-at-least-32-characters
 CORS_ORIGINS=https://app.example.com
+TRUSTED_HOSTS=app.example.com,127.0.0.1
 NOTIFICATION_FROM_EMAIL=TimeDrop <notifications@example.com>
 ROUTE_PROVIDER_USER_AGENT=TimeDrop/1.0 (production; contact: ops@example.com)
 WEB_PORT=8080
