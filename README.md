@@ -571,3 +571,8 @@ Pushing a semantic version tag (for example v1.0.0) builds and publishes the API
 ## Phase 40 — System health monitoring
 
 The notification worker reports a database heartbeat, and the admin portal includes a System health page showing database connectivity, worker freshness, and database-wide notification queue counts. Admin API: GET /api/v1/operations/system-health. See docs/phase-40-system-health.md.
+
+
+## Phase 41 — Production security hardening
+
+Production API startup now requires an explicit trusted-host allowlist and HTTPS-only CORS origins. The Nginx frontend adds a restrictive Content Security Policy, HSTS, and a Permissions Policy that disables camera, microphone, and browser geolocation. See docs/phase-41-security-hardening.md.
