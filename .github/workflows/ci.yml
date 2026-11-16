@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - "phase-*"
   pull_request:
     branches:
       - main
@@ -89,7 +90,7 @@ jobs:
         run: docker compose -f docker-compose.production.yml config --quiet
 
       - name: Check operational script syntax
-        run: bash -n scripts/backup_postgres.sh scripts/restore_postgres_backup.sh scripts/smoke_test_release.sh
+        run: bash -n scripts/backup_postgres.sh scripts/restore_postgres_backup.sh scripts/smoke_test_release.sh scripts/deploy_staging.sh
 
   postgres-migrations:
     name: PostgreSQL migration integration
