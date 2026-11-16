@@ -6,14 +6,54 @@ import time
 import httpx
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from sqlalchemy.dialects.postgresql import insert as postgres_insert
+from sqlalchemy.dialects.sqlite import insert as sqlite_insert
 
 from app.config import settings
 from app.database import SessionLocal
-from app.models import Notification, NotificationDelivery, User
+from app.models import Notification, NotificationDelivery, User, WorkerHeartbeat
 from app.providers.msg91 import send_transactional_sms
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("timedrop.notification_worker")
+
+
+def _record_worker_heartbeat() -> None:
+    """Upsert a heartbeat so operations can distinguish an idle worker from a dead one."""
+    now = datetime.now(timezone.utc)
+    with SessionLocal() as db:
+        values = {
+            "worker_name": "notification-worker",
+            "last_seen_at": now,
+            "updated_at": now,
+        }
+        dialect = db.get_bind().dialect.name
+        if dialect == "postgresql":
+            statement = postgres_insert(WorkerHeartbeat).values(**values)
+            statement = statement.on_conflict_do_update(
+                index_elements=[WorkerHeartbeat.worker_name],
+                set_={"last_seen_at": now, "updated_at": now},
+            )
+            db.execute(statement)
+        elif dialect == "sqlite":
+            statement = sqlite_insert(WorkerHeartbeat).values(**values)
+            statement = statement.on_conflict_do_update(
+                index_elements=[WorkerHeartbeat.worker_name],
+                set_={"last_seen_at": now, "updated_at": now},
+            )
+            db.execute(statement)
+        else:
+            heartbeat = db.scalar(
+                select(WorkerHeartbeat)
+                .where(WorkerHeartbeat.worker_name == "notification-worker")
+                .with_for_update()
+            )
+            if heartbeat is None:
+                db.add(WorkerHeartbeat(**values))
+            else:
+                heartbeat.last_seen_at = now
+                heartbeat.updated_at = now
+        db.commit()
 
 
 def _retry_delay_seconds(attempts: int) -> int:
@@ -151,6 +191,7 @@ def main() -> None:
     logger.info("TimeDrop notification worker started")
     while True:
         try:
+            _record_worker_heartbeat()
             processed = process_one()
         except Exception:
             logger.exception("Notification worker iteration failed")
