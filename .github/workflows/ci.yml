@@ -76,8 +76,8 @@ jobs:
       POSTGRES_PASSWORD: ci-only-url-safe-password
       SECRET_KEY: ci-only-secret-key-not-for-deployment
       CORS_ORIGINS: https://timedrop.example.invalid
-      NOTIFICATION_FROM_EMAIL: TimeDrop <ci@example.invalid>
-      ROUTE_PROVIDER_USER_AGENT: TimeDrop/CI (contact: ci@example.invalid)
+      NOTIFICATION_FROM_EMAIL: "TimeDrop <ci@example.invalid>"
+      ROUTE_PROVIDER_USER_AGENT: "TimeDrop/CI (contact: ci@example.invalid)"
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
