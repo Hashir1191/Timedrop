@@ -1,0 +1,7 @@
+/* Phase 49 — parcel registration and serviceability feedback */
+.serviceability-hint { display:block; min-height:1.2em; margin-top:5px; color:var(--muted,#667085); font-size:12px; line-height:1.45; }
+.serviceability-hint.serviceable { color:#16805d; }
+.serviceability-hint.unavailable { color:#b54747; }
+.serviceability-retry { display:inline-flex; align-items:center; justify-content:center; min-height:34px; margin-top:7px; }
+
+.customer-create-fields { display:contents; margin:0; padding:0; border:0; min-width:0; }
