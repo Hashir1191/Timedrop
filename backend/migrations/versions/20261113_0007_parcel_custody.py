@@ -13,20 +13,28 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "parcel_custody_events",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("parcel_id", sa.Integer(), sa.ForeignKey("parcels.id", ondelete="CASCADE"), nullable=False),
-        sa.Column("actor_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("event_type", sa.String(length=24), nullable=False),
-        sa.Column("package_condition", sa.String(length=20), nullable=True),
-        sa.Column("received_from", sa.String(length=120), nullable=True),
-        sa.Column("handed_to", sa.String(length=120), nullable=True),
-        sa.Column("note", sa.String(length=500), nullable=True),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-    )
-    op.create_index("ix_parcel_custody_events_parcel_id", "parcel_custody_events", ["parcel_id"])
-    op.create_index("ix_parcel_custody_events_id", "parcel_custody_events", ["id"])
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    if not inspector.has_table("parcel_custody_events"):
+        op.create_table(
+            "parcel_custody_events",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("parcel_id", sa.Integer(), sa.ForeignKey("parcels.id", ondelete="CASCADE"), nullable=False),
+            sa.Column("actor_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
+            sa.Column("event_type", sa.String(length=24), nullable=False),
+            sa.Column("package_condition", sa.String(length=20), nullable=True),
+            sa.Column("received_from", sa.String(length=120), nullable=True),
+            sa.Column("handed_to", sa.String(length=120), nullable=True),
+            sa.Column("note", sa.String(length=500), nullable=True),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        )
+    indexes = {item["name"] for item in sa.inspect(bind).get_indexes("parcel_custody_events")}
+    for name, columns in (
+        ("ix_parcel_custody_events_parcel_id", ["parcel_id"]),
+        ("ix_parcel_custody_events_id", ["id"]),
+    ):
+        if name not in indexes:
+            op.create_index(name, "parcel_custody_events", columns, unique=False)
 
 
 def downgrade() -> None:

@@ -13,14 +13,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column(
-        "delivery_assignments",
-        sa.Column("estimated_delivery_start", sa.DateTime(timezone=True), nullable=True),
-    )
-    op.add_column(
-        "delivery_assignments",
-        sa.Column("estimated_delivery_end", sa.DateTime(timezone=True), nullable=True),
-    )
+    bind = op.get_bind()
+    columns = {column["name"] for column in sa.inspect(bind).get_columns("delivery_assignments")}
+    if "estimated_delivery_start" not in columns:
+        op.add_column(
+            "delivery_assignments",
+            sa.Column("estimated_delivery_start", sa.DateTime(timezone=True), nullable=True),
+        )
+    if "estimated_delivery_end" not in columns:
+        op.add_column(
+            "delivery_assignments",
+            sa.Column("estimated_delivery_end", sa.DateTime(timezone=True), nullable=True),
+        )
 
 
 def downgrade() -> None:

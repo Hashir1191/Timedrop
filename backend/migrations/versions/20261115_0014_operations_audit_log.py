@@ -13,22 +13,29 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.create_table(
-        "operations_audit_logs",
-        sa.Column("id", sa.Integer(), primary_key=True),
-        sa.Column("actor_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
-        sa.Column("action", sa.String(length=80), nullable=False),
-        sa.Column("entity_type", sa.String(length=50), nullable=False),
-        sa.Column("entity_id", sa.Integer(), nullable=False),
-        sa.Column("summary", sa.String(length=255), nullable=False),
-        sa.Column("changed_fields_json", sa.Text(), nullable=False),
-        sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
-    )
-    op.create_index("ix_operations_audit_logs_actor_id", "operations_audit_logs", ["actor_id"])
-    op.create_index("ix_operations_audit_logs_action", "operations_audit_logs", ["action"])
-    op.create_index("ix_operations_audit_logs_entity_type", "operations_audit_logs", ["entity_type"])
-    op.create_index("ix_operations_audit_logs_entity_id", "operations_audit_logs", ["entity_id"])
-    op.create_index("ix_operations_audit_logs_created_at", "operations_audit_logs", ["created_at"])
+    bind = op.get_bind()
+    if not sa.inspect(bind).has_table("operations_audit_logs"):
+        op.create_table(
+            "operations_audit_logs",
+            sa.Column("id", sa.Integer(), primary_key=True),
+            sa.Column("actor_id", sa.Integer(), sa.ForeignKey("users.id"), nullable=False),
+            sa.Column("action", sa.String(length=80), nullable=False),
+            sa.Column("entity_type", sa.String(length=50), nullable=False),
+            sa.Column("entity_id", sa.Integer(), nullable=False),
+            sa.Column("summary", sa.String(length=255), nullable=False),
+            sa.Column("changed_fields_json", sa.Text(), nullable=False),
+            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+        )
+    indexes = {item["name"] for item in sa.inspect(bind).get_indexes("operations_audit_logs")}
+    for name, column in (
+        ("ix_operations_audit_logs_actor_id", "actor_id"),
+        ("ix_operations_audit_logs_action", "action"),
+        ("ix_operations_audit_logs_entity_type", "entity_type"),
+        ("ix_operations_audit_logs_entity_id", "entity_id"),
+        ("ix_operations_audit_logs_created_at", "created_at"),
+    ):
+        if name not in indexes:
+            op.create_index(name, "operations_audit_logs", [column], unique=False)
 
 
 def downgrade() -> None:

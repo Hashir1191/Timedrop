@@ -13,7 +13,9 @@ depends_on = None
 
 
 def upgrade() -> None:
-    op.add_column("notifications", sa.Column("action_url", sa.String(length=240), nullable=True))
+    columns = {item["name"] for item in sa.inspect(op.get_bind()).get_columns("notifications")}
+    if "action_url" not in columns:
+        op.add_column("notifications", sa.Column("action_url", sa.String(length=240), nullable=True))
 
 
 def downgrade() -> None:
