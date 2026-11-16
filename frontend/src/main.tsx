@@ -20,6 +20,7 @@ import "./communication-settings.css";
 import "./notification-queue.css";
 import "./system-health.css";
 import "./phase-46-experience.css";
+import "./phase-47-tracking.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
