@@ -556,3 +556,8 @@ The notification worker uses a configurable lease and capped exponential backoff
 ## Phase 37 — Operations UI polish
 
 The admin portal includes a responsive Notification queue workspace for reviewing masked external delivery attempts, filtering by status/channel, and requeuing failed jobs. The page shows API-backed states and counts from the currently loaded result set. See docs/phase-37-ui-polish.md.
+
+
+## Phase 38 — Integration and end-to-end verification
+
+CI now exercises a complete synthetic customer-to-partner delivery journey, including booking, assignment, one-time proof of delivery, customer timeline, delivery events, notifications, and access isolation. A separate PostgreSQL 16 CI job applies the Alembic chain to a fresh database. See docs/phase-38-integration-e2e.md.
