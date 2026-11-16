@@ -203,7 +203,7 @@ class ParcelCreate(BaseModel):
         normalized = value.strip()
         digits = "".join(character for character in normalized if character.isdigit())
         if (
-            not re.fullmatch(r"\\+?[0-9][0-9\\s().-]*", normalized)
+            not re.fullmatch(r"[+]?[0-9][0-9 ().-]*", normalized)
             or not 10 <= len(digits) <= 15
         ):
             raise ValueError("Enter a valid phone number containing 10 to 15 digits.")
