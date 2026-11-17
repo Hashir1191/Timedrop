@@ -33,7 +33,7 @@ def upgrade() -> None:
             "delivery_blackout_dates",
             ["delivery_date"],
         )
-    op.alter_column("delivery_blackout_dates", "is_active", server_default=None)
+    # Keep the server default: SQLite cannot DROP DEFAULT with ALTER COLUMN.
 
 
 def downgrade() -> None:
