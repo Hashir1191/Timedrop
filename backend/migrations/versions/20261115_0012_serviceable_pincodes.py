@@ -29,7 +29,7 @@ def upgrade() -> None:
     indexes = {item["name"] for item in sa.inspect(bind).get_indexes("serviceable_pincodes")}
     if "ix_serviceable_pincodes_pincode" not in indexes:
         op.create_index("ix_serviceable_pincodes_pincode", "serviceable_pincodes", ["pincode"])
-    op.alter_column("serviceable_pincodes", "is_active", server_default=None)
+    # Keep the server default: SQLite cannot DROP DEFAULT with ALTER COLUMN.
 
 
 def downgrade() -> None:
