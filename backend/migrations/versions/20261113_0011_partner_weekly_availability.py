@@ -47,8 +47,8 @@ def upgrade() -> None:
             "delivery_partner_availability",
             ["partner_id"],
         )
-    op.alter_column("delivery_partners", "availability_enabled", server_default=None)
-    op.alter_column("delivery_partner_availability", "is_active", server_default=None)
+    # Keep the server defaults: SQLite cannot DROP DEFAULT with ALTER COLUMN.
+    # The defaults are also useful when older clients omit these fields.
 
 
 def downgrade() -> None:
