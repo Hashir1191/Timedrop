@@ -576,3 +576,7 @@ The notification worker reports a database heartbeat, and the admin portal inclu
 ## Phase 41 — Production security hardening
 
 Production API startup now requires an explicit trusted-host allowlist and HTTPS-only CORS origins. The Nginx frontend adds a restrictive Content Security Policy, HSTS, and a Permissions Policy that disables camera, microphone, and browser geolocation. See docs/phase-41-security-hardening.md.
+
+## Phase 50 — SQLite migration portability
+
+Historical migrations 0011–0013 no longer attempt to remove server defaults using SQLite-unsupported `ALTER COLUMN` syntax. The defaults are retained, with no revision identifiers or schema relationships changed. CI now runs the full Alembic chain against both a fresh SQLite database and PostgreSQL 16, verifies the head revision, and repeats the upgrade to check idempotence. See [docs/phase-50-sqlite-migration-parity.md](docs/phase-50-sqlite-migration-parity.md).
