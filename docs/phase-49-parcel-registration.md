@@ -8,6 +8,10 @@
 - Recheck the exact PIN being submitted and stop parcel creation if the PIN changes during validation.
 - Preserve the existing serviceability and parcel-creation API contracts.
 
+- Surface duplicate tracking-number conflicts directly beside the tracking field, with an actionable message.
+- Clear the field-level conflict as soon as the tracking number is edited so corrected submissions are not blocked by stale feedback.
+- Add a regression test proving a duplicate tracking number returns HTTP 409 and does not create or mutate a parcel.
+
 ## Acceptance checks
 - A delayed response for an older PIN never replaces the latest coverage state.
 - Editing the PIN clears stale success, failure, and lookup-error feedback.

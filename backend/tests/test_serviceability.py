@@ -146,3 +146,39 @@ def test_only_admin_can_manage_service_areas_and_duplicate_pincodes_are_rejected
     duplicate = client.post("/api/v1/operations/service-areas/", headers=admin, json=payload)
     assert duplicate.status_code == 409
     assert client.get("/api/v1/serviceability/012345").status_code == 422
+
+
+
+def test_duplicate_parcel_tracking_number_returns_actionable_conflict(client):
+    client.post("/api/v1/auth/register", json={
+        "email": "duplicate-tracking-customer@example.com",
+        "full_name": "Duplicate Tracking Customer",
+        "password": "StrongCustomerPassword123!",
+    })
+    customer = auth(client, "duplicate-tracking-customer@example.com", "StrongCustomerPassword123!")
+    admin = auth(client, "service-ops@example.com", "StrongServiceAdminPassword123!")
+    area = client.post(
+        "/api/v1/operations/service-areas/",
+        headers=admin,
+        json={"pincode": "211001", "city": "Prayagraj", "state": "Uttar Pradesh"},
+    )
+    assert area.status_code == 201
+
+    first = client.post(
+        "/api/v1/parcels/", headers=customer,
+        json=parcel_payload("TD-DUPLICATE-TRACKING-001"),
+    )
+    assert first.status_code == 201
+
+    duplicate = client.post(
+        "/api/v1/parcels/", headers=customer,
+        json=parcel_payload("TD-DUPLICATE-TRACKING-001"),
+    )
+    assert duplicate.status_code == 409
+    assert duplicate.json()["detail"] == "A parcel with this tracking number already exists."
+
+    # A rejected duplicate must not create a second parcel or alter the original.
+    rows = client.get("/api/v1/parcels/", headers=customer)
+    assert rows.status_code == 200
+    assert len(rows.json()) == 1
+    assert rows.json()[0]["id"] == first.json()["id"]

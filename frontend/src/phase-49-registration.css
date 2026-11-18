@@ -5,3 +5,7 @@
 .serviceability-retry { display:inline-flex; align-items:center; justify-content:center; min-height:34px; margin-top:7px; }
 
 .customer-create-fields { display:contents; margin:0; padding:0; border:0; min-width:0; }
+
+.tracking-number-error { display:block; margin-top:6px; color:#b54747; font-size:12px; line-height:1.45; }
+.customer-create-form input[aria-invalid="true"] { border-color:#b54747; }
+.customer-create-form input[aria-invalid="true"]:focus-visible { outline-color:#b54747; }
