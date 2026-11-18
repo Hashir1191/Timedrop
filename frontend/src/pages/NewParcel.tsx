@@ -2,18 +2,18 @@ import { useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight, CalendarClock, CheckCircle2, MapPin, Package, ShieldCheck } from "lucide-react";
-import { checkPincodeServiceability, createParcel } from "../api";
+import { ApiError, checkPincodeServiceability, createParcel } from "../api";
 import { useAuth } from "../auth";
 
 function todayLocal(){const d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,"0")}-${String(d.getDate()).padStart(2,"0")}`;}
 
 export default function NewParcel() {
- const {token}=useAuth(); const navigate=useNavigate(); const [busy,setBusy]=useState(false); const [error,setError]=useState("");
+ const {token}=useAuth(); const navigate=useNavigate(); const [busy,setBusy]=useState(false); const [error,setError]=useState(""); const [trackingError,setTrackingError]=useState("");
  const [coverage,setCoverage]=useState<import("../types").ServiceabilityCheck|null>(null); const [checkingCoverage,setCheckingCoverage]=useState(false); const [coverageError,setCoverageError]=useState("");
  const coverageRequestId=useRef(0); const currentPincode=useRef("");
  useEffect(()=>()=>{coverageRequestId.current+=1;},[]);
  const [form,setForm]=useState({tracking_number:"",recipient_name:"",phone:"",address_line:"",city:"",state:"",pincode:"",delivery_instructions:"",preferred_delivery_date:""});
- function update(key:string,value:string){setForm(old=>({...old,[key]:value}));if(key==="pincode"){currentPincode.current=value;coverageRequestId.current+=1;setCoverage(null);setCoverageError("");setCheckingCoverage(false);}}
+ function update(key:string,value:string){setForm(old=>({...old,[key]:value}));if(key==="tracking_number")setTrackingError("");if(key==="pincode"){currentPincode.current=value;coverageRequestId.current+=1;setCoverage(null);setCoverageError("");setCheckingCoverage(false);}}
  async function checkCoverage(pincode=form.pincode):Promise<boolean|null>{
   if(!token||! /^[1-9][0-9]{5}$/.test(pincode))return null;
   if(coverage?.pincode===pincode)return coverage.serviceable;
@@ -35,7 +35,7 @@ export default function NewParcel() {
   if(currentPincode.current!==submittedPincode)return;
   if(!isServiceable){setError("This PIN code is not currently covered by TimeDrop. Please use a supported delivery area.");return;}
   const parcel=await createParcel(token,{...form,pincode:submittedPincode,delivery_instructions:form.delivery_instructions||undefined,preferred_delivery_date:form.preferred_delivery_date||undefined});navigate(`/schedule/${parcel.id}`);
- }catch(err){setError(err instanceof Error?err.message:"Unable to create parcel.");}finally{setBusy(false);}}
+ }catch(err){if(err instanceof ApiError&&err.status===409&&/tracking number/i.test(err.message)){setTrackingError(err.message);setError("This tracking number is already registered. Enter a unique parcel reference.");}else{setError(err instanceof Error?err.message:"Unable to create parcel.");}}finally{setBusy(false);}}
  return <div className="customer-booking-workspace">
   <div className="page-heading customer-booking-heading"><div><div className="eyebrow">NEW DELIVERY · STEP 1 OF 2</div><h1>Create a parcel</h1><p>Start with the recipient and destination. You can choose a delivery time next.</p></div><span className="customer-booking-step"><span>01</span> Parcel details <i/> <span>02</span> Delivery slot</span></div>
   {error&&<div className="alert-error">{error}</div>}
@@ -45,7 +45,7 @@ export default function NewParcel() {
     <form className="customer-form customer-create-form" onSubmit={submit}>
      <fieldset className="customer-create-fields" disabled={busy}>
      <div className="customer-form-section-label"><span>01</span><div><strong>Parcel reference</strong><small>Identify the shipment.</small></div></div>
-     <label>Tracking number<input required minLength={3} maxLength={64} value={form.tracking_number} onChange={e=>update("tracking_number",e.target.value.trim())} placeholder="TD-2026-0001"/></label>
+     <label>Tracking number<input required minLength={3} maxLength={64} value={form.tracking_number} onChange={e=>update("tracking_number",e.target.value.trim())} aria-invalid={Boolean(trackingError)} aria-describedby={trackingError?"tracking-number-feedback":undefined} placeholder="TD-2026-0001"/>{trackingError&&<small id="tracking-number-feedback" className="tracking-number-error" role="alert">{trackingError}</small>}</label>
      <div className="customer-form-section-label"><span>02</span><div><strong>Recipient information</strong><small>Who will receive this parcel?</small></div></div>
      <label>Recipient full name<input required minLength={2} value={form.recipient_name} onChange={e=>update("recipient_name",e.target.value)} placeholder="Recipient's full name"/></label>
      <label>Contact phone<input required minLength={10} maxLength={20} value={form.phone} onChange={e=>update("phone",e.target.value)} placeholder="10-digit mobile number"/></label>
