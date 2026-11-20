@@ -60,8 +60,11 @@ export default function CustomerParcels() {
     } catch (err) {
       if (requestId === requestSequence.current) setError(err instanceof Error ? err.message : "Unable to load parcels.");
     } finally {
-      requestInFlight.current = false;
-      if (requestId === requestSequence.current) { setLoading(false); setRefreshing(false); }
+      if (requestId === requestSequence.current) {
+        requestInFlight.current = false;
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
   }, [token]);
 
