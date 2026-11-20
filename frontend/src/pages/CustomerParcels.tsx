@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarClock, Clock3, Package, Plus, RefreshCw, Search, ShieldCheck, Truck } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
 import { getParcels, issueDeliveryCode, getMyTracking } from "../api";
@@ -10,6 +10,23 @@ import type { DeliveryAssignment, Parcel } from "../types";
 
 type Filter = "all" | "active" | "delivered" | "failed" | "cancelled";
 
+const TRACKING_REFRESH_MS = 60_000;
+
+function formatEtaWindow(start: string, end: string): string | null {
+  const startDate = new Date(start);
+  const endDate = new Date(end);
+  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime()) || endDate < startDate) return null;
+  const dateFormatter = new Intl.DateTimeFormat("en-IN", { day: "numeric", month: "short", year: "numeric" });
+  const timeFormatter = new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" });
+  const startLabel = `${dateFormatter.format(startDate)}, ${timeFormatter.format(startDate)}`;
+  const endLabel = dateFormatter.format(startDate) === dateFormatter.format(endDate) ? timeFormatter.format(endDate) : `${dateFormatter.format(endDate)}, ${timeFormatter.format(endDate)}`;
+  return `${startLabel} – ${endLabel}`;
+}
+
+function formatRefreshTime(value: Date): string {
+  return new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(value);
+}
+
 export default function CustomerParcels() {
   const { token } = useAuth();
   const [searchParams] = useSearchParams();
@@ -20,26 +37,49 @@ export default function CustomerParcels() {
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [tracking, setTracking] = useState<DeliveryAssignment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [error, setError] = useState("");
+  const requestInFlight = useRef(false);
+  const requestSequence = useRef(0);
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
-  async function load() {
-    if (!token) return;
-    setLoading(true);
+  const load = useCallback(async (silent = false) => {
+    if (!token || requestInFlight.current) return;
+    requestInFlight.current = true;
+    const requestId = ++requestSequence.current;
+    if (silent) setRefreshing(true); else setLoading(true);
     setError("");
     try {
       const [parcelRows, trackingRows] = await Promise.all([getParcels(token), getMyTracking(token)]);
+      if (requestId !== requestSequence.current) return;
       setParcels(parcelRows);
       setTracking(trackingRows);
+      setLastUpdated(new Date());
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Unable to load parcels.");
+      if (requestId === requestSequence.current) setError(err instanceof Error ? err.message : "Unable to load parcels.");
     } finally {
-      setLoading(false);
+      if (requestId === requestSequence.current) {
+        requestInFlight.current = false;
+        setLoading(false);
+        setRefreshing(false);
+      }
     }
-  }
+  }, [token]);
 
-  useEffect(() => { void load(); }, [token]);
+  useEffect(() => {
+    void load();
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void load(true); };
+    const intervalId = window.setInterval(() => { if (document.visibilityState === "visible") void load(true); }, TRACKING_REFRESH_MS);
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      requestSequence.current += 1;
+      requestInFlight.current = false;
+      window.clearInterval(intervalId);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [load]);
 
   async function generateCode(parcelId: number) {
     if (!token) return;
@@ -74,11 +114,12 @@ export default function CustomerParcels() {
   return <div className="customer-parcels-page">
     <div className="page-heading customer-list-heading">
       <div><div className="eyebrow">YOUR DELIVERY HISTORY</div><h1>My parcels</h1><p>Follow every parcel from registration through delivery.</p></div>
-      <div className="customer-heading-actions"><button className="secondary-button" onClick={() => void load()} disabled={loading}><RefreshCw size={15}/> Refresh</button><Link className="primary-button" to="/new-parcel"><Plus size={16}/> New parcel</Link></div>
+      <div className="customer-heading-actions"><button className="secondary-button" onClick={() => void load()} disabled={loading || refreshing}><RefreshCw size={15} className={refreshing ? "tracking-refresh-icon" : undefined}/> {refreshing ? "Updating…" : "Refresh"}</button><Link className="primary-button" to="/new-parcel"><Plus size={16}/> New parcel</Link></div>
     </div>
 
-    {error && <div className="alert-error">{error}</div>}
+    {error && <div className="alert-error customer-tracking-error" role="alert"><span>{error}</span><button type="button" className="secondary-button" onClick={() => void load()} disabled={loading || refreshing}>Try again</button></div>}
     {codeError && <div className="alert-error">{codeError}</div>}
+    {lastUpdated && <p className="customer-tracking-updated" role="status">Tracking last updated at {formatRefreshTime(lastUpdated)} · Refreshes automatically while this page is open</p>}
 
     <section className="customer-parcel-toolbar">
       <label className="customer-search"><Search size={17}/><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search tracking number, recipient or city" aria-label="Search parcels"/></label>
@@ -106,8 +147,8 @@ export default function CustomerParcels() {
             </div>
             <div className="customer-parcel-card-footer">
               <div className="customer-parcel-eta">
-                {assignment?.estimated_delivery_start && assignment.estimated_delivery_end ? <><Clock3 size={14}/><span>Estimated arrival <strong>{new Date(assignment.estimated_delivery_start).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})} – {new Date(assignment.estimated_delivery_end).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</strong></span></> :
-                  assignment ? <><Clock3 size={14}/><span>Delivery estimate <strong>Awaiting update</strong></span></> :
+                {assignment?.estimated_delivery_start && assignment.estimated_delivery_end && formatEtaWindow(assignment.estimated_delivery_start, assignment.estimated_delivery_end) ? <><Clock3 size={14}/><span>Estimated arrival <strong>{formatEtaWindow(assignment.estimated_delivery_start, assignment.estimated_delivery_end)}</strong></span></> :
+                  assignment ? <><Clock3 size={14}/><span>Delivery estimate <strong>Awaiting a confirmed time window</strong></span></> :
                   <><ShieldCheck size={14}/><span>Delivery updates <strong>Shown here as they become available</strong></span></>}
               </div>
               <div className="customer-parcel-actions">

@@ -1,0 +1,8 @@
+/* Phase 50 — customer tracking freshness and ETA presentation */
+.customer-tracking-updated { display:flex; align-items:center; gap:7px; margin:-8px 0 14px; color:var(--muted,#7d8ba1); font-size:11px; line-height:1.5; }
+.customer-tracking-error { display:flex; align-items:center; justify-content:space-between; gap:12px; }
+.customer-tracking-error .secondary-button { flex:0 0 auto; min-height:36px; }
+.tracking-refresh-icon { animation:tracking-refresh-spin .8s linear infinite; }
+@keyframes tracking-refresh-spin { to { transform:rotate(360deg); } }
+@media (max-width:700px) { .customer-tracking-error { align-items:stretch; flex-direction:column; } .customer-tracking-error .secondary-button { width:100%; min-height:42px; } .customer-tracking-updated { margin-top:-4px; } }
+@media (prefers-reduced-motion:reduce) { .tracking-refresh-icon { animation:none; } }
