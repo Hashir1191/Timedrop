@@ -72,6 +72,7 @@ export default function CustomerParcels() {
     document.addEventListener("visibilitychange", refreshWhenVisible);
     return () => {
       requestSequence.current += 1;
+      requestInFlight.current = false;
       window.clearInterval(intervalId);
       document.removeEventListener("visibilitychange", refreshWhenVisible);
     };
