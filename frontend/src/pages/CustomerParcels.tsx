@@ -19,8 +19,16 @@ function formatDateTime(value: string | null | undefined): string {
   return new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
 }
 
+function formatTime(value: string | null | undefined): string {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-IN", { hour: "2-digit", minute: "2-digit" }).format(date);
+}
+
 function DeliveryProgress({ status }: { status: string }) {
-  const current = DELIVERY_STEPS.indexOf(status);
+  const normalizedStatus = status === "accepted" ? "assigned" : status;
+  const current = DELIVERY_STEPS.indexOf(normalizedStatus);
   if (status === "failed" || status === "cancelled") {
     return <div className={`customer-progress-terminal ${status}`} role="status">
       <span aria-hidden="true" /> {status === "failed" ? "Delivery attempt unsuccessful" : "Delivery cancelled"}
@@ -125,7 +133,7 @@ export default function CustomerParcels() {
         const canManage = !["delivered","failed","cancelled"].includes(parcel.status);
         const progressStatus = assignment?.status || parcel.status;
         const etaStart = formatDateTime(assignment?.estimated_delivery_start);
-        const etaEnd = formatDateTime(assignment?.estimated_delivery_end);
+        const etaEnd = formatTime(assignment?.estimated_delivery_end);
         const updatedAt = formatDateTime(assignment?.updated_at);
         return <article className={`customer-parcel-card ${focusParcelId===parcel.id?"notification-target-row":""}`} key={parcel.id} id={`parcel-${parcel.id}`}>
           <div className="customer-parcel-card-main">
@@ -142,7 +150,7 @@ export default function CustomerParcels() {
             <DeliveryProgress status={progressStatus}/>
             <div className="customer-parcel-card-footer">
               <div className="customer-parcel-eta">
-                {etaStart && etaEnd ? <><Clock3 size={14}/><span>Estimated arrival <strong>{etaStart} – {etaEnd.split(" at ").pop()}</strong>{updatedAt && <small>Updated {updatedAt}</small>}</span></> :
+                {etaStart && etaEnd ? <><Clock3 size={14}/><span>Estimated arrival <strong>{etaStart} – {etaEnd}</strong>{updatedAt && <small>Updated {updatedAt}</small>}</span></> :
                   assignment ? <><Clock3 size={14}/><span>Delivery estimate <strong>Awaiting partner update</strong>{updatedAt && <small>Last updated {updatedAt}</small>}</span></> :
                   <><ShieldCheck size={14}/><span>Delivery updates <strong>Shown here as they become available</strong></span></>}
               </div>
