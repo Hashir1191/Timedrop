@@ -1,0 +1,16 @@
+/* Phase 50 — customer delivery progress and ETA clarity */
+.customer-delivery-progress{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin:18px 0 16px;padding:14px 15px;background:#f8faff;border:1px solid #e8eef8;border-radius:10px}
+.customer-progress-step{display:grid;grid-template-columns:22px minmax(0,1fr);align-items:center;gap:7px;min-width:0;color:#9aa6b7}
+.customer-progress-marker{width:21px;height:21px;border:1px solid #d7dfeb;border-radius:50%;display:grid;place-items:center;background:#fff;font-size:10px;font-weight:700}
+.customer-progress-label{font-size:10px;line-height:1.3;font-weight:600}
+.customer-progress-step.complete{color:#27845f}
+.customer-progress-step.complete .customer-progress-marker{border-color:#b8e5d0;background:#e7f7ef;color:#21845b}
+.customer-progress-step.current{color:#326fd5}
+.customer-progress-step.current .customer-progress-marker{border:2px solid #5b8ce3;color:#326fd5;background:#edf3ff}
+.customer-progress-terminal{display:flex;align-items:center;gap:8px;margin:14px 0;padding:11px 13px;border-radius:8px;background:#fff5f4;color:#b54747;font-size:11px;font-weight:650}
+.customer-progress-terminal.cancelled{background:#f3f4f6;color:#667085}
+.customer-progress-terminal>span{width:8px;height:8px;border-radius:50%;background:currentColor}
+.customer-parcel-eta small{display:block;margin-top:4px;color:#8a96a7;font-size:10px}
+.customer-parcel-eta>span{line-height:1.5}
+@media(max-width:620px){.customer-delivery-progress{gap:5px;padding:11px 8px}.customer-progress-step{grid-template-columns:18px minmax(0,1fr);gap:4px}.customer-progress-marker{width:18px;height:18px;font-size:9px}.customer-progress-label{font-size:8px;overflow-wrap:anywhere}.customer-parcel-card-footer{align-items:flex-start;gap:12px;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.customer-progress-marker{transition:none}}
