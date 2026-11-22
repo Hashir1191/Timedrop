@@ -304,3 +304,122 @@ def create_parcel_registration_receipt(db: Session, parcel: Parcel, generated_by
     db.add(record)
     db.flush()
     return record
+
+
+def build_delivery_proof(parcel: Parcel, assignment, delivery_event, document_number: str, verification_code: str, issued_at: datetime) -> bytes:
+    """Build a customer-facing proof of delivery from a completed, OTP-verified delivery."""
+    buffer = BytesIO()
+    navy = colors.HexColor("#102A58")
+    blue = colors.HexColor("#2877F5")
+    pale = colors.HexColor("#F3F7FD")
+    border = colors.HexColor("#DCE6F2")
+    ink = colors.HexColor("#172B4D")
+    muted = colors.HexColor("#687B96")
+    green = colors.HexColor("#14966B")
+    page_width, page_height = A4
+
+    def page_chrome(canvas, document):
+        canvas.saveState()
+        canvas.setFillColor(blue)
+        canvas.rect(0, page_height - 2.2 * mm, page_width, 2.2 * mm, fill=1, stroke=0)
+        canvas.setStrokeColor(border)
+        canvas.line(15 * mm, 10 * mm, page_width - 15 * mm, 10 * mm)
+        canvas.setFont("Helvetica", 6.5)
+        canvas.setFillColor(muted)
+        canvas.drawString(15 * mm, 6 * mm, "TIMEDROP  /  SMART PARCEL DELIVERY")
+        canvas.drawRightString(page_width - 15 * mm, 6 * mm, "PROOF OF DELIVERY")
+        canvas.restoreState()
+
+    doc = SimpleDocTemplate(
+        buffer, pagesize=A4, rightMargin=18 * mm, leftMargin=18 * mm,
+        topMargin=10 * mm, bottomMargin=16 * mm,
+        title="TimeDrop Proof of Delivery", author="TimeDrop",
+        subject=f"Verified delivery for {parcel.tracking_number}",
+    )
+    styles = getSampleStyleSheet()
+    eyebrow = ParagraphStyle("TDProofEyebrow", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=7, leading=9, textColor=blue)
+    heading = ParagraphStyle("TDProofHeading", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=25, leading=30, textColor=navy, spaceAfter=3)
+    intro = ParagraphStyle("TDProofIntro", parent=styles["Normal"], fontSize=9, leading=13, textColor=muted)
+    section = ParagraphStyle("TDProofSection", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=10, leading=13, textColor=navy, spaceBefore=10, spaceAfter=5)
+    label = ParagraphStyle("TDProofLabel", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=7, leading=9, textColor=muted)
+    value = ParagraphStyle("TDProofValue", parent=styles["Normal"], fontSize=10, leading=14, textColor=ink)
+    strong = ParagraphStyle("TDProofStrong", parent=value, fontName="Helvetica-Bold", fontSize=12, leading=15, textColor=navy)
+    small = ParagraphStyle("TDProofSmall", parent=styles["Normal"], fontSize=7.5, leading=10, textColor=muted)
+
+    delivered_at = assignment.delivered_at
+    if delivered_at.tzinfo is None:
+        delivered_at = delivered_at.replace(tzinfo=timezone.utc)
+    delivered_text = delivered_at.astimezone(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
+    issued_text = issued_at.astimezone(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
+    address = ", ".join(part.strip() for part in [parcel.address_line, parcel.city, parcel.state, parcel.pincode] if part and part.strip())
+    address = _safe(re.sub(r"\\s*,\\s*", ", ", re.sub(r"\\s+", " ", address)))
+    recipient = _safe(assignment.proof_recipient_name or "")
+    tracking = _safe(parcel.tracking_number)
+    barcode = TrackingBarcode(parcel.tracking_number)
+    barcode.width = 66 * mm
+
+    story = [
+        TimeDropLogo(),
+        Spacer(1, 2 * mm),
+        Paragraph("DELIVERY CONFIRMATION", eyebrow),
+        Paragraph("Proof of delivery", heading),
+        Paragraph("This document records a completed delivery confirmed using the recipient's one-time verification code.", intro),
+        Spacer(1, 6 * mm),
+    ]
+    status_panel = Table([[
+        [Paragraph("DELIVERY STATUS", label), Paragraph("DELIVERED", ParagraphStyle("TDProofDelivered", parent=strong, textColor=green))],
+        [Paragraph("TRACKING NUMBER", label), Paragraph(tracking, strong)],
+        [Paragraph("DELIVERED AT", label), Paragraph(delivered_text, value)],
+    ]], colWidths=[48 * mm, 58 * mm, 64 * mm], rowHeights=[23 * mm])
+    status_panel.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.7, border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 9), ("RIGHTPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.extend([status_panel, Paragraph("Delivery details", section)])
+    details = Table([[
+        [Paragraph("RECIPIENT", label), Spacer(1, 2 * mm), Paragraph(recipient, strong)],
+        [Paragraph("DELIVERY ADDRESS", label), Spacer(1, 2 * mm), Paragraph(address, value)],
+    ]], colWidths=[72 * mm, 98 * mm], rowHeights=[30 * mm])
+    details.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.7, border), ("INNERGRID", (0, 0), (-1, -1), 0.5, border),
+        ("VALIGN", (0, 0), (-1, -1), "TOP"), ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 9),
+    ]))
+    story.extend([details, Paragraph("Delivery verification", section)])
+    verification = Table([[
+        [Paragraph("CONFIRMATION METHOD", label), Paragraph("One-time recipient verification code", strong),
+         Paragraph("The delivery partner submitted a valid, unexpired code issued to the parcel owner. The code itself is not included in this document.", small)],
+        [Paragraph("DELIVERY EVENT", label), Paragraph(f"Event #{delivery_event.id}", strong),
+         Paragraph(f"Recorded by the assigned delivery partner · {delivered_text}", small)],
+    ]], colWidths=[90 * mm, 80 * mm])
+    verification.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.white), ("BOX", (0, 0), (-1, -1), 0.7, border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+    ]))
+    story.extend([verification, Spacer(1, 6 * mm)])
+    authenticity = Table([[
+        [Paragraph("DOCUMENT NUMBER", label), Paragraph(_safe(document_number), strong)],
+        [Paragraph("VERIFICATION CODE", label), Paragraph(_safe(verification_code), value)],
+        [Paragraph("ISSUED ON", label), Paragraph(issued_text, value)],
+    ]], colWidths=[56 * mm, 70 * mm, 44 * mm], rowHeights=[20 * mm])
+    authenticity.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.7, border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([authenticity, Spacer(1, 5 * mm)])
+    barcode_panel = Table([[Paragraph("PARCEL TRACKING BARCODE", label), barcode]], colWidths=[70 * mm, 100 * mm])
+    barcode_panel.setStyle(TableStyle([
+        ("BOX", (0, 0), (-1, -1), 0.7, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("TOPPADDING", (0, 0), (-1, -1), 5), ("BOTTOMPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([barcode_panel, Spacer(1, 5 * mm), Paragraph(
+        "This proof records the delivery confirmation held by TimeDrop. It does not represent a handwritten signature or photographic evidence of the parcel at the delivery location.",
+        small,
+    )])
+    doc.build(story, onFirstPage=page_chrome, onLaterPages=page_chrome)
+    return buffer.getvalue()
