@@ -180,12 +180,14 @@ def get_parcel_timeline(
             "failed": "Delivery attempt unsuccessful",
             "delivered": "Parcel delivered",
             "eta_updated": "Estimated arrival updated",
+            "handover_signed": "Delivery partner signed parcel handover",
         }
         for event in delivery_events:
-            event_status = "eta_updated" if event.event_type == "eta_updated" else event.to_status
+            event_status = event.event_type if event.event_type in {"eta_updated", "handover_signed"} else event.to_status
             title = titles.get(event_status, titles.get(event.event_type, "Delivery progress updated"))
             descriptions = {
                 "assigned": "A delivery partner has been assigned to your parcel.",
+                "handover_signed": "Your delivery partner acknowledged physical receipt of the parcel from operations.",
                 "accepted": "The delivery partner has accepted the assignment.",
                 "out_for_delivery": "Your parcel is on its way to the delivery address.",
                 "failed": "The delivery attempt was unsuccessful. Operations will coordinate the next step.",
