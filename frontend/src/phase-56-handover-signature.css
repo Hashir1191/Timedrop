@@ -1,0 +1,25 @@
+/* Phase 56 — electronic parcel handover acknowledgement */
+.handover-signature-panel{display:grid;gap:11px;padding:15px;margin:0 0 14px;border:1px solid #d9e4f2;border-radius:13px;background:#f8faff}
+.handover-signature-heading{display:flex;align-items:center;gap:10px}
+.handover-signature-heading>span{width:33px;height:33px;display:grid;place-items:center;border-radius:10px;background:#e8efff;color:#476bc1}
+.handover-signature-heading>div{min-width:0}
+.handover-signature-heading strong{color:#2e4261;font-size:11px}
+.handover-signature-heading p{margin:4px 0 0;color:#8291a8;font-size:9px;line-height:1.5}
+.handover-signature-signer{display:grid;gap:4px;padding:9px 11px;border:1px solid #e4eaf3;border-radius:8px;background:#fff}
+.handover-signature-signer span{color:#8b9ab0;font-size:7px;font-weight:850;letter-spacing:1px}
+.handover-signature-signer strong{color:#344b70;font-size:10px}
+.handover-signature-canvas-wrap{position:relative;overflow:hidden;border:1px dashed #9aacc9;border-radius:10px;background:repeating-linear-gradient(0deg,#fff,#fff 31px,#f0f4fa 32px)}
+.handover-signature-canvas-wrap canvas{display:block;width:100%;height:150px;touch-action:none;cursor:crosshair}
+.handover-signature-canvas-wrap>span{position:absolute;right:10px;bottom:7px;color:#a0adbf;font-size:8px;pointer-events:none}
+.handover-signature-actions{display:flex;justify-content:flex-end}
+.handover-signature-actions .secondary-button{font-size:9px}
+.handover-signature-consent{display:flex;align-items:flex-start;gap:8px;padding:10px;border:1px solid #e2e9f2;border-radius:9px;background:#fff;color:#63748d;font-size:9px;line-height:1.6}
+.handover-signature-consent input{flex:0 0 auto;margin-top:2px;accent-color:#4569c5}
+.handover-signature-panel>.primary-button{justify-self:start}
+.handover-signature-legal{color:#8b98aa;font-size:8px;line-height:1.6}
+.handover-signature-saved,.partner-handover-confirmed{display:flex;align-items:center;gap:8px;padding:9px 11px;border:1px solid #cce8d9;border-radius:9px;background:#f0faf4;color:#267d59;font-size:9px}
+.partner-handover-confirmed{margin:0 0 13px}
+.partner-handover-confirmed span{display:grid;gap:3px}
+.partner-handover-confirmed strong{font-size:10px}
+.partner-handover-confirmed small{color:#6f9a85;font-size:8px}
+@media(max-width:560px){.handover-signature-panel{padding:12px}.handover-signature-canvas-wrap canvas{height:130px}}
