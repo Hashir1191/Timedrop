@@ -96,7 +96,12 @@ class TrackingBarcode(Flowable):
     def draw(self):
         barcode = code128.Code128(self.value, barHeight=12 * mm, barWidth=0.34 * mm, humanReadable=False)
         barcode_width = barcode.width
-        barcode.drawOn(self.canv, max(0, (self.width - barcode_width) / 2), 4 * mm)
+        scale = min(1.0, self.width / barcode_width) if barcode_width else 1.0
+        self.canv.saveState()
+        self.canv.translate(max(0, (self.width - barcode_width * scale) / 2), 4 * mm)
+        self.canv.scale(scale, scale)
+        barcode.drawOn(self.canv, 0, 0)
+        self.canv.restoreState()
         self.canv.saveState()
         self.canv.setFont("Helvetica-Bold", 7)
         self.canv.setFillColor(colors.HexColor("#102A58"))
@@ -166,7 +171,7 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
     ]], colWidths=[91 * mm, 85 * mm], rowHeights=[27 * mm])
     tracking.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), navy), ("BOX", (0, 0), (-1, -1), 0.8, navy),
-        ("ROUNDEDCORNERS", [10, 10, 10, 10]), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
         ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
         ("LINEBEFORE", (1, 0), (1, 0), 0.8, colors.HexColor("#AFC8EB")),
     ]))
