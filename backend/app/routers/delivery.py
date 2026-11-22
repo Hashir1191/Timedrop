@@ -1,4 +1,7 @@
 from datetime import date, datetime, timedelta, timezone
+import base64
+import binascii
+from hashlib import sha256
 from zoneinfo import ZoneInfo
 import secrets
 
@@ -11,10 +14,10 @@ from app.audit import record_operations_audit
 from app.database import get_db
 from app.config import settings
 from app.route_planning import enrich_partner_route
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryLocationUpdate, DeliveryPartner, DeliveryPartnerAvailability, DeliverySlot, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryHandoverSignature, DeliveryLocationUpdate, DeliveryPartner, DeliveryPartnerAvailability, DeliverySlot, Parcel, ParcelCustodyEvent, User
 from app.notifications import add_notification
 from app.schemas import (
-    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate, DeliveryLocationPingCreate, DeliveryLiveLocationResponse,
+    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate, DeliveryLocationPingCreate, DeliveryLiveLocationResponse, DeliveryHandoverSignatureCreate, DeliveryHandoverSignatureResponse,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
     DeliveryRoutePlanResponse, DeliveryRouteStop,
@@ -31,6 +34,21 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
     partner_user = db.get(User, partner.user_id)
     booking = db.scalar(select(DeliveryBooking).where(DeliveryBooking.parcel_id == parcel.id))
     slot = db.get(DeliverySlot, booking.slot_id)
+    latest_custody = db.scalar(
+        select(ParcelCustodyEvent)
+        .where(ParcelCustodyEvent.parcel_id == parcel.id)
+        .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
+        .limit(1)
+    )
+    handover_signature = db.scalar(
+        select(DeliveryHandoverSignature).where(DeliveryHandoverSignature.assignment_id == assignment.id)
+    )
+    handover_signature_required = (
+        assignment.status == "assigned"
+        and latest_custody is not None
+        and latest_custody.event_type == "released"
+        and handover_signature is None
+    )
     return DeliveryAssignmentResponse(
         id=assignment.id, parcel_id=parcel.id, partner_id=partner.id,
         status=assignment.status, assigned_at=assignment.assigned_at, updated_at=assignment.updated_at,
@@ -43,6 +61,8 @@ def _assignment_response(db: Session, assignment: DeliveryAssignment) -> Deliver
         estimated_delivery_start=assignment.estimated_delivery_start,
         estimated_delivery_end=assignment.estimated_delivery_end,
         proof_recipient_name=assignment.proof_recipient_name,
+        handover_signature_required=handover_signature_required,
+        handover_signed_at=handover_signature.created_at if handover_signature else None,
     )
 
 
@@ -664,6 +684,96 @@ def my_assignments(db: Session = Depends(get_db), partner_user: User = Depends(r
     return [_assignment_response(db, item) for item in db.scalars(statement).all()]
 
 
+@router.post(
+    "/assignments/{assignment_id}/handover-signature",
+    response_model=DeliveryHandoverSignatureResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def sign_delivery_handover(
+    assignment_id: int,
+    data: DeliveryHandoverSignatureCreate,
+    db: Session = Depends(get_db),
+    partner_user: User = Depends(require_delivery_partner),
+):
+    """Record the assigned partner's signature for the exact warehouse release event."""
+    partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
+    assignment = db.get(DeliveryAssignment, assignment_id)
+    if partner is None or assignment is None or assignment.partner_id != partner.id:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    if assignment.status != "assigned":
+        raise HTTPException(status_code=409, detail="The handover must be signed before accepting the assignment.")
+    if data.signed_name.casefold() != partner_user.full_name.strip().casefold():
+        raise HTTPException(status_code=422, detail="The typed signer name must match your TimeDrop partner account.")
+    latest_custody = db.scalar(
+        select(ParcelCustodyEvent)
+        .where(ParcelCustodyEvent.parcel_id == assignment.parcel_id)
+        .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
+        .limit(1)
+    )
+    if latest_custody is None or latest_custody.event_type != "released":
+        raise HTTPException(status_code=409, detail="Operations must record parcel release before a partner can sign the handover.")
+    if latest_custody.handed_to and latest_custody.handed_to.strip().casefold() != partner_user.full_name.strip().casefold():
+        raise HTTPException(status_code=409, detail="The recorded warehouse handover is assigned to a different partner.")
+    existing = db.scalar(
+        select(DeliveryHandoverSignature).where(DeliveryHandoverSignature.assignment_id == assignment.id)
+    )
+    if existing is not None:
+        raise HTTPException(status_code=409, detail="This parcel handover has already been signed.")
+
+    try:
+        signature_bytes = base64.b64decode(data.signature_data_url.split(",", 1)[1], validate=True)
+    except (ValueError, binascii.Error):
+        raise HTTPException(status_code=422, detail="The signature image is not valid base64 PNG data.")
+    if not signature_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(signature_bytes) > 256 * 1024:
+        raise HTTPException(status_code=422, detail="Provide a valid PNG signature image smaller than 256 KB.")
+
+    acknowledgement = (
+        "I confirm that I have physically received the parcel identified in this handover. "
+        "The parcel condition and handover record have been shown to me. "
+        "I understand that any later loss or damage will be reviewed through TimeDrop's documented investigation and dispute process."
+    )
+    now = datetime.now(timezone.utc)
+    signature = DeliveryHandoverSignature(
+        assignment_id=assignment.id,
+        parcel_id=assignment.parcel_id,
+        custody_event_id=latest_custody.id,
+        partner_user_id=partner_user.id,
+        signed_name=partner_user.full_name,
+        acknowledgement_text=acknowledgement,
+        signature_png=signature_bytes,
+        signature_sha256=sha256(signature_bytes).hexdigest(),
+        created_at=now,
+    )
+    db.add(signature)
+    db.add(DeliveryEvent(
+        assignment_id=assignment.id,
+        parcel_id=assignment.parcel_id,
+        actor_id=partner_user.id,
+        event_type="handover_signed",
+        from_status=assignment.status,
+        to_status=assignment.status,
+        note="Delivery partner electronically acknowledged physical parcel handover.",
+        created_at=now,
+    ))
+    try:
+        db.commit()
+        db.refresh(signature)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="This parcel handover has already been signed.")
+    return DeliveryHandoverSignatureResponse(
+        id=signature.id,
+        assignment_id=signature.assignment_id,
+        parcel_id=signature.parcel_id,
+        custody_event_id=signature.custody_event_id,
+        partner_user_id=signature.partner_user_id,
+        signed_name=signature.signed_name,
+        acknowledgement_text=signature.acknowledgement_text,
+        signature_sha256=signature.signature_sha256,
+        created_at=signature.created_at,
+    )
+
+
 @router.patch("/assignments/{assignment_id}/status", response_model=DeliveryAssignmentResponse)
 def update_assignment_status(
     assignment_id: int, data: DeliveryAssignmentStatusUpdate, db: Session = Depends(get_db),
@@ -673,6 +783,22 @@ def update_assignment_status(
     assignment = db.get(DeliveryAssignment, assignment_id)
     if partner is None or assignment is None or assignment.partner_id != partner.id:
         raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    if data.status.value == "accepted":
+        latest_custody = db.scalar(
+            select(ParcelCustodyEvent)
+            .where(ParcelCustodyEvent.parcel_id == assignment.parcel_id)
+            .order_by(ParcelCustodyEvent.created_at.desc(), ParcelCustodyEvent.id.desc())
+            .limit(1)
+        )
+        if latest_custody is not None and latest_custody.event_type != "released":
+            raise HTTPException(status_code=409, detail="Operations must record the physical parcel handover before acceptance.")
+        if latest_custody is not None and latest_custody.event_type == "released":
+            signature = db.scalar(
+                select(DeliveryHandoverSignature).where(DeliveryHandoverSignature.assignment_id == assignment.id)
+            )
+            if signature is None:
+                raise HTTPException(status_code=409, detail="Sign the parcel handover acknowledgement before accepting this assignment.")
+
     allowed = {
         "assigned": {"accepted", "failed"},
         "accepted": {"out_for_delivery", "failed"},
