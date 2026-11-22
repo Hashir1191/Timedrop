@@ -37,12 +37,12 @@ class TimeDropLogo(Flowable):
         violet = colors.HexColor("#8755F5")
 
         # Parcel mark: three clean faces and a small location pin.
-        x, y, unit = 4 * mm, 3 * mm, 1 * mm
+        x, y, unit = 4 * mm, 9 * mm, 1 * mm
         parcel = canvas.beginPath()
-        parcel.moveTo(x + 13 * unit, y + 21 * unit)
-        parcel.lineTo(x + 26 * unit, y + 14 * unit)
-        parcel.lineTo(x + 13 * unit, y + 7 * unit)
-        parcel.lineTo(x, y + 14 * unit)
+        parcel.moveTo(x + 13 * unit, y + 18 * unit)
+        parcel.lineTo(x + 26 * unit, y + 3 * unit + 13 * unit)
+        parcel.lineTo(x + 13 * unit, y + 5 * unit)
+        parcel.lineTo(x, y + 13 * unit)
         parcel.close()
         canvas.setFillColor(cyan)
         canvas.drawPath(parcel, fill=1, stroke=0)
@@ -50,8 +50,8 @@ class TimeDropLogo(Flowable):
         left = canvas.beginPath()
         left.moveTo(x, y + 14 * unit)
         left.lineTo(x + 13 * unit, y + 7 * unit)
-        left.lineTo(x + 13 * unit, y - 7 * unit)
-        left.lineTo(x, y)
+        left.lineTo(x + 13 * unit, y - 5 * unit)
+        left.lineTo(x, y + 3 * unit)
         left.close()
         canvas.setFillColor(blue)
         canvas.drawPath(left, fill=1, stroke=0)
@@ -71,9 +71,9 @@ class TimeDropLogo(Flowable):
         canvas.line(x, y + 14 * unit, x + 13 * unit, y + 7 * unit)
         canvas.line(x + 26 * unit, y + 14 * unit, x + 13 * unit, y + 7 * unit)
 
-        pin_x, pin_y = x + 28 * unit, y + 21 * unit
+        pin_x, pin_y = x + 29 * unit, y + 17 * unit
         canvas.setFillColor(violet)
-        canvas.circle(pin_x, pin_y, 4 * unit, fill=1, stroke=0)
+        canvas.circle(pin_x, pin_y, 3.5 * unit, fill=1, stroke=0)
         canvas.setFillColor(colors.white)
         canvas.circle(pin_x, pin_y, 1.3 * unit, fill=1, stroke=0)
 
