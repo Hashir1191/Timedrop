@@ -352,7 +352,7 @@ def build_delivery_proof(parcel: Parcel, assignment, delivery_event, document_nu
     delivered_text = delivered_at.astimezone(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
     issued_text = issued_at.astimezone(timezone.utc).strftime("%d %b %Y · %H:%M UTC")
     address = ", ".join(part.strip() for part in [parcel.address_line, parcel.city, parcel.state, parcel.pincode] if part and part.strip())
-    address = _safe(re.sub(r"\\s*,\\s*", ", ", re.sub(r"\\s+", " ", address)))
+    address = _safe(re.sub(r"\s*,\\s*", ", ", re.sub(r"\s+", " ", address)))
     recipient = _safe(assignment.proof_recipient_name or "")
     tracking = _safe(parcel.tracking_number)
     barcode = TrackingBarcode(parcel.tracking_number)
