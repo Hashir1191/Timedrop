@@ -405,6 +405,12 @@ class WarehouseLocationUpdate(BaseModel):
         return normalized
 
 
+class WarehouseParcelResponse(ParcelResponse):
+    """Warehouse inventory row with authoritative custody-based location permissions."""
+    can_update_location: bool
+    custody_event_type: str | None = None
+
+
 class WarehouseSummaryResponse(BaseModel):
     total_parcels: int
     in_custody: int
@@ -466,7 +472,7 @@ def get_warehouse_summary(
     )
 
 
-@router.get("/warehouse/parcels", response_model=list[ParcelResponse])
+@router.get("/warehouse/parcels", response_model=list[WarehouseParcelResponse])
 def list_warehouse_parcels(
     q: str | None = None,
     parcel_status: str | None = None,
@@ -490,7 +496,32 @@ def list_warehouse_parcels(
         statement = statement.where(Parcel.warehouse_location.is_(None))
     elif location and location.strip():
         statement = statement.where(Parcel.warehouse_location.ilike(f"%{location.strip()}%"))
-    return db.scalars(statement).all()
+    parcels = db.scalars(statement).all()
+    if not parcels:
+        return []
+    parcel_ids = [parcel.id for parcel in parcels]
+    latest_event_ids = (
+        select(
+            ParcelCustodyEvent.parcel_id.label("parcel_id"),
+            func.max(ParcelCustodyEvent.id).label("event_id"),
+        )
+        .where(ParcelCustodyEvent.parcel_id.in_(parcel_ids))
+        .group_by(ParcelCustodyEvent.parcel_id)
+        .subquery()
+    )
+    latest_events = db.execute(
+        select(ParcelCustodyEvent.parcel_id, ParcelCustodyEvent.event_type)
+        .join(latest_event_ids, ParcelCustodyEvent.id == latest_event_ids.c.event_id)
+    ).all()
+    custody_by_parcel = {parcel_id: event_type for parcel_id, event_type in latest_events}
+    return [
+        WarehouseParcelResponse(
+            **ParcelResponse.model_validate(parcel).model_dump(),
+            custody_event_type=custody_by_parcel.get(parcel.id),
+            can_update_location=custody_by_parcel.get(parcel.id) in {"received", "returned"},
+        )
+        for parcel in parcels
+    ]
 
 
 @router.patch("/warehouse/parcels/{parcel_id}/location", response_model=ParcelResponse)

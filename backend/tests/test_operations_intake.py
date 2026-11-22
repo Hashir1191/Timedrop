@@ -422,6 +422,11 @@ def test_storage_bin_cannot_be_updated_after_parcel_is_released(client):
     )
     assert released.status_code == 201
 
+    warehouse_rows = client.get("/api/v1/operations/warehouse/parcels", headers=admin)
+    released_row = next(row for row in warehouse_rows.json() if row["id"] == parcel_id)
+    assert released_row["custody_event_type"] == "released"
+    assert released_row["can_update_location"] is False
+
     response = client.patch(
         f"/api/v1/operations/warehouse/parcels/{parcel_id}/location",
         headers=admin,

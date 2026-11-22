@@ -150,7 +150,7 @@ export const getWarehouseParcels=(token:string,filters:{q?:string;status?:string
  if(filters.status)params.set("parcel_status",filters.status);
  if(filters.location)params.set("location",filters.location);
  const query=params.toString();
- return request<Parcel[]>(`/operations/warehouse/parcels${query?`?${query}`:""}`,token);
+ return request<import("./types").WarehouseParcel[]>(`/operations/warehouse/parcels${query?`?${query}`:""}`,token);
 };
 export const updateWarehouseLocation=(token:string,parcelId:number,warehouse_location:string|null)=>
  request<Parcel>(`/operations/warehouse/parcels/${parcelId}/location`,token,{method:"PATCH",body:JSON.stringify({warehouse_location})});
