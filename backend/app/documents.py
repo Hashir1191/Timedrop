@@ -110,147 +110,178 @@ class TrackingBarcode(Flowable):
 
 
 def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code: str, issued_at: datetime) -> bytes:
+    """Build a premium, print-friendly one-page customer registration receipt."""
     buffer = BytesIO()
     navy = colors.HexColor("#102A58")
+    deep = colors.HexColor("#0B1D3A")
     blue = colors.HexColor("#2877F5")
-    pale = colors.HexColor("#EAF3FF")
-    border = colors.HexColor("#D5E3F5")
-    muted = colors.HexColor("#64748B")
+    pale = colors.HexColor("#F3F7FD")
+    border = colors.HexColor("#DCE6F2")
     ink = colors.HexColor("#172B4D")
-    green = colors.HexColor("#16A34A")
+    muted = colors.HexColor("#687B96")
+    green = colors.HexColor("#14966B")
+    white = colors.white
+
+    page_width, page_height = A4
+
+    def page_chrome(canvas, document):
+        canvas.saveState()
+        canvas.setFillColor(blue)
+        canvas.rect(0, page_height - 2.2 * mm, page_width, 2.2 * mm, fill=1, stroke=0)
+        canvas.setStrokeColor(border)
+        canvas.setLineWidth(0.5)
+        canvas.line(15 * mm, 10 * mm, page_width - 15 * mm, 10 * mm)
+        canvas.setFont("Helvetica", 6.5)
+        canvas.setFillColor(muted)
+        canvas.drawString(15 * mm, 6 * mm, "TIMEDROP  /  SMART PARCEL DELIVERY")
+        canvas.drawRightString(page_width - 15 * mm, 6 * mm, "KEEP THIS RECEIPT FOR YOUR RECORDS")
+        canvas.restoreState()
 
     doc = SimpleDocTemplate(
         buffer, pagesize=A4, rightMargin=15 * mm, leftMargin=15 * mm,
-        topMargin=9 * mm, bottomMargin=12 * mm,
-        title="TimeDrop Parcel Registration Receipt", author="TimeDrop",
-        subject="Parcel registration confirmation",
+        topMargin=8 * mm, bottomMargin=14 * mm,
+        title="TimeDrop Premium Parcel Registration Receipt",
+        author="TimeDrop", subject="Parcel registration confirmation",
     )
     styles = getSampleStyleSheet()
-    eyebrow = ParagraphStyle("TDReceiptEyebrow", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=7.5, leading=9, textColor=blue)
-    title = ParagraphStyle("TDReceiptTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=20, leading=24, alignment=TA_CENTER, textColor=navy, spaceAfter=3)
-    intro = ParagraphStyle("TDReceiptIntro", parent=styles["Normal"], fontSize=8.5, leading=12, alignment=TA_CENTER, textColor=muted)
-    section = ParagraphStyle("TDReceiptSection", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=10, leading=12, textColor=navy, spaceBefore=8, spaceAfter=5)
-    label = ParagraphStyle("TDReceiptLabel", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=7, leading=9, textColor=muted)
-    value = ParagraphStyle("TDReceiptValue", parent=styles["Normal"], fontSize=8.5, leading=11, textColor=ink)
-    prominent = ParagraphStyle("TDReceiptProminent", parent=value, fontName="Helvetica-Bold", fontSize=11, leading=14, textColor=navy)
-    white_label = ParagraphStyle("TDReceiptWhiteLabel", parent=label, textColor=colors.HexColor("#D9E8FF"), fontSize=8)
-    white_value = ParagraphStyle("TDReceiptWhiteValue", parent=value, textColor=colors.white, fontName="Helvetica-Bold", fontSize=23, leading=26)
-    small = ParagraphStyle("TDReceiptSmall", parent=styles["Normal"], fontSize=7.3, leading=10, textColor=muted)
-    center_small = ParagraphStyle("TDReceiptCenterSmall", parent=small, alignment=TA_CENTER)
+    eyebrow = ParagraphStyle("TDPremiumEyebrow", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=7, leading=9, textColor=blue, spaceAfter=2)
+    title = ParagraphStyle("TDPremiumTitle", parent=styles["Title"], fontName="Helvetica-Bold", fontSize=23, leading=27, textColor=deep, alignment=0, spaceAfter=2)
+    intro = ParagraphStyle("TDPremiumIntro", parent=styles["Normal"], fontSize=8.5, leading=12, textColor=muted)
+    section = ParagraphStyle("TDPremiumSection", parent=styles["Heading2"], fontName="Helvetica-Bold", fontSize=9.5, leading=12, textColor=navy, spaceBefore=7, spaceAfter=4)
+    label = ParagraphStyle("TDPremiumLabel", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=6.5, leading=8, textColor=muted)
+    value = ParagraphStyle("TDPremiumValue", parent=styles["Normal"], fontSize=9, leading=12, textColor=ink)
+    value_bold = ParagraphStyle("TDPremiumValueBold", parent=value, fontName="Helvetica-Bold", fontSize=10.5, leading=13, textColor=navy)
+    small = ParagraphStyle("TDPremiumSmall", parent=styles["Normal"], fontSize=7, leading=9.5, textColor=muted)
+    small_center = ParagraphStyle("TDPremiumSmallCenter", parent=small, alignment=TA_CENTER)
+    white_label = ParagraphStyle("TDPremiumWhiteLabel", parent=label, textColor=colors.HexColor("#BFD5F5"), fontSize=7)
+    tracking_value = ParagraphStyle("TDPremiumTracking", parent=styles["Normal"], fontName="Helvetica-Bold", fontSize=24, leading=28, textColor=white)
 
-    def pair(caption: str, text: str, strong: bool = False):
-        return [Paragraph(caption, label), Paragraph(text, prominent if strong else value)]
+    def field(caption: str, text: str, strong: bool = False):
+        return [Paragraph(caption, label), Paragraph(text, value_bold if strong else value)]
 
-    story = [
-        TimeDropLogo(),
-        Table([[Paragraph("PARCEL REGISTRATION", eyebrow),
-                Paragraph("CUSTOMER COPY", ParagraphStyle("TDReceiptCopy", parent=eyebrow, alignment=2))]],
-              colWidths=[88 * mm, 88 * mm],
-              style=TableStyle([("LINEBELOW", (0, 0), (-1, -1), 1, blue),
-                                ("BOTTOMPADDING", (0, 0), (-1, -1), 4)])),
-        Spacer(1, 3 * mm),
-        Paragraph("Parcel Registration Receipt", title),
-        Paragraph("This confirms that your parcel details have been successfully registered on TimeDrop.", intro),
-        Spacer(1, 4 * mm),
-    ]
-
-    metadata = Table([
-        [pair("DOCUMENT REFERENCE", _safe(document_number), True),
-         pair("REGISTRATION DATE", issued_at.astimezone(timezone.utc).strftime("%d %b %Y, %I:%M %p UTC"), True)],
-    ], colWidths=[88 * mm, 88 * mm], rowHeights=[17 * mm])
-    metadata.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 9),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("LINEAFTER", (0, 0), (0, 0), 0.7, border),
-    ]))
-    story.append(metadata)
-    story.append(Spacer(1, 3 * mm))
-
-    tracking = Table([[
-        [Paragraph("TRACKING NUMBER", white_label), Paragraph(_safe(parcel.tracking_number), white_value)],
-        TrackingBarcode(parcel.tracking_number),
-    ]], colWidths=[91 * mm, 85 * mm], rowHeights=[27 * mm])
-    tracking.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), navy), ("BOX", (0, 0), (-1, -1), 0.8, navy),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("LINEBEFORE", (1, 0), (1, 0), 0.8, colors.HexColor("#AFC8EB")),
-    ]))
-    story.extend([tracking, Paragraph("Recipient Details & Delivery Address", section)])
-
+    local_issued = issued_at.astimezone(timezone.utc).strftime("%d %b %Y  ·  %H:%M UTC")
     masked_phone = "•••• " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
-    address = ", ".join(part for part in [parcel.address_line, parcel.city, parcel.state] if part)
+    address = ", ".join(part.strip() for part in [parcel.address_line, parcel.city, parcel.state] if part)
     address = f"{address}, {parcel.pincode}" if parcel.pincode else address
-    recipient = Table([[
-        [Paragraph("RECIPIENT DETAILS", ParagraphStyle("TDRecipientHead", parent=label, textColor=navy, fontSize=8)),
-         Paragraph(_safe(parcel.recipient_name), prominent),
-         Paragraph("MOBILE  " + _safe(masked_phone), value)],
-        [Paragraph("DELIVERY ADDRESS", ParagraphStyle("TDAddressHead", parent=label, textColor=navy, fontSize=8)),
-         Paragraph(_safe(address), value)],
-    ]], colWidths=[88 * mm, 88 * mm], rowHeights=[31 * mm])
-    recipient.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.8, border),
-        ("INNERGRID", (0, 0), (-1, -1), 0.6, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
-        ("TOPPADDING", (0, 0), (-1, -1), 6), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-    ]))
-    story.extend([recipient, Paragraph("Document Verification", section)])
-
-    verification = Table([[
-        [Paragraph("VERIFICATION CODE", label), Paragraph(_safe(verification_code), prominent)],
-        Paragraph("This code identifies this issued document. Keep it with your receipt for reference.", small),
-    ]], colWidths=[82 * mm, 94 * mm], rowHeights=[20 * mm])
-    verification.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.8, border),
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 10),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("LINEBEFORE", (1, 0), (1, 0), 0.7, border),
-    ]))
-    story.extend([verification, Paragraph("Next Steps", section)])
-
-    stages = [
-        ("1", "Parcel Registered", "Completed"),
-        ("2", "Partner Assigned", "Pending"),
-        ("3", "Out for Delivery", "Pending"),
-        ("4", "Delivered", "Pending"),
-    ]
+    address = _safe(address)
     current = (parcel.status or "registered").lower()
     stage_map = {
         "registered": 0, "received": 1, "assigned": 1, "accepted": 1,
         "out_for_delivery": 2, "delivered": 3,
     }
     active_stage = stage_map.get(current, 0)
-    timeline_cells = []
-    for index, (number, name, _) in enumerate(stages):
-        is_done = index <= active_stage
-        color = green if index < active_stage or (index == 0 and current == "registered") else blue
-        status_text = "Completed" if is_done else "Pending"
-        timeline_cells.append([
-            Paragraph(f'<font color="{color.hexval()}"><b>{number}</b></font>', ParagraphStyle(f"TDStepNum{index}", parent=center_small, fontSize=13, leading=15)),
-            Paragraph(f"<b>{name}</b>", ParagraphStyle(f"TDStepName{index}", parent=center_small, textColor=navy, fontSize=7.5, leading=9)),
-            Paragraph(status_text, ParagraphStyle(f"TDStepState{index}", parent=center_small, textColor=green if is_done else muted, fontSize=7, leading=9)),
-        ])
-    timeline = Table([timeline_cells], colWidths=[44 * mm] * 4, rowHeights=[20 * mm])
-    timeline.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBELOW", (0, 0), (-1, -1), 0.5, border),
-        ("LEFTPADDING", (0, 0), (-1, -1), 3), ("RIGHTPADDING", (0, 0), (-1, -1), 3),
+
+    story = [
+        TimeDropLogo(),
+        Spacer(1, 1 * mm),
+        Paragraph("PARCEL REGISTRATION", eyebrow),
+        Paragraph("Your parcel is in the system.", title),
+        Paragraph("Your registration is confirmed. Use the tracking reference below whenever you need an update.", intro),
+        Spacer(1, 4 * mm),
+    ]
+
+    barcode = TrackingBarcode(parcel.tracking_number)
+    barcode.width = 65 * mm
+    barcode.height = 18 * mm
+    barcode_panel = [
+        Paragraph("SCAN BARCODE", ParagraphStyle("TDPremiumBarcodeLabel", parent=label, alignment=TA_CENTER)),
+        barcode,
+    ]
+    hero = Table([[
+        [Paragraph("YOUR TRACKING NUMBER", white_label),
+         Paragraph(_safe(parcel.tracking_number), tracking_value),
+         Paragraph(f"Registered  ·  {local_issued}", ParagraphStyle("TDPremiumHeroMeta", parent=small, textColor=colors.HexColor("#C7D8F0"), fontSize=7.2))],
+        barcode_panel,
+    ]], colWidths=[95 * mm, 85 * mm], rowHeights=[34 * mm])
+    hero.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (0, 0), deep), ("BACKGROUND", (1, 0), (1, 0), white),
+        ("BOX", (0, 0), (-1, -1), 0.8, deep), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 8),
+        ("LINEBEFORE", (1, 0), (1, 0), 0.8, border),
     ]))
-    story.extend([timeline, Spacer(1, 4 * mm)])
+    story.extend([hero, Spacer(1, 3 * mm)])
+
+    metadata = Table([[
+        field("DOCUMENT NUMBER", _safe(document_number), True),
+        field("ISSUED ON", local_issued.upper(), True),
+        field("PARCEL STATUS", _safe(current.replace("_", " ").upper()), True),
+    ]], colWidths=[60 * mm, 66 * mm, 54 * mm], rowHeights=[15 * mm])
+    metadata.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.6, border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.5, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 8), ("RIGHTPADDING", (0, 0), (-1, -1), 5),
+    ]))
+    story.extend([metadata, Paragraph("Delivery details", section)])
+
+    recipient = Table([[
+        [Paragraph("RECIPIENT", label), Spacer(1, 1.5 * mm),
+         Paragraph(_safe(parcel.recipient_name), ParagraphStyle("TDPremiumRecipient", parent=value_bold, fontSize=13, leading=16)),
+         Spacer(1, 1 * mm), Paragraph("CONTACT NUMBER", label), Paragraph(_safe(masked_phone), value)],
+        [Paragraph("DELIVERY ADDRESS", label), Spacer(1, 1.5 * mm),
+         Paragraph(address, ParagraphStyle("TDPremiumAddress", parent=value, fontSize=9.5, leading=14)),
+         Spacer(1, 2 * mm), Paragraph("POSTAL PIN CODE", label), Paragraph(_safe(parcel.pincode), value)],
+    ]], colWidths=[90 * mm, 90 * mm], rowHeights=[33 * mm])
+    recipient.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), white), ("BOX", (0, 0), (-1, -1), 0.7, border),
+        ("INNERGRID", (0, 0), (-1, -1), 0.6, border), ("VALIGN", (0, 0), (-1, -1), "TOP"),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.extend([recipient, Paragraph("Delivery journey", section)])
+
+    journey = []
+    stages = ["Registered", "Partner assigned", "Out for delivery", "Delivered"]
+    for index, name in enumerate(stages):
+        complete = index <= active_stage
+        symbol = "✓" if complete else "○"
+        icon_color = green if complete else border
+        state_text = "COMPLETE" if complete else "UP NEXT"
+        journey.append([
+            Paragraph(f'<font color="{icon_color.hexval()}"><b>{symbol}</b></font>',
+                      ParagraphStyle(f"TDPremiumJourneyIcon{index}", parent=small_center, fontSize=15, leading=17)),
+            Paragraph(f"<b>{name}</b>",
+                      ParagraphStyle(f"TDPremiumJourneyName{index}", parent=small_center, textColor=navy if complete else muted, fontSize=7.2, leading=9)),
+            Paragraph(state_text,
+                      ParagraphStyle(f"TDPremiumJourneyState{index}", parent=small_center, textColor=green if complete else muted, fontName="Helvetica-Bold", fontSize=6, leading=8)),
+        ])
+    journey_table = Table([journey], colWidths=[45 * mm] * 4, rowHeights=[18 * mm])
+    journey_table.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.6, border),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LINEBEFORE", (1, 0), (-1, -1), 0.5, border),
+    ]))
+    story.extend([journey_table, Paragraph("Document authenticity", section)])
+
+    verification = Table([[
+        [Paragraph("VERIFICATION CODE", label), Spacer(1, 1 * mm),
+         Paragraph(_safe(verification_code), ParagraphStyle("TDPremiumVerifyCode", parent=value_bold, fontSize=8.3, leading=11)),
+         Paragraph("Use this code with the TimeDrop document verification service.", small)],
+        [Paragraph("ISSUED BY", label), Spacer(1, 1 * mm),
+         Paragraph("TimeDrop Parcel Services", value_bold),
+         Paragraph("Original document reference retained", small)],
+    ]], colWidths=[105 * mm, 75 * mm], rowHeights=[22 * mm])
+    verification.setStyle(TableStyle([
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#F7FAFE")),
+        ("BOX", (0, 0), (-1, -1), 0.7, border), ("INNERGRID", (0, 0), (-1, -1), 0.5, border),
+        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"), ("LEFTPADDING", (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 8), ("TOPPADDING", (0, 0), (-1, -1), 6),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+    ]))
+    story.extend([verification, Spacer(1, 3 * mm)])
 
     notice = Table([[Paragraph(
-        "<b>Please note</b><br/>This is a parcel registration receipt only. It confirms that the parcel details were recorded in TimeDrop. "
-        "It does not confirm physical receipt by a warehouse or delivery partner. Final delivery is confirmed separately when the delivery is completed.",
-        small)]], colWidths=[176 * mm])
+        "<b>IMPORTANT INFORMATION</b><br/>This receipt confirms that the parcel details above were registered in TimeDrop. "
+        "It does not confirm physical receipt by a warehouse or delivery partner, and it is not proof of final delivery.",
+        small)]], colWidths=[180 * mm])
     notice.setStyle(TableStyle([
-        ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.7, border),
-        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 10),
-        ("TOPPADDING", (0, 0), (-1, -1), 8), ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+        ("BACKGROUND", (0, 0), (-1, -1), colors.HexColor("#FFF9ED")),
+        ("BOX", (0, 0), (-1, -1), 0.6, colors.HexColor("#F0D9A8")),
+        ("LINEBEFORE", (0, 0), (0, 0), 2, colors.HexColor("#E5A63B")),
+        ("LEFTPADDING", (0, 0), (-1, -1), 10), ("RIGHTPADDING", (0, 0), (-1, -1), 9),
+        ("TOPPADDING", (0, 0), (-1, -1), 7), ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
     ]))
-    story.extend([
-        notice, Spacer(1, 4 * mm),
-        Paragraph("Generated by TimeDrop  •  Smart Parcel Delivery", center_small),
-    ])
-    doc.build(story)
+    story.extend([notice, Spacer(1, 2 * mm), Paragraph("Thank you for choosing TimeDrop.", small_center)])
+    doc.build(story, onFirstPage=page_chrome, onLaterPages=page_chrome)
     return buffer.getvalue()
-
 
 def create_parcel_registration_receipt(db: Session, parcel: Parcel, generated_by_id: int) -> ParcelDocument:
     issued_at = datetime.now(timezone.utc)
