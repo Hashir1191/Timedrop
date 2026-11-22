@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  Activity, ArrowRight, ArrowUpRight, Boxes, Check, CheckCircle2,
+  ArrowRight, ArrowUpRight, Boxes, Check, CheckCircle2,
   Clock3, Layers3, MapPin, Menu, Package, Route, ShieldCheck, Truck, X,
 } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 
 const capabilities = [
   { icon: Package, number: "01", title: "One place for every parcel", description: "Register incoming parcels, organize delivery bookings, and keep every shipment's details easy to find.", tone: "blue" },
@@ -23,7 +24,7 @@ export default function LandingPage() {
     <main className="td-landing">
       <div className="td-announcement"><span className="td-announcement-dot" />A more considered way to coordinate the last mile<ArrowUpRight size={13} aria-hidden="true" /></div>
       <header className="td-marketing-header">
-        <Link className="td-wordmark" to="/" aria-label="TimeDrop home" onClick={closeMenu}><span className="td-wordmark-icon"><Activity size={19} strokeWidth={2.5} /></span><span>time<span>drop</span></span></Link>
+        <Link className="td-wordmark" to="/" aria-label="TimeDrop home" onClick={closeMenu}><BrandLogo /></Link>
         <button className="td-mobile-menu" type="button" aria-label={menuOpen ? "Close navigation" : "Open navigation"} aria-expanded={menuOpen} onClick={() => setMenuOpen(!menuOpen)}>{menuOpen ? <X size={20} /> : <Menu size={20} />}</button>
         <nav className={"td-marketing-nav " + (menuOpen ? "is-open" : "")} aria-label="Main navigation">
           <a href="#platform" onClick={closeMenu}>Platform</a><a href="#how-it-works" onClick={closeMenu}>How it works</a><a href="#teams" onClick={closeMenu}>Who it's for</a>
@@ -43,7 +44,7 @@ export default function LandingPage() {
         <div className="td-hero-visual" aria-label="Illustrative preview of the TimeDrop delivery workspace">
           <div className="td-visual-glow" />
           <div className="td-preview-window">
-            <div className="td-preview-topbar"><div className="td-preview-brand"><span><Activity size={13} /></span> timedrop <i>WORKSPACE PREVIEW</i></div><div className="td-preview-user"><span /> Operations view</div></div>
+            <div className="td-preview-topbar"><div className="td-preview-brand"><BrandLogo /> <i>WORKSPACE PREVIEW</i></div><div className="td-preview-user"><span /> Operations view</div></div>
             <div className="td-preview-body">
               <aside className="td-preview-sidebar"><span className="active"><Layers3 size={14} /></span><span><Package size={14} /></span><span><Truck size={14} /></span><span><Activity size={14} /></span></aside>
               <div className="td-preview-content">
@@ -85,7 +86,7 @@ export default function LandingPage() {
 
       <section className="td-final-cta"><div className="td-final-orb" /><div className="td-kicker light"><span /> YOUR DELIVERY WORKSPACE</div><h2>Make room for a<br /><em>better delivery day.</em></h2><p>Bring your parcel journey into focus with TimeDrop.</p><Link className="td-primary-cta" to="/login">Get started with TimeDrop <ArrowRight size={17} /></Link></section>
 
-      <footer className="td-footer"><Link className="td-wordmark" to="/" aria-label="TimeDrop home"><span className="td-wordmark-icon"><Activity size={18} /></span><span>time<span>drop</span></span></Link><p>Thoughtful coordination for the last mile.</p><div><a href="#platform">Platform</a><a href="#how-it-works">How it works</a><Link to="/login">Sign in</Link></div><small>© {new Date().getFullYear()} TimeDrop. Built for better delivery experiences.</small></footer>
+      <footer className="td-footer"><Link className="td-wordmark" to="/" aria-label="TimeDrop home"><BrandLogo /></Link><p>Thoughtful coordination for the last mile.</p><div><a href="#platform">Platform</a><a href="#how-it-works">How it works</a><Link to="/login">Sign in</Link></div><small>© {new Date().getFullYear()} TimeDrop. Built for better delivery experiences.</small></footer>
     </main>
   );
 }
