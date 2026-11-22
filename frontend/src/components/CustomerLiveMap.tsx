@@ -61,9 +61,9 @@ export default function CustomerLiveMap({token,parcelId}:{token:string;parcelId:
     };
   },[refresh,unavailable]);
 
-  const hasCoordinates=location?.latitude!==null&&location?.latitude!==undefined&&location?.longitude!==null&&location?.longitude!==undefined;
-  const mapUrl=hasCoordinates?mapEmbedUrl(location.latitude!,location.longitude!):"";
-  const externalMapUrl=hasCoordinates?"https://www.openstreetmap.org/?mlat="+location.latitude+"&mlon="+location.longitude+"#map=16/"+location.latitude+"/"+location.longitude:"";
+  const hasCoordinates=location!==null&&location.latitude!==null&&location.longitude!==null;
+  const mapUrl=hasCoordinates?mapEmbedUrl(location!.latitude!,location!.longitude!):"";
+  const externalMapUrl=hasCoordinates?"https://www.openstreetmap.org/?mlat="+location!.latitude+"&mlon="+location!.longitude+"#map=16/"+location!.latitude+"/"+location!.longitude:"";
 
   return <section className="customer-live-map" aria-label="Live parcel location">
     <div className="customer-live-map-heading">
