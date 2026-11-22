@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ArrowRight, CalendarClock, Clock3, Package, Plus, RefreshCw, Search, ShieldCheck, Truck } from "lucide-react";
+import { ArrowRight, CalendarClock, Clock3, Download, Package, Plus, RefreshCw, Search, ShieldCheck, Truck } from "lucide-react";
 import { Link, useSearchParams } from "react-router-dom";
-import { getParcels, issueDeliveryCode, getMyTracking } from "../api";
+import { getParcels, issueDeliveryCode, getMyTracking, downloadParcelReceipt } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
@@ -50,6 +50,7 @@ export default function CustomerParcels() {
   const focusParcelId = Number(searchParams.get("parcelId"));
   const [codes, setCodes] = useState<Record<number, {code:string;expires_at:string}>>({});
   const [codeBusy, setCodeBusy] = useState<number|null>(null);
+  const [receiptBusy, setReceiptBusy] = useState<number|null>(null);
   const [codeError, setCodeError] = useState("");
   const [parcels, setParcels] = useState<Parcel[]>([]);
   const [tracking, setTracking] = useState<DeliveryAssignment[]>([]);
@@ -80,6 +81,20 @@ export default function CustomerParcels() {
     void load();
     return () => { loadSequence.current += 1; };
   }, [token]);
+
+  async function downloadReceipt(parcelId:number,trackingNumber:string){
+    if(!token)return;
+    setReceiptBusy(parcelId);setError("");
+    try{
+      const blob=await downloadParcelReceipt(token,parcelId);
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement("a");
+      link.href=url;link.download="TimeDrop-"+trackingNumber+"-receipt.pdf";
+      document.body.appendChild(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(err){setError(err instanceof Error?err.message:"Unable to download the registration receipt.");}
+    finally{setReceiptBusy(null);}
+  }
 
   async function generateCode(parcelId: number) {
     if (!token) return;
@@ -158,6 +173,7 @@ export default function CustomerParcels() {
               </div>
               <div className="customer-parcel-actions">
                 {canManage && <Link className="customer-card-action" to={`/schedule/${parcel.id}`}><CalendarClock size={15}/>{parcel.status==="scheduled"?"Manage slot":"Book a slot"}</Link>}
+                <button type="button" className="customer-card-action secondary" onClick={()=>void downloadReceipt(parcel.id,parcel.tracking_number)} disabled={receiptBusy===parcel.id}><Download size={14}/>{receiptBusy===parcel.id?"Preparing PDF…":"Download receipt"}</button>
                 {parcel.status==="out_for_delivery" && <button className="customer-card-action secondary" disabled={codeBusy===parcel.id} onClick={() => void generateCode(parcel.id)}>{codeBusy===parcel.id?"Generating…":"Get delivery code"}</button>}
                 {codes[parcel.id] && <span className="customer-delivery-code"><strong>{codes[parcel.id].code}</strong><small>Expires {new Date(codes[parcel.id].expires_at).toLocaleTimeString("en-IN")}</small></span>}
               </div>
