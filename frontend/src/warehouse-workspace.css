@@ -73,3 +73,8 @@
  .warehouse-parcel-grid, .warehouse-loading-grid { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { .warehouse-loading-card { animation: none; } }
+
+/* Clear explanation when a parcel is outside operations custody. */
+.warehouse-bin-locked { display: grid; gap: 4px; margin-top: 9px; padding: 8px 9px; border: 1px solid #f0e5d2; border-radius: 8px; background: #fffbf4; }
+.warehouse-bin-locked-label { color: #9b7135; font-size: 8px; font-weight: 800; }
+.warehouse-bin-locked small { color: #8b7b65; font-size: 8px; line-height: 1.5; }
