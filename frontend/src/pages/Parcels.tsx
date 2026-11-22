@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { CalendarDays, MapPin, Package, RefreshCw, Search } from "lucide-react";
-import { getParcels, updateParcelStatus } from "../api";
+import { CalendarDays, Download, MapPin, Package, RefreshCw, Search } from "lucide-react";
+import { getParcels, updateParcelStatus, downloadParcelReceipt } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
@@ -16,6 +16,7 @@ export default function Parcels() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [receiptBusyId, setReceiptBusyId] = useState<number|null>(null);
 
   async function load() {
     if (!token) return;
@@ -54,6 +55,20 @@ export default function Parcels() {
     }
   }
 
+  async function downloadReceipt(parcel:Parcel){
+    if(!token)return;
+    setReceiptBusyId(parcel.id);setError("");
+    try{
+      const blob=await downloadParcelReceipt(token,parcel.id);
+      const url=URL.createObjectURL(blob);
+      const link=document.createElement("a");link.href=url;
+      link.download="TimeDrop-"+parcel.tracking_number+"-receipt.pdf";
+      document.body.appendChild(link);link.click();link.remove();
+      window.setTimeout(()=>URL.revokeObjectURL(url),1000);
+    }catch(err){setError(err instanceof Error?err.message:"Unable to download receipt.");}
+    finally{setReceiptBusyId(null);}
+  }
+
   const statusCount = (status: string) => parcels.filter((parcel) => parcel.status === status).length;
 
   return <div className="parcel-operations-workspace">
@@ -87,6 +102,7 @@ export default function Parcels() {
         <div className="parcel-register-recipient"><span>RECIPIENT</span><strong>{parcel.recipient_name}</strong><small>{parcel.phone}</small></div>
         <div className="parcel-register-destination"><MapPin size={14}/><span>{parcel.city}, {parcel.state} · {parcel.pincode}</span></div>
         <div className="parcel-register-card-meta"><span><CalendarDays size={13}/> Registered {new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span><span>Parcel #{parcel.id}</span></div>
+        <button type="button" className="secondary-button parcel-receipt-action" disabled={receiptBusyId===parcel.id} onClick={()=>void downloadReceipt(parcel)}><Download size={14}/>{receiptBusyId===parcel.id?"Preparing PDF…":"Download registration receipt"}</button>
         <div className="parcel-register-status-editor"><label>Update status<select className="status-select" disabled={busyId===parcel.id} value={parcel.status} onChange={(event) => void changeStatus(parcel,event.target.value)}>{statuses.map((status) => <option key={status} value={status}>{status.replace(/_/g," ")}</option>)}</select></label>{busyId===parcel.id&&<span className="parcel-register-saving">Saving…</span>}</div>
       </article>)}</div> : <div className="parcel-register-empty"><EmptyState title="No matching parcels" description="Try another search term or status filter."/></div>
     }
