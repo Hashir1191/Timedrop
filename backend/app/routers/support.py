@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Parcel, SupportCase, SupportCaseEvent, SupportCaseMessage, User
+from app.notifications import add_notification
 from app.schemas import (
     SupportCaseCreate,
     SupportCaseMessageResponse,
@@ -224,6 +225,15 @@ def update_support_case(
         notes.append(f"Priority: {previous_priority} → {case.priority}")
     if "assigned_to_id" in changes:
         notes.append(f"Assignee: {previous_assignee or 'unassigned'} → {case.assigned_to_id or 'unassigned'}")
+    if "status" in changes:
+        add_notification(
+            db,
+            user_id=case.customer_id,
+            parcel_id=case.parcel_id,
+            event_type="support_case_status",
+            title="Support case updated",
+            message=f"Your TimeDrop case {case.case_number} is now {case.status.replace('_', ' ')}.",
+        )
     db.add(SupportCaseEvent(
         case_id=case.id, actor_id=admin.id, event_type="case_updated",
         from_status=previous_status, to_status=case.status,
@@ -253,6 +263,14 @@ def reply_from_support(
     ))
     case.updated_at = now
     if not data.is_internal:
+        add_notification(
+            db,
+            user_id=case.customer_id,
+            parcel_id=case.parcel_id,
+            event_type="support_case_reply",
+            title="Support team replied",
+            message=f"Our team replied to support case {case.case_number}.",
+        )
         previous_status = case.status
         case.status = "waiting_customer"
         db.add(SupportCaseEvent(
