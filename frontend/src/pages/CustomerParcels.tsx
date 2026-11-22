@@ -6,6 +6,7 @@ import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import ParcelTimeline from "../components/ParcelTimeline";
+import CustomerLiveMap from "../components/CustomerLiveMap";
 import type { DeliveryAssignment, Parcel } from "../types";
 
 type Filter = "all" | "active" | "delivered" | "failed" | "cancelled";
@@ -148,6 +149,7 @@ export default function CustomerParcels() {
               <div><span>Registered</span><strong>{new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</strong></div>
             </div>
             <DeliveryProgress status={progressStatus}/>
+            {assignment?.status==="out_for_delivery"&&token&&<CustomerLiveMap token={token} parcelId={parcel.id}/>}
             <div className="customer-parcel-card-footer">
               <div className="customer-parcel-eta">
                 {etaStart && etaEnd ? <><Clock3 size={14}/><span>Estimated arrival <strong>{etaStart} – {etaEnd}</strong>{updatedAt && <small>Updated {updatedAt}</small>}</span></> :
