@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, ArrowRight, CheckCircle2, MessageCircle, RefreshCw, Send, Shield, UserCheck } from "lucide-react";
+import { AlertCircle, CheckCircle2, MessageCircle, RefreshCw, Send, Shield, UserCheck } from "lucide-react";
 import { getSupportQueue, replyAdminSupportCase, updateSupportCase } from "../api";
 import { useAuth } from "../auth";
 import type { SupportCase } from "../types";
@@ -56,7 +56,7 @@ export default function SupportInbox(){
      <div className="support-admin-controls">
       <label>Status<select value={active.status} disabled={busy} onChange={event=>void update({status:event.target.value})}>{statuses.map(value=><option key={value} value={value}>{value.replaceAll("_"," ")}</option>)}</select></label>
       <label>Priority<select value={active.priority} disabled={busy} onChange={event=>void update({priority:event.target.value})}>{priorities.map(value=><option key={value} value={value}>{value}</option>)}</select></label>
-      <button className="secondary-button" disabled={busy||active.assigned_to_id===user?.id} onClick={()=>void update({assigned_to_id:user?.id})}><UserCheck size={14}/> {active.assigned_to_id===user?.id?"Assigned to you":"Assign to me"}</button>
+      <button className="secondary-button" disabled={busy||active.assigned_to_id===user?.id} onClick={()=>{if(user)void update({assigned_to_id:user.id});}}><UserCheck size={14}/> {active.assigned_to_id===user?.id?"Assigned to you":"Assign to me"}</button>
      </div>
      <div className="support-detail-messages"><h3><MessageCircle size={15}/> Conversation & internal notes</h3>{active.messages.map(message=><article className={"support-message "+(message.is_internal?"internal":"")} key={message.id}><strong>{message.author_name}{message.is_internal?" · Internal note":""}</strong><p>{message.body}</p><small>{dateLabel(message.created_at)}</small></article>)}</div>
      <div className="support-admin-reply"><textarea rows={3} value={reply} onChange={event=>setReply(event.target.value)} placeholder={internal?"Add a private note for the operations team…":"Write a response visible to the customer…"}/><label className="support-internal-toggle"><input type="checkbox" checked={internal} onChange={event=>setInternal(event.target.checked)}/><Shield size={14}/> Internal note (not visible to customer)</label><button className="primary-button" disabled={busy||!reply.trim()} onClick={()=>void sendReply()}><Send size={14}/> {internal?"Save internal note":"Send customer reply"}</button></div>
