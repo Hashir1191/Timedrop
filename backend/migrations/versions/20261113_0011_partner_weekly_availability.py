@@ -1,8 +1,10 @@
+
 """Add recurring weekly delivery partner availability.
 
 Revision ID: 20261113_0011
 Revises: 20261113_0010
 """
+
 from alembic import op
 import sqlalchemy as sa
 
@@ -14,13 +16,29 @@ depends_on = None
 
 def upgrade() -> None:
     bind = op.get_bind()
-    columns = {item["name"] for item in sa.inspect(bind).get_columns("delivery_partners")}
-    if "availability_enabled" not in columns:
+    inspector = sa.inspect(bind)
+
+    # Add the availability flag if it is missing.
+    partner_columns = {
+        column["name"]
+        for column in inspector.get_columns("delivery_partners")
+    }
+
+    if "availability_enabled" not in partner_columns:
         op.add_column(
             "delivery_partners",
-            sa.Column("availability_enabled", sa.Boolean(), nullable=False, server_default=sa.false()),
+            sa.Column(
+                "availability_enabled",
+                sa.Boolean(),
+                nullable=False,
+                server_default=sa.false(),
+            ),
         )
-    if not sa.inspect(bind).has_table("delivery_partner_availability"):
+
+    # Create the weekly availability table if missing.
+    inspector = sa.inspect(bind)
+
+    if not inspector.has_table("delivery_partner_availability"):
         op.create_table(
             "delivery_partner_availability",
             sa.Column("id", sa.Integer(), primary_key=True),
@@ -33,28 +51,78 @@ def upgrade() -> None:
             sa.Column("weekday", sa.Integer(), nullable=False),
             sa.Column("start_time", sa.Time(), nullable=False),
             sa.Column("end_time", sa.Time(), nullable=False),
-            sa.Column("is_active", sa.Boolean(), nullable=False, server_default=sa.true()),
-            sa.Column("created_at", sa.DateTime(timezone=True), nullable=False),
+            sa.Column(
+                "is_active",
+                sa.Boolean(),
+                nullable=False,
+                server_default=sa.true(),
+            ),
+            sa.Column(
+                "created_at",
+                sa.DateTime(timezone=True),
+                nullable=False,
+            ),
             sa.UniqueConstraint(
-                "partner_id", "weekday", "start_time", "end_time",
+                "partner_id",
+                "weekday",
+                "start_time",
+                "end_time",
                 name="uq_partner_availability_window",
             ),
         )
-    indexes = {item["name"] for item in sa.inspect(bind).get_indexes("delivery_partner_availability")}
-    if "ix_delivery_partner_availability_partner_id" not in indexes:
+
+    # Create the index if it is missing.
+    inspector = sa.inspect(bind)
+
+    existing_indexes = {
+        index["name"]
+        for index in inspector.get_indexes(
+            "delivery_partner_availability"
+        )
+    }
+
+    index_name = "ix_delivery_partner_availability_partner_id"
+
+    if index_name not in existing_indexes:
         op.create_index(
-            "ix_delivery_partner_availability_partner_id",
+            index_name,
             "delivery_partner_availability",
             ["partner_id"],
         )
-    op.alter_column("delivery_partners", "availability_enabled", server_default=None)
-    op.alter_column("delivery_partner_availability", "is_active", server_default=None)
 
 
 def downgrade() -> None:
-    op.drop_index(
-        "ix_delivery_partner_availability_partner_id",
-        table_name="delivery_partner_availability",
-    )
-    op.drop_table("delivery_partner_availability")
-    op.drop_column("delivery_partners", "availability_enabled")
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+
+    if inspector.has_table("delivery_partner_availability"):
+        indexes = {
+            index["name"]
+            for index in inspector.get_indexes(
+                "delivery_partner_availability"
+            )
+        }
+
+        index_name = "ix_delivery_partner_availability_partner_id"
+
+        if index_name in indexes:
+            op.drop_index(
+                index_name,
+                table_name="delivery_partner_availability",
+            )
+
+        op.drop_table("delivery_partner_availability")
+
+    inspector = sa.inspect(bind)
+
+    if inspector.has_table("delivery_partners"):
+        columns = {
+            column["name"]
+            for column in inspector.get_columns("delivery_partners")
+        }
+
+        if "availability_enabled" in columns:
+            op.drop_column(
+                "delivery_partners",
+                "availability_enabled",
+            )
