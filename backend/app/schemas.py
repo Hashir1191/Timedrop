@@ -510,6 +510,30 @@ class DeliveryAssignmentResponse(BaseModel):
     estimated_delivery_start: datetime | None = None
     estimated_delivery_end: datetime | None = None
     proof_recipient_name: str | None = None
+    handover_signature_required: bool = False
+    handover_signed_at: datetime | None = None
+
+
+class DeliveryHandoverSignatureCreate(BaseModel):
+    signed_name: str = Field(min_length=2, max_length=120)
+    signature_data_url: str = Field(min_length=40, max_length=350000, pattern=r"^data:image/png;base64,[A-Za-z0-9+/=]+$")
+
+    @field_validator("signed_name")
+    @classmethod
+    def normalize_signer_name(cls, value: str) -> str:
+        return " ".join(value.split())
+
+
+class DeliveryHandoverSignatureResponse(BaseModel):
+    id: int
+    assignment_id: int
+    parcel_id: int
+    custody_event_id: int
+    partner_user_id: int
+    signed_name: str
+    acknowledgement_text: str
+    signature_sha256: str
+    created_at: datetime
 
 
 class DeliveryEventResponse(BaseModel):
