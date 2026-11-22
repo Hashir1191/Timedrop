@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 
 from app.audit import record_operations_audit
 from app.database import get_db
+from app.documents import create_parcel_registration_receipt
 from app.models import DeliveryAssignment, DeliveryBlackoutDate, DeliveryBooking, DeliveryPartner, DeliverySlot, OperationsAuditLog, Parcel, ParcelCustodyEvent, User
 from app.security import require_admin
 from app.schemas import DeliveryBlackoutCreate, DeliveryBlackoutResponse, DeliveryBlackoutUpdate, OperationsAuditLogResponse, ParcelResponse
@@ -275,6 +276,7 @@ def receive_parcel(data: ParcelIntakeCreate, db: Session = Depends(get_db), admi
             note=data.note.strip() if data.note else None,
         )
         db.add(event)
+        create_parcel_registration_receipt(db, parcel, admin.id)
         db.commit()
         db.refresh(parcel)
         db.refresh(event)

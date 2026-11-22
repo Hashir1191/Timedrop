@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Time, UniqueConstraint, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, LargeBinary, String, Time, UniqueConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -239,6 +239,22 @@ class SupportCaseEvent(Base):
     from_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
     to_status: Mapped[str | None] = mapped_column(String(24), nullable=True)
     note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class ParcelDocument(Base):
+    """Issued printable parcel document stored with a verifiable content hash."""
+
+    __tablename__ = "parcel_documents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    parcel_id: Mapped[int] = mapped_column(ForeignKey("parcels.id", ondelete="CASCADE"), nullable=False, index=True)
+    document_type: Mapped[str] = mapped_column(String(40), nullable=False, index=True)
+    document_number: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
+    verification_code: Mapped[str] = mapped_column(String(40), unique=True, nullable=False, index=True)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    pdf_content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    generated_by_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 

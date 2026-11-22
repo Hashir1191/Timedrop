@@ -73,6 +73,19 @@ export function login(email: string, password: string) {
 }
 export const getMe=(token:string)=>request<User>("/auth/me",token);
 export const getParcels=(token:string)=>request<Parcel[]>("/parcels/?skip=0&limit=100",token);
+export async function downloadParcelReceipt(token:string,parcelId:number):Promise<Blob>{
+ let response:Response;
+ try{response=await fetch(API_BASE+"/parcels/"+parcelId+"/receipt.pdf",{headers:{Authorization:"Bearer "+token}});}
+ catch{throw new ApiError("Unable to reach TimeDrop. Check your connection and try again.",0);}
+ if(!response.ok){
+  let body:unknown=null;try{body=await response.json();}catch{/* Non-JSON response. */}
+  const message=responseErrorMessage(body,"Unable to download the parcel receipt.");
+  if(response.status===401)window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));
+  throw new ApiError(message,response.status);
+ }
+ return response.blob();
+}
+
 export const updateParcelStatus=(token:string,id:number,status:string)=>request<Parcel>(`/parcels/${id}/status`,token,{method:"PATCH",body:JSON.stringify({status})});
 export const getSlots=(token:string,date:string,includeInactive=false)=>request<DeliverySlot[]>(`/scheduling/slots?delivery_date=${encodeURIComponent(date)}&include_inactive=${includeInactive}`,token);
 export const createSlot=(token:string,data:{delivery_date:string;start_time:string;end_time:string;capacity:number})=>request<DeliverySlot>("/scheduling/slots",token,{method:"POST",body:JSON.stringify(data)});

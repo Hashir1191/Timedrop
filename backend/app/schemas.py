@@ -666,3 +666,12 @@ class SupportCaseResponse(BaseModel):
     updated_at: datetime
     resolved_at: datetime | None
     messages: list[SupportCaseMessageResponse] = Field(default_factory=list)
+
+
+class DocumentVerificationResponse(BaseModel):
+    valid: bool
+    document_number: str
+    document_type: str
+    tracking_number: str
+    issued_at: datetime
+    sha256: str

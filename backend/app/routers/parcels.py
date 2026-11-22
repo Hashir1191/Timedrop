@@ -1,12 +1,13 @@
 from datetime import timezone
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ServiceablePincode, User
+from app.documents import create_parcel_registration_receipt
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ParcelDocument, ServiceablePincode, User
 from app.schemas import ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
 from app.security import get_current_user, require_admin
 
@@ -42,6 +43,8 @@ def create_parcel(
     parcel = Parcel(**parcel_data.model_dump(), owner_id=current_user.id)
     db.add(parcel)
     try:
+        db.flush()
+        create_parcel_registration_receipt(db, parcel, current_user.id)
         db.commit()
         db.refresh(parcel)
     except IntegrityError:
@@ -90,6 +93,37 @@ def update_parcel_status(
     db.commit()
     db.refresh(parcel)
     return parcel
+
+
+@router.get("/{parcel_id}/receipt.pdf")
+def download_parcel_receipt(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Download the automatically issued, verifiable parcel registration receipt."""
+    parcel = _get_accessible_parcel(db, parcel_id, current_user)
+    document = db.scalar(
+        select(ParcelDocument)
+        .where(
+            ParcelDocument.parcel_id == parcel.id,
+            ParcelDocument.document_type == "parcel_registration",
+        )
+        .order_by(ParcelDocument.created_at.desc(), ParcelDocument.id.desc())
+        .limit(1)
+    )
+    if document is None:
+        raise HTTPException(status_code=404, detail="A registration receipt is not available for this parcel.")
+    safe_tracking = "".join(character for character in parcel.tracking_number if character.isalnum() or character in "-_")
+    return Response(
+        content=document.pdf_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="TimeDrop-{safe_tracking}-receipt.pdf"',
+            "X-Document-Number": document.document_number,
+            "X-Document-SHA256": document.sha256,
+        },
+    )
 
 
 @router.get("/{parcel_id}/timeline", response_model=list[ParcelTimelineEvent])
