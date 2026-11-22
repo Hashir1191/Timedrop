@@ -26,7 +26,7 @@ def test_partner_must_sign_the_recorded_release_before_accepting_assignment():
     db.flush()
     partner = DeliveryPartner(user_id=partner_user.id, phone="9876543210")
     parcel = Parcel(
-        tracking_number="TD-HANDOVER-001", recipient_name="Parcel Recipient",
+        owner_id=admin.id, tracking_number="TD-HANDOVER-001", recipient_name="Parcel Recipient",
         phone="9876543211", address_line="10 Test Road", city="Prayagraj",
         state="Uttar Pradesh", pincode="211001", status="registered",
     )
