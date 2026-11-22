@@ -11,10 +11,10 @@ from app.audit import record_operations_audit
 from app.database import get_db
 from app.config import settings
 from app.route_planning import enrich_partner_route
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryPartner, DeliveryPartnerAvailability, DeliverySlot, Parcel, ParcelCustodyEvent, User
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliveryLocationUpdate, DeliveryPartner, DeliveryPartnerAvailability, DeliverySlot, Parcel, ParcelCustodyEvent, User
 from app.notifications import add_notification
 from app.schemas import (
-    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate,
+    DeliveryCodeResponse, DeliveryProofSubmit, DeliveryEtaUpdate, DeliveryLocationPingCreate, DeliveryLiveLocationResponse,
     DeliveryAssignmentCreate, DeliveryAssignmentResponse, DeliveryAssignmentStatusUpdate,
     DeliveryPartnerCreate, DeliveryPartnerResponse, DeliveryEventResponse,
     DeliveryRoutePlanResponse, DeliveryRouteStop,
@@ -542,6 +542,99 @@ def generate_route_plan(
         mapping_enabled=settings.route_mapping_enabled,
         routing_provider="nominatim_osrm" if settings.route_mapping_enabled else "pin_prefix_heuristic",
         stops=stops,
+    )
+
+
+@router.post("/assignments/{assignment_id}/location", status_code=status.HTTP_201_CREATED)
+def publish_delivery_location(
+    assignment_id: int,
+    data: DeliveryLocationPingCreate,
+    db: Session = Depends(get_db),
+    partner_user: User = Depends(require_delivery_partner),
+):
+    """Accept GPS updates only from the assigned partner while actively delivering."""
+    partner = db.scalar(select(DeliveryPartner).where(DeliveryPartner.user_id == partner_user.id))
+    assignment = db.get(DeliveryAssignment, assignment_id)
+    if partner is None or assignment is None or assignment.partner_id != partner.id:
+        raise HTTPException(status_code=404, detail="Delivery assignment not found.")
+    if assignment.status != "out_for_delivery":
+        raise HTTPException(status_code=409, detail="Location sharing is available only while this parcel is out for delivery.")
+
+    now = datetime.now(timezone.utc)
+    latest = db.scalar(
+        select(DeliveryLocationUpdate)
+        .where(DeliveryLocationUpdate.assignment_id == assignment.id)
+        .order_by(DeliveryLocationUpdate.recorded_at.desc(), DeliveryLocationUpdate.id.desc())
+        .limit(1)
+    )
+    if latest is not None:
+        previous = latest.recorded_at
+        if previous.tzinfo is None:
+            previous = previous.replace(tzinfo=timezone.utc)
+        if (now - previous).total_seconds() < 5:
+            raise HTTPException(status_code=429, detail="Location was updated too recently. Wait a few seconds before sending another update.")
+
+    update = DeliveryLocationUpdate(
+        assignment_id=assignment.id,
+        latitude=data.latitude,
+        longitude=data.longitude,
+        accuracy_meters=data.accuracy_meters,
+        recorded_at=now,
+    )
+    db.add(update)
+    db.commit()
+    return {"accepted": True, "recorded_at": now}
+
+
+@router.get("/parcels/{parcel_id}/live-location", response_model=DeliveryLiveLocationResponse)
+def get_customer_live_location(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    """Expose only the latest delivery position to the parcel owner during active delivery."""
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Customer access is required.")
+    parcel = db.get(Parcel, parcel_id)
+    if parcel is None or parcel.owner_id != customer.id:
+        raise HTTPException(status_code=404, detail="Parcel not found.")
+    assignment = db.scalar(select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel_id))
+    if assignment is None:
+        raise HTTPException(status_code=404, detail="No delivery assignment exists for this parcel.")
+    if assignment.status != "out_for_delivery":
+        raise HTTPException(status_code=409, detail="Live location is available only while the parcel is out for delivery.")
+
+    latest = db.scalar(
+        select(DeliveryLocationUpdate)
+        .where(DeliveryLocationUpdate.assignment_id == assignment.id)
+        .order_by(DeliveryLocationUpdate.recorded_at.desc(), DeliveryLocationUpdate.id.desc())
+        .limit(1)
+    )
+    if latest is None:
+        return DeliveryLiveLocationResponse(
+            parcel_id=parcel.id,
+            assignment_id=assignment.id,
+            location_status="awaiting_location",
+            is_live=False,
+            estimated_delivery_start=assignment.estimated_delivery_start,
+            estimated_delivery_end=assignment.estimated_delivery_end,
+        )
+
+    recorded_at = latest.recorded_at
+    if recorded_at.tzinfo is None:
+        recorded_at = recorded_at.replace(tzinfo=timezone.utc)
+    is_live = (datetime.now(timezone.utc) - recorded_at).total_seconds() <= 120
+    return DeliveryLiveLocationResponse(
+        parcel_id=parcel.id,
+        assignment_id=assignment.id,
+        location_status="live" if is_live else "stale",
+        latitude=latest.latitude,
+        longitude=latest.longitude,
+        accuracy_meters=latest.accuracy_meters,
+        recorded_at=recorded_at,
+        is_live=is_live,
+        estimated_delivery_start=assignment.estimated_delivery_start,
+        estimated_delivery_end=assignment.estimated_delivery_end,
     )
 
 
