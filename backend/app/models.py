@@ -258,6 +258,23 @@ class ParcelDocument(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class DeliveryHandoverSignature(Base):
+    """Partner's signed acknowledgement of a specific warehouse-to-partner release."""
+
+    __tablename__ = "delivery_handover_signatures"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    assignment_id: Mapped[int] = mapped_column(ForeignKey("delivery_assignments.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    parcel_id: Mapped[int] = mapped_column(ForeignKey("parcels.id", ondelete="CASCADE"), nullable=False, index=True)
+    custody_event_id: Mapped[int] = mapped_column(ForeignKey("parcel_custody_events.id", ondelete="CASCADE"), nullable=False, unique=True, index=True)
+    partner_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    signed_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    acknowledgement_text: Mapped[str] = mapped_column(Text, nullable=False)
+    signature_png: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    signature_sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class Notification(Base):
     """A user-scoped in-app notification."""
 
