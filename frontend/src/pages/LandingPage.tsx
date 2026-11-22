@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
-  ArrowRight, ArrowUpRight, Boxes, Check, CheckCircle2,
+  Activity, ArrowRight, ArrowUpRight, Boxes, Check, CheckCircle2,
   Clock3, Layers3, MapPin, Menu, Package, Route, ShieldCheck, Truck, X,
 } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
