@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { LifeBuoy, MessageCircle, PlusCircle, RefreshCw, Send, ShieldAlert } from "lucide-react";
+import { LifeBuoy, MessageCircle, RefreshCw, Send, ShieldAlert } from "lucide-react";
 import { createSupportCase, getParcels, getSupportCases, replySupportCase } from "../api";
 import { useAuth } from "../auth";
 import type { Parcel, SupportCase } from "../types";
@@ -73,10 +73,10 @@ export default function SupportCenter(){
       <section className="support-case-list">
         <div className="support-card-heading"><span><MessageCircle size={18}/></span><div><h2>Your support cases</h2><p>Track updates and reply to our team.</p></div><strong>{cases.length}</strong></div>
         {loading&&!cases.length?<div className="support-empty">Loading your cases…</div>:cases.length===0?<div className="support-empty">You have no support requests yet. If something goes wrong, you can report it here.</div>:cases.map(item=><article className="support-case-card" key={item.id}>
-          <div className="support-case-top"><strong>{item.case_number}</strong><span className={"support-status "+item.status}>{item.status.replaceAll("_"," ")}</span></div>
+          <div className="support-case-top"><strong>{item.case_number}</strong><span className={"support-status "+item.status}>{item.status.replace(/_/g," ")}</span></div>
           <h3>{item.subject}</h3>
           <p>{item.description}</p>
-          <div className="support-case-meta"><span>{item.category.replaceAll("_"," ")}</span><span>{dateLabel(item.updated_at)}</span>{item.tracking_number&&<span>{item.tracking_number}</span>}</div>
+          <div className="support-case-meta"><span>{item.category.replace(/_/g," ")}</span><span>{dateLabel(item.updated_at)}</span>{item.tracking_number&&<span>{item.tracking_number}</span>}</div>
           <div className="support-case-messages">{item.messages.map(message=><div className={"support-message "+(message.author_id===item.customer_id?"own":"")} key={message.id}><strong>{message.author_name}</strong><p>{message.body}</p><small>{dateLabel(message.created_at)}</small></div>)}</div>
           {!["resolved","closed"].includes(item.status)&&<div className="support-reply"><textarea rows={2} value={reply[item.id]||""} onChange={event=>setReply(current=>({...current,[item.id]:event.target.value}))} placeholder="Add a reply or more details…"/><button className="secondary-button" onClick={()=>void sendReply(item.id)} disabled={busy||!reply[item.id]?.trim()}><Send size={14}/> Reply</button></div>}
         </article>)}
