@@ -26,10 +26,11 @@ export type DeliveryLiveLocation = {
 };
 
 export type SupportCaseMessage = {id:number;author_id:number;author_name:string;body:string;is_internal:boolean;created_at:string};
+export type SupportCaseAttachment = {id:number;filename:string;content_type:string;file_size:number;sha256:string;uploader_id:number;is_internal:boolean;created_at:string};
 export type SupportCase = {
   id:number;case_number:string;customer_id:number;customer_name:string;parcel_id:number|null;tracking_number:string|null;
   category:string;subject:string;description:string;status:string;priority:string;assigned_to_id:number|null;
-  assigned_to_name:string|null;created_at:string;updated_at:string;resolved_at:string|null;messages:SupportCaseMessage[];
+  assigned_to_name:string|null;created_at:string;updated_at:string;resolved_at:string|null;messages:SupportCaseMessage[];attachments:SupportCaseAttachment[];
 };
 
 export type DeliveryEvent = {
