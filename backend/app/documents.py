@@ -162,7 +162,7 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
 
     local_issued = issued_at.astimezone(timezone.utc).strftime("%d %b %Y  ·  %H:%M UTC")
     masked_phone = "•••• " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
-    address_parts = [re.sub(r"\s*,\\s*", ", ", part.strip()) for part in [parcel.address_line, parcel.city, parcel.state] if part and part.strip()]
+    address_parts = [re.sub(r"\s*,\s*", ", ", part.strip()) for part in [parcel.address_line, parcel.city, parcel.state] if part and part.strip()]
     address = ", ".join(address_parts)
     address = re.sub(r"\s+", " ", address).strip()
     address = f"{address}, {parcel.pincode.strip()}" if parcel.pincode and parcel.pincode.strip() else address
