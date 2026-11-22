@@ -127,6 +127,20 @@ export const replySupportCase=(token:string,caseId:number,body:string)=>request<
 export const getSupportQueue=(token:string,status?:string)=>request<import("./types").SupportCase[]>("/support/admin/cases"+(status?"?status="+encodeURIComponent(status):""),token);
 export const updateSupportCase=(token:string,caseId:number,data:{status?:string;priority?:string;assigned_to_id?:number|null})=>request<import("./types").SupportCase>("/support/admin/cases/"+caseId,token,{method:"PATCH",body:JSON.stringify(data)});
 export const replyAdminSupportCase=(token:string,caseId:number,body:string,is_internal=false)=>request<import("./types").SupportCase>("/support/admin/cases/"+caseId+"/messages",token,{method:"POST",body:JSON.stringify({body,is_internal})});
+export async function uploadSupportAttachment(token:string,caseId:number,file:File,isInternal=false,admin=false):Promise<import("./types").SupportCase>{
+ const form=new FormData();form.append("file",file);if(admin)form.append("is_internal",String(isInternal));
+ const path=admin?"/support/admin/cases/"+caseId+"/attachments":"/support/cases/"+caseId+"/attachments";
+ const response=await fetch(API_BASE+path,{method:"POST",headers:{Authorization:"Bearer "+token},body:form});
+ if(!response.ok){let body:unknown=null;try{body=await response.json();}catch{/* Non-JSON response. */}if(response.status===401)window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));throw new ApiError(responseErrorMessage(body,"Unable to upload evidence."),response.status);}
+ return response.json() as Promise<import("./types").SupportCase>;
+}
+export async function downloadSupportAttachment(token:string,caseId:number,attachmentId:number,admin=false):Promise<Blob>{
+ const path=admin?"/support/admin/cases/"+caseId+"/attachments/"+attachmentId:"/support/cases/"+caseId+"/attachments/"+attachmentId;
+ const response=await fetch(API_BASE+path,{headers:{Authorization:"Bearer "+token}});
+ if(!response.ok){let body:unknown=null;try{body=await response.json();}catch{/* Non-JSON response. */}if(response.status===401)window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT));throw new ApiError(responseErrorMessage(body,"Unable to download evidence."),response.status);}
+ return response.blob();
+}
+
 export const getNotifications=(token:string)=>request<NotificationItem[]>("/notifications/?limit=30",token);
 export const getUnreadNotificationCount=(token:string)=>request<{unread_count:number}>("/notifications/unread-count",token);
 export const markNotificationRead=(token:string,id:number)=>request<NotificationItem>(`/notifications/${id}/read`,token,{method:"PATCH"});
