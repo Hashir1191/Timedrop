@@ -737,3 +737,106 @@ def test_reactivation_does_not_automatically_restore_assignment_availability(cli
     )
     assert resumed.status_code == 200
     assert resumed.json()["is_available"] is True
+
+
+def test_customer_live_location_is_owner_scoped_and_only_active_during_delivery(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "location-owner@example.com", "full_name": "Parcel Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "location-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, tracking="TD-LIVE-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "location-rider@example.com", "full_name": "Location Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543211",
+    }).json()
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner["id"]},
+    ).json()
+    rider = auth(client, "location-rider@example.com", "StrongRiderPassword123!")
+
+    blocked = client.post(
+        f"/api/v1/delivery/assignments/{assignment['id']}/location",
+        headers=rider,
+        json={"latitude": 25.4358, "longitude": 81.8463, "accuracy_meters": 12},
+    )
+    assert blocked.status_code == 409
+
+    assert client.patch(
+        f"/api/v1/delivery/assignments/{assignment['id']}/status",
+        headers=rider,
+        json={"status": "accepted"},
+    ).status_code == 200
+    assert client.patch(
+        f"/api/v1/delivery/assignments/{assignment['id']}/status",
+        headers=rider,
+        json={"status": "out_for_delivery"},
+    ).status_code == 200
+
+    published = client.post(
+        f"/api/v1/delivery/assignments/{assignment['id']}/location",
+        headers=rider,
+        json={"latitude": 25.4358, "longitude": 81.8463, "accuracy_meters": 12},
+    )
+    assert published.status_code == 201
+    location = client.get(
+        f"/api/v1/delivery/parcels/{parcel_id}/live-location",
+        headers=customer,
+    )
+    assert location.status_code == 200
+    assert location.json()["location_status"] == "live"
+    assert location.json()["is_live"] is True
+    assert location.json()["latitude"] == 25.4358
+    assert location.json()["longitude"] == 81.8463
+    assert location.json()["accuracy_meters"] == 12
+
+    client.post("/api/v1/auth/register", json={
+        "email": "not-the-owner@example.com", "full_name": "Different Customer",
+        "password": "CustomerPassword123!",
+    })
+    other_customer = auth(client, "not-the-owner@example.com", "CustomerPassword123!")
+    hidden = client.get(
+        f"/api/v1/delivery/parcels/{parcel_id}/live-location",
+        headers=other_customer,
+    )
+    assert hidden.status_code == 404
+
+
+def test_delivery_location_rejects_invalid_coordinates_and_throttles_updates(client):
+    admin = auth(client, "ops@example.com", "StrongAdminPassword123!")
+    client.post("/api/v1/auth/register", json={
+        "email": "gps-owner@example.com", "full_name": "GPS Owner",
+        "password": "CustomerPassword123!",
+    })
+    customer = auth(client, "gps-owner@example.com", "CustomerPassword123!")
+    parcel_id = make_parcel(client, customer, tracking="TD-GPS-001")
+    book_parcel(client, customer, parcel_id)
+    partner = client.post("/api/v1/delivery/partners", headers=admin, json={
+        "email": "gps-rider@example.com", "full_name": "GPS Rider",
+        "password": "StrongRiderPassword123!", "phone": "9876543212",
+    }).json()
+    assignment = client.post(
+        f"/api/v1/delivery/parcels/{parcel_id}/assignments",
+        headers=admin,
+        json={"partner_id": partner["id"]},
+    ).json()
+    rider = auth(client, "gps-rider@example.com", "StrongRiderPassword123!")
+    client.patch(f"/api/v1/delivery/assignments/{assignment['id']}/status", headers=rider, json={"status": "accepted"})
+    client.patch(f"/api/v1/delivery/assignments/{assignment['id']}/status", headers=rider, json={"status": "out_for_delivery"})
+
+    invalid = client.post(
+        f"/api/v1/delivery/assignments/{assignment['id']}/location",
+        headers=rider,
+        json={"latitude": 95, "longitude": 81},
+    )
+    assert invalid.status_code == 422
+
+    payload = {"latitude": 25.4358, "longitude": 81.8463}
+    first = client.post(f"/api/v1/delivery/assignments/{assignment['id']}/location", headers=rider, json=payload)
+    assert first.status_code == 201
+    too_soon = client.post(f"/api/v1/delivery/assignments/{assignment['id']}/location", headers=rider, json=payload)
+    assert too_soon.status_code == 429

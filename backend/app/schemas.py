@@ -468,6 +468,25 @@ class DeliveryEtaUpdate(BaseModel):
         return self
 
 
+class DeliveryLocationPingCreate(BaseModel):
+    latitude: float = Field(ge=-90, le=90)
+    longitude: float = Field(ge=-180, le=180)
+    accuracy_meters: float | None = Field(default=None, ge=0, le=1000)
+
+
+class DeliveryLiveLocationResponse(BaseModel):
+    parcel_id: int
+    assignment_id: int
+    location_status: str
+    latitude: float | None = None
+    longitude: float | None = None
+    accuracy_meters: float | None = None
+    recorded_at: datetime | None = None
+    is_live: bool
+    estimated_delivery_start: datetime | None = None
+    estimated_delivery_end: datetime | None = None
+
+
 class DeliveryAssignmentResponse(BaseModel):
     id: int
     parcel_id: int

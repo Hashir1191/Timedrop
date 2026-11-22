@@ -1,6 +1,6 @@
 from datetime import date, datetime, time, timezone
 
-from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, String, Time, UniqueConstraint, Text
+from sqlalchemy import Boolean, Date, DateTime, Float, ForeignKey, Integer, String, Time, UniqueConstraint, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.database import Base
@@ -175,6 +175,23 @@ class DeliveryEvent(Base):
     to_status: Mapped[str] = mapped_column(String(24), nullable=False)
     note: Mapped[str | None] = mapped_column(String(300), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
+class DeliveryLocationUpdate(Base):
+    """Short-lived operational GPS telemetry; customer access is assignment-owner scoped."""
+
+    __tablename__ = "delivery_location_updates"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    assignment_id: Mapped[int] = mapped_column(
+        ForeignKey("delivery_assignments.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    latitude: Mapped[float] = mapped_column(Float, nullable=False)
+    longitude: Mapped[float] = mapped_column(Float, nullable=False)
+    accuracy_meters: Mapped[float | None] = mapped_column(Float, nullable=True)
+    recorded_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False, index=True
+    )
 
 
 class Notification(Base):
