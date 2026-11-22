@@ -180,13 +180,13 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
     masked_phone = "•••• " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
     address = ", ".join(part for part in [parcel.address_line, parcel.city, parcel.state] if part)
     address = f"{address}, {parcel.pincode}" if parcel.pincode else address
-    recipient = Table([
-        [[Paragraph("RECIPIENT DETAILS", ParagraphStyle("TDRecipientHead", parent=label, textColor=navy, fontSize=8)),
-          Paragraph(_safe(parcel.recipient_name), prominent),
-          Paragraph("MOBILE  " + _safe(masked_phone), value)],
-         [Paragraph("DELIVERY ADDRESS", ParagraphStyle("TDAddressHead", parent=label, textColor=navy, fontSize=8)),
-          Paragraph(_safe(address), value)],
-    ], colWidths=[88 * mm, 88 * mm], rowHeights=[31 * mm])
+    recipient = Table([[
+        [Paragraph("RECIPIENT DETAILS", ParagraphStyle("TDRecipientHead", parent=label, textColor=navy, fontSize=8)),
+         Paragraph(_safe(parcel.recipient_name), prominent),
+         Paragraph("MOBILE  " + _safe(masked_phone), value)],
+        [Paragraph("DELIVERY ADDRESS", ParagraphStyle("TDAddressHead", parent=label, textColor=navy, fontSize=8)),
+         Paragraph(_safe(address), value)],
+    ]], colWidths=[88 * mm, 88 * mm], rowHeights=[31 * mm])
     recipient.setStyle(TableStyle([
         ("BACKGROUND", (0, 0), (-1, -1), pale), ("BOX", (0, 0), (-1, -1), 0.8, border),
         ("INNERGRID", (0, 0), (-1, -1), 0.6, border), ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
