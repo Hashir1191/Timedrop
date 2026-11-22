@@ -1,4 +1,5 @@
 from datetime import timezone
+from hashlib import sha256
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
@@ -6,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.documents import create_parcel_registration_receipt
+from app.documents import build_parcel_receipt, create_parcel_registration_receipt
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ParcelDocument, ServiceablePincode, User
 from app.schemas import ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
 from app.security import get_current_user, require_admin
@@ -114,6 +115,26 @@ def download_parcel_receipt(
     )
     if document is None:
         raise HTTPException(status_code=404, detail="A registration receipt is not available for this parcel.")
+
+    # Upgrade previously issued/stored receipts when downloaded. Older versions
+    # persisted their PDF bytes, so changing the PDF builder alone did not update
+    # receipts that already existed in the database. Preserve the original
+    # document number, verification code, issuer and issue timestamp.
+    issued_at = document.created_at
+    if issued_at.tzinfo is None:
+        issued_at = issued_at.replace(tzinfo=timezone.utc)
+    latest_pdf = build_parcel_receipt(
+        parcel,
+        document.document_number,
+        document.verification_code,
+        issued_at,
+    )
+    latest_hash = sha256(latest_pdf).hexdigest()
+    if latest_hash != document.sha256 or latest_pdf != document.pdf_content:
+        document.pdf_content = latest_pdf
+        document.sha256 = latest_hash
+        db.commit()
+
     safe_tracking = "".join(character for character in parcel.tracking_number if character.isalnum() or character in "-_")
     return Response(
         content=document.pdf_content,
