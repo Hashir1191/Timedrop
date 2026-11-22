@@ -25,6 +25,13 @@ export type DeliveryLiveLocation = {
   estimated_delivery_start:string|null; estimated_delivery_end:string|null;
 };
 
+export type SupportCaseMessage = {id:number;author_id:number;author_name:string;body:string;is_internal:boolean;created_at:string};
+export type SupportCase = {
+  id:number;case_number:string;customer_id:number;customer_name:string;parcel_id:number|null;tracking_number:string|null;
+  category:string;subject:string;description:string;status:string;priority:string;assigned_to_id:number|null;
+  assigned_to_name:string|null;created_at:string;updated_at:string;resolved_at:string|null;messages:SupportCaseMessage[];
+};
+
 export type DeliveryEvent = {
   id:number; assignment_id:number; parcel_id:number; actor_id:number; actor_name:string;
   event_type:string; from_status:string|null; to_status:string; note:string|null; created_at:string;
