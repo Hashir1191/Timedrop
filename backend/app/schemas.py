@@ -604,6 +604,12 @@ class SupportCaseCreate(BaseModel):
     def normalize_support_text(cls, value: str) -> str:
         return " ".join(value.split())
 
+    @model_validator(mode="after")
+    def validate_support_text(self):
+        if not self.subject or not self.description:
+            raise ValueError("A subject and a description are required.")
+        return self
+
 
 class SupportMessageCreate(BaseModel):
     body: str = Field(min_length=2, max_length=5000)
@@ -613,6 +619,12 @@ class SupportMessageCreate(BaseModel):
     @classmethod
     def normalize_message(cls, value: str) -> str:
         return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def validate_message(self):
+        if not self.body:
+            raise ValueError("A message cannot be blank.")
+        return self
 
 
 class SupportCaseUpdate(BaseModel):
@@ -653,4 +665,4 @@ class SupportCaseResponse(BaseModel):
     created_at: datetime
     updated_at: datetime
     resolved_at: datetime | None
-    messages: list[SupportCaseMessageResponse] = []
+    messages: list[SupportCaseMessageResponse] = Field(default_factory=list)
