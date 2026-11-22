@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { LifeBuoy, MessageCircle, RefreshCw, Send, ShieldAlert } from "lucide-react";
-import { createSupportCase, getParcels, getSupportCases, replySupportCase } from "../api";
+import { Download, LifeBuoy, MessageCircle, Paperclip, RefreshCw, Send, ShieldAlert } from "lucide-react";
+import { createSupportCase, downloadSupportAttachment, getParcels, getSupportCases, replySupportCase, uploadSupportAttachment } from "../api";
 import { useAuth } from "../auth";
 import type { Parcel, SupportCase } from "../types";
 
@@ -27,6 +27,8 @@ export default function SupportCenter(){
   const [parcelId,setParcelId]=useState("");
   const [busy,setBusy]=useState(false);
   const [reply,setReply]=useState<Record<number,string>>({});
+  const [evidence,setEvidence]=useState<Record<number,File|null>>({});
+  const [uploadBusy,setUploadBusy]=useState<number|null>(null);
 
   async function load(){
     if(!token)return;
@@ -47,6 +49,19 @@ export default function SupportCenter(){
     }catch(err){setError(err instanceof Error?err.message:"Unable to submit your report.");}
     finally{setBusy(false);}
   }
+  async function uploadEvidence(caseId:number){
+    if(!token||!evidence[caseId])return;
+    setUploadBusy(caseId);setError("");
+    try{await uploadSupportAttachment(token,caseId,evidence[caseId]!);setEvidence(current=>({...current,[caseId]:null}));await load();}
+    catch(err){setError(err instanceof Error?err.message:"Unable to upload evidence.");}
+    finally{setUploadBusy(null);}
+  }
+  async function downloadEvidence(caseId:number,attachmentId:number,filename:string){
+    if(!token)return;
+    try{const blob=await downloadSupportAttachment(token,caseId,attachmentId);const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    catch(err){setError(err instanceof Error?err.message:"Unable to download evidence.");}
+  }
+
   async function sendReply(caseId:number){
     if(!token||!reply[caseId]?.trim())return;
     setBusy(true);setError("");
@@ -78,6 +93,8 @@ export default function SupportCenter(){
           <p>{item.description}</p>
           <div className="support-case-meta"><span>{item.category.replace(/_/g," ")}</span><span>{dateLabel(item.updated_at)}</span>{item.tracking_number&&<span>{item.tracking_number}</span>}</div>
           <div className="support-case-messages">{item.messages.map(message=><div className={"support-message "+(message.author_id===item.customer_id?"own":"")} key={message.id}><strong>{message.author_name}</strong><p>{message.body}</p><small>{dateLabel(message.created_at)}</small></div>)}</div>
+          {item.attachments.length>0&&<div className="support-evidence-list"><strong>Evidence files</strong>{item.attachments.map(file=><button type="button" key={file.id} onClick={()=>void downloadEvidence(item.id,file.id,file.filename)}><Download size={13}/>{file.filename}<small>{Math.ceil(file.file_size/1024)} KB</small></button>)}</div>}
+          {!["resolved","closed"].includes(item.status)&&<div className="support-evidence-upload"><label><Paperclip size={14}/> {evidence[item.id]?.name||"Attach a photo or PDF"}<input type="file" accept="image/png,image/jpeg,application/pdf" onChange={event=>setEvidence(current=>({...current,[item.id]:event.target.files?.[0]||null}))}/></label><button type="button" className="secondary-button" disabled={uploadBusy===item.id||!evidence[item.id]} onClick={()=>void uploadEvidence(item.id)}>{uploadBusy===item.id?"Uploading…":"Upload evidence"}</button><small>PDF, JPEG or PNG · 5 MB per file · up to 5 files per case</small></div>}
           {!["resolved","closed"].includes(item.status)&&<div className="support-reply"><textarea rows={2} value={reply[item.id]||""} onChange={event=>setReply(current=>({...current,[item.id]:event.target.value}))} placeholder="Add a reply or more details…"/><button className="secondary-button" onClick={()=>void sendReply(item.id)} disabled={busy||!reply[item.id]?.trim()}><Send size={14}/> Reply</button></div>}
         </article>)}
       </section>

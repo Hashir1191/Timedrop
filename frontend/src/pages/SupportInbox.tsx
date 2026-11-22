@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, MessageCircle, RefreshCw, Send, Shield, UserCheck } from "lucide-react";
-import { getSupportQueue, replyAdminSupportCase, updateSupportCase } from "../api";
+import { AlertCircle, CheckCircle2, Download, MessageCircle, RefreshCw, Send, Shield, UserCheck } from "lucide-react";
+import { downloadSupportAttachment, getSupportQueue, replyAdminSupportCase, updateSupportCase } from "../api";
 import { useAuth } from "../auth";
 import type { SupportCase } from "../types";
 
@@ -35,6 +35,11 @@ export default function SupportInbox(){
   catch(err){setError(err instanceof Error?err.message:"Unable to update this case.");}
   finally{setBusy(false);}
  }
+ async function downloadEvidence(caseId:number,attachmentId:number,filename:string){
+  if(!token)return;
+  try{const blob=await downloadSupportAttachment(token,caseId,attachmentId,true);const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}
+  catch(err){setError(err instanceof Error?err.message:"Unable to download evidence.");}
+ }
  async function sendReply(){
   if(!token||!active||!reply.trim())return;setBusy(true);setError("");
   try{const saved=await replyAdminSupportCase(token,active.id,reply.trim(),internal);setCases(current=>current.map(item=>item.id===saved.id?saved:item));setReply("");}
@@ -53,6 +58,7 @@ export default function SupportInbox(){
     {!active?<div className="support-empty">Select a case to review its details.</div>:<>
      <div className="support-detail-heading"><div><span>{active.case_number}</span><h2>{active.subject}</h2><p>{active.customer_name} · {active.tracking_number||"No linked parcel"} · Opened {dateLabel(active.created_at)}</p></div><AlertCircle size={22}/></div>
      <div className="support-case-description">{active.description}</div>
+     {active.attachments.length>0&&<div className="support-evidence-list"><strong>Customer evidence & internal files</strong>{active.attachments.map(file=><button type="button" key={file.id} onClick={()=>void downloadEvidence(active.id,file.id,file.filename)}><Download size={13}/>{file.filename}{file.is_internal?" · Internal":""}<small>{Math.ceil(file.file_size/1024)} KB</small></button>)}</div>}
      <div className="support-admin-controls">
       <label>Status<select value={active.status} disabled={busy} onChange={event=>void update({status:event.target.value})}>{statuses.map(value=><option key={value} value={value}>{value.replace(/_/g," ")}</option>)}</select></label>
       <label>Priority<select value={active.priority} disabled={busy} onChange={event=>void update({priority:event.target.value})}>{priorities.map(value=><option key={value} value={value}>{value}</option>)}</select></label>

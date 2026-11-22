@@ -672,6 +672,17 @@ class SupportCaseMessageResponse(BaseModel):
     created_at: datetime
 
 
+class SupportCaseAttachmentResponse(BaseModel):
+    id: int
+    filename: str
+    content_type: str
+    file_size: int
+    sha256: str
+    uploader_id: int
+    is_internal: bool
+    created_at: datetime
+
+
 class SupportCaseResponse(BaseModel):
     id: int
     case_number: str
@@ -690,6 +701,7 @@ class SupportCaseResponse(BaseModel):
     updated_at: datetime
     resolved_at: datetime | None
     messages: list[SupportCaseMessageResponse] = Field(default_factory=list)
+    attachments: list[SupportCaseAttachmentResponse] = Field(default_factory=list)
 
 
 class DocumentVerificationResponse(BaseModel):
