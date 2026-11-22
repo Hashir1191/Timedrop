@@ -9,7 +9,7 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
 from reportlab.lib.units import mm
-from reportlab.platypus import Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
+from reportlab.platypus import Flowable, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 from sqlalchemy.orm import Session
 
@@ -19,6 +19,72 @@ from app.models import Parcel, ParcelDocument
 def _safe(value: str | None) -> str:
     return escape(value or "—")
 
+
+class TimeDropLogo(Flowable):
+    """Vector TimeDrop wordmark for crisp printing at any PDF resolution."""
+
+    def __init__(self):
+        super().__init__()
+        self.width = 174 * mm
+        self.height = 24 * mm
+
+    def draw(self):
+        canvas = self.canv
+        canvas.saveState()
+        navy = colors.HexColor("#102A58")
+        blue = colors.HexColor("#2877F5")
+        cyan = colors.HexColor("#25BDEB")
+        violet = colors.HexColor("#8755F5")
+        x, y, unit = 4 * mm, 6 * mm, 1 * mm
+
+        top = canvas.beginPath()
+        top.moveTo(x + 12 * unit, y + 17 * unit)
+        top.lineTo(x + 24 * unit, y + 11 * unit)
+        top.lineTo(x + 12 * unit, y + 5 * unit)
+        top.lineTo(x, y + 11 * unit)
+        top.close()
+        canvas.setFillColor(cyan)
+        canvas.drawPath(top, fill=1, stroke=0)
+
+        left = canvas.beginPath()
+        left.moveTo(x, y + 11 * unit)
+        left.lineTo(x + 12 * unit, y + 5 * unit)
+        left.lineTo(x + 12 * unit, y - 5 * unit)
+        left.lineTo(x, y + 1 * unit)
+        left.close()
+        canvas.setFillColor(blue)
+        canvas.drawPath(left, fill=1, stroke=0)
+
+        right = canvas.beginPath()
+        right.moveTo(x + 24 * unit, y + 11 * unit)
+        right.lineTo(x + 12 * unit, y + 5 * unit)
+        right.lineTo(x + 12 * unit, y - 5 * unit)
+        right.lineTo(x + 24 * unit, y + 1 * unit)
+        right.close()
+        canvas.setFillColor(navy)
+        canvas.drawPath(right, fill=1, stroke=0)
+
+        canvas.setStrokeColor(colors.white)
+        canvas.setLineWidth(0.8)
+        canvas.line(x + 12 * unit, y + 17 * unit, x + 12 * unit, y + 5 * unit)
+        canvas.line(x, y + 11 * unit, x + 12 * unit, y + 5 * unit)
+        canvas.line(x + 24 * unit, y + 11 * unit, x + 12 * unit, y + 5 * unit)
+
+        pin_x, pin_y = x + 29 * unit, y + 14 * unit
+        canvas.setFillColor(violet)
+        canvas.circle(pin_x, pin_y, 3.5 * unit, fill=1, stroke=0)
+        canvas.setFillColor(colors.white)
+        canvas.circle(pin_x, pin_y, 1.3 * unit, fill=1, stroke=0)
+
+        canvas.setFillColor(navy)
+        canvas.setFont("Helvetica-Bold", 23)
+        canvas.drawString(38 * mm, 11 * mm, "Time")
+        canvas.setFillColor(blue)
+        canvas.drawString(59 * mm, 11 * mm, "Drop")
+        canvas.setFillColor(colors.HexColor("#6B7C98"))
+        canvas.setFont("Helvetica-Bold", 6.5)
+        canvas.drawString(38.5 * mm, 5 * mm, "S M A R T   P A R C E L   D E L I V E R Y")
+        canvas.restoreState()
 
 def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code: str, issued_at: datetime) -> bytes:
     buffer = BytesIO()
@@ -43,7 +109,7 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
     centered = ParagraphStyle("ReceiptCenter", parent=subtitle, alignment=TA_CENTER)
 
     story = [
-        Paragraph("TimeDrop", title),
+        TimeDropLogo(),
         Paragraph("PARCEL REGISTRATION RECEIPT", section),
         Paragraph("Your parcel has been registered in the TimeDrop system. Keep this document as your proof of registration.", subtitle),
         Spacer(1, 9 * mm),

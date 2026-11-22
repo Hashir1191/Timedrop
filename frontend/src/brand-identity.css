@@ -1,0 +1,12 @@
+/* TimeDrop identity system — shared across every portal and screen */
+:root{--td-navy:#0b1e42;--td-blue:#2877f5;--td-cyan:#25bdeb;--td-violet:#8755f5}
+.brand,.login-brand{padding:0 8px;gap:0}
+.brand-logo{display:block;width:188px;max-width:100%;height:auto;object-fit:contain;object-position:left center}
+.mobile-brand{display:flex;align-items:center;min-width:0}
+.mobile-brand .brand-logo{width:126px}
+.login-brand .brand-logo{width:190px}
+.td-wordmark{display:inline-flex;align-items:center;gap:0}
+.td-wordmark img{display:block;width:188px;height:auto}
+.td-preview-brand img{display:block;width:104px;height:auto}
+.td-footer .td-wordmark img{width:154px}
+@media(max-width:700px){.brand-logo{width:164px}.mobile-brand .brand-logo{width:116px}.login-brand .brand-logo{width:174px}.td-wordmark img{width:158px}}
