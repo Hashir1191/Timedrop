@@ -1,0 +1,4 @@
+/* Phase 55 — printable document actions */
+.parcel-receipt-action{display:inline-flex;align-items:center;justify-content:center;gap:7px;width:100%;min-height:34px;margin-top:10px;padding:8px 11px;border:1px solid #dbe5f0;border-radius:8px;background:#fff;color:#4565a9;font-size:9px;font-weight:750;cursor:pointer}
+.parcel-receipt-action:hover:not(:disabled){border-color:#9bb2e5;background:#f7f9ff}
+.parcel-receipt-action:disabled{opacity:.6;cursor:wait}
