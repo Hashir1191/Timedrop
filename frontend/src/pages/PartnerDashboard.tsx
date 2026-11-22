@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, CalendarClock, CheckCircle2, Clock3, MapPin, Package, RefreshCw, Search, ShieldCheck, Truck } from "lucide-react";
 import { Link } from "react-router-dom";
-import { getMyAssignments, getMyAvailability, updateAssignmentStatus, submitDeliveryProof, updateDeliveryEta, type PartnerAvailabilitySettings } from "../api";
+import { getMyAssignments, getMyAvailability, updateAssignmentStatus, submitDeliveryProof, updateDeliveryEta, publishDeliveryLocation, type PartnerAvailabilitySettings } from "../api";
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import DeliveryTimeline from "../components/DeliveryTimeline";
@@ -9,6 +9,56 @@ import StatusBadge from "../components/StatusBadge";
 import type { DeliveryAssignment } from "../types";
 
 type DeliveryFilter = "active" | "completed" | "all";
+
+function PartnerLocationSharing({token,assignmentId}:{token:string;assignmentId:number}) {
+  const [sharing,setSharing]=useState(false);
+  const [message,setMessage]=useState("Location is private until you choose to share it during this delivery.");
+  const watchId=useRef<number|null>(null);
+  const lastSentAt=useRef(0);
+
+  useEffect(()=>()=>{if(watchId.current!==null)navigator.geolocation?.clearWatch(watchId.current);},[]);
+
+  function stopSharing(){
+    if(watchId.current!==null)navigator.geolocation.clearWatch(watchId.current);
+    watchId.current=null;
+    setSharing(false);
+    setMessage("Location sharing stopped.");
+  }
+
+  function startSharing(){
+    if(!navigator.geolocation){setMessage("This browser does not support GPS location.");return;}
+    if(watchId.current!==null)return;
+    setMessage("Waiting for a GPS fix…");
+    watchId.current=navigator.geolocation.watchPosition(async position=>{
+      if(Date.now()-lastSentAt.current<15000)return;
+      lastSentAt.current=Date.now();
+      const accuracy=position.coords.accuracy;
+      try{
+        await publishDeliveryLocation(token,assignmentId,{
+          latitude:position.coords.latitude,
+          longitude:position.coords.longitude,
+          ...(Number.isFinite(accuracy)&&accuracy>=0&&accuracy<=1000?{accuracy_meters:accuracy}:{})
+        });
+        setMessage("Your latest position is shared with this parcel's customer.");
+        setSharing(true);
+      }catch(error){
+        setMessage(error instanceof Error?error.message:"Unable to share your location. Check your connection.");
+      }
+    },error=>{
+      const messages:Record<number,string>={1:"Location permission was denied. Allow location access in your browser settings to share your position.",2:"Your device could not determine a location. Try moving to an open area.",3:"GPS took too long. Try again when your signal is stronger."};
+      setMessage(messages[error.code]||"Location is unavailable.");
+      setSharing(false);
+      watchId.current=null;
+    },{enableHighAccuracy:true,maximumAge:10000,timeout:20000});
+    setSharing(true);
+  }
+
+  return <section className="partner-location-sharing" aria-label="Live delivery location sharing">
+    <div><strong><MapPin size={15}/> Live location sharing</strong><p>{message}</p><small>Only active for this out-for-delivery assignment. Updates are sent approximately every 15 seconds while this screen is open.</small></div>
+    {sharing?<button type="button" className="secondary-button" onClick={stopSharing}>Stop sharing</button>:<button type="button" className="primary-button" onClick={startSharing}>Share my location</button>}
+  </section>;
+}
+
 
 export default function PartnerDashboard() {
   const { token, user } = useAuth();
@@ -165,6 +215,8 @@ export default function PartnerDashboard() {
             {item.estimated_delivery_start&&item.estimated_delivery_end&&<span><Clock3 size={14}/><span>Customer ETA <strong>{new Date(item.estimated_delivery_start).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})} – {new Date(item.estimated_delivery_end).toLocaleTimeString("en-IN",{hour:"2-digit",minute:"2-digit"})}</strong></span></span>}
           </div>
         </div>
+
+        {item.status==="out_for_delivery" && token && <PartnerLocationSharing token={token} assignmentId={item.id}/>}
 
         {![ "delivered", "failed" ].includes(item.status) && <div className="partner-eta-editor">
           <div className="partner-form-heading"><Clock3 size={15}/><strong>Keep the customer updated</strong></div>
