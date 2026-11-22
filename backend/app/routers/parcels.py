@@ -1,5 +1,6 @@
 from datetime import timezone
 from hashlib import sha256
+import secrets
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from sqlalchemy import select
@@ -7,8 +8,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.documents import build_parcel_receipt, create_parcel_registration_receipt
-from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ParcelDocument, ServiceablePincode, User
+from app.documents import build_delivery_proof, build_parcel_receipt, create_parcel_registration_receipt
+from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ParcelDocument, DeliveryEvent, DeliveryAssignment, ServiceablePincode, User
 from app.schemas import ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
 from app.security import get_current_user, require_admin
 
@@ -141,6 +142,80 @@ def download_parcel_receipt(
         media_type="application/pdf",
         headers={
             "Content-Disposition": f'inline; filename="TimeDrop-{safe_tracking}-receipt.pdf"',
+            "X-Document-Number": document.document_number,
+            "X-Document-SHA256": document.sha256,
+        },
+    )
+
+
+@router.get("/{parcel_id}/proof-of-delivery.pdf")
+def download_proof_of_delivery(
+    parcel_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Download a proof-of-delivery document only after verified delivery is recorded."""
+    parcel = _get_accessible_parcel(db, parcel_id, current_user)
+    assignment = db.scalar(
+        select(DeliveryAssignment).where(DeliveryAssignment.parcel_id == parcel.id)
+    )
+    if (
+        assignment is None
+        or assignment.status != "delivered"
+        or assignment.delivered_at is None
+        or not assignment.proof_recipient_name
+    ):
+        raise HTTPException(status_code=409, detail="Proof of delivery is available only after a verified delivery is completed.")
+
+    delivery_event = db.scalar(
+        select(DeliveryEvent)
+        .where(
+            DeliveryEvent.assignment_id == assignment.id,
+            DeliveryEvent.event_type == "proof_of_delivery",
+            DeliveryEvent.to_status == "delivered",
+        )
+        .order_by(DeliveryEvent.created_at.desc(), DeliveryEvent.id.desc())
+        .limit(1)
+    )
+    if delivery_event is None:
+        raise HTTPException(status_code=409, detail="The verified delivery event is missing; a proof document cannot be issued.")
+
+    document = db.scalar(
+        select(ParcelDocument)
+        .where(
+            ParcelDocument.parcel_id == parcel.id,
+            ParcelDocument.document_type == "proof_of_delivery",
+        )
+        .order_by(ParcelDocument.created_at.desc(), ParcelDocument.id.desc())
+        .limit(1)
+    )
+    if document is None:
+        issued_at = datetime.now(timezone.utc)
+        document_number = "TD-POD-" + secrets.token_hex(4).upper()
+        verification_code = "TDV-" + secrets.token_hex(16).upper()
+        content = build_delivery_proof(
+            parcel, assignment, delivery_event, document_number, verification_code, issued_at
+        )
+        document = ParcelDocument(
+            parcel_id=parcel.id,
+            document_type="proof_of_delivery",
+            document_number=document_number,
+            verification_code=verification_code,
+            sha256=sha256(content).hexdigest(),
+            pdf_content=content,
+            generated_by_id=current_user.id,
+            created_at=issued_at,
+        )
+        db.add(document)
+        db.commit()
+        db.refresh(document)
+
+    safe_tracking = "".join(character for character in parcel.tracking_number if character.isalnum() or character in "-_")
+    return Response(
+        content=document.pdf_content,
+        media_type="application/pdf",
+        headers={
+            "Content-Disposition": f'inline; filename="TimeDrop-{safe_tracking}-proof-of-delivery.pdf"',
             "X-Document-Number": document.document_number,
             "X-Document-SHA256": document.sha256,
         },
