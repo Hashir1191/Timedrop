@@ -1,17 +1,19 @@
 from datetime import datetime, timezone
+from hashlib import sha256
+from pathlib import PurePath
 import secrets
 
-from fastapi import APIRouter, Depends, HTTPException, Query, status
-from sqlalchemy import select
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Response, UploadFile, status
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Parcel, SupportCase, SupportCaseEvent, SupportCaseMessage, User
+from app.models import Parcel, SupportCase, SupportCaseAttachment, SupportCaseEvent, SupportCaseMessage, User
 from app.notifications import add_notification
 from app.schemas import (
     SupportCaseCreate,
-    SupportCaseMessageResponse,
+    SupportCaseMessageResponse, SupportCaseAttachmentResponse,
     SupportCaseResponse,
     SupportCaseUpdate,
     SupportMessageCreate,
@@ -19,6 +21,10 @@ from app.schemas import (
 from app.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/v1/support", tags=["Customer support"])
+MAX_ATTACHMENT_BYTES = 5 * 1024 * 1024
+MAX_CASE_ATTACHMENTS = 5
+MAX_CASE_ATTACHMENT_TOTAL = 15 * 1024 * 1024
+ALLOWED_ATTACHMENT_TYPES = {"application/pdf": ".pdf", "image/jpeg": ".jpg", "image/png": ".png"}
 
 
 def _serialize_case(db: Session, case: SupportCase, include_internal: bool = False) -> SupportCaseResponse:
@@ -44,6 +50,26 @@ def _serialize_case(db: Session, case: SupportCase, include_internal: bool = Fal
         )
         for message, author_name in db.execute(statement).all()
     ]
+    attachment_statement = (
+        select(SupportCaseAttachment)
+        .where(SupportCaseAttachment.case_id == case.id)
+        .order_by(SupportCaseAttachment.created_at, SupportCaseAttachment.id)
+    )
+    if not include_internal:
+        attachment_statement = attachment_statement.where(SupportCaseAttachment.is_internal.is_(False))
+    attachments = [
+        SupportCaseAttachmentResponse(
+            id=item.id,
+            filename=item.filename,
+            content_type=item.content_type,
+            file_size=item.file_size,
+            sha256=item.sha256,
+            uploader_id=item.uploader_id,
+            is_internal=item.is_internal,
+            created_at=item.created_at,
+        )
+        for item in db.scalars(attachment_statement).all()
+    ]
     return SupportCaseResponse(
         id=case.id,
         case_number=case.case_number,
@@ -62,6 +88,7 @@ def _serialize_case(db: Session, case: SupportCase, include_internal: bool = Fal
         updated_at=case.updated_at,
         resolved_at=case.resolved_at,
         messages=messages,
+        attachments=attachments,
     )
 
 
@@ -140,6 +167,140 @@ def get_customer_case(
     if customer.role != "customer":
         raise HTTPException(status_code=403, detail="Customer access is required.")
     return _serialize_case(db, _case_for_customer(db, case_id, customer))
+
+
+async def _store_case_attachment(
+    db: Session,
+    case: SupportCase,
+    uploader: User,
+    upload: UploadFile,
+    is_internal: bool,
+) -> SupportCaseResponse:
+    if case.status in {"resolved", "closed"}:
+        raise HTTPException(status_code=409, detail="Reopen the case before adding evidence.")
+    content_type = (upload.content_type or "").lower()
+    extension = ALLOWED_ATTACHMENT_TYPES.get(content_type)
+    if extension is None:
+        raise HTTPException(status_code=415, detail="Upload a PDF, JPEG or PNG evidence file.")
+    filename = PurePath(upload.filename or "evidence").name
+    filename = "".join(character for character in filename if character.isalnum() or character in " ._-")[:180].strip()
+    allowed_extensions = {extension, ".jpeg" if extension == ".jpg" else extension}
+    if not filename or PurePath(filename).suffix.lower() not in allowed_extensions:
+        raise HTTPException(status_code=415, detail="The file extension does not match its allowed content type.")
+    content = await upload.read(MAX_ATTACHMENT_BYTES + 1)
+    if not content:
+        raise HTTPException(status_code=422, detail="The evidence file is empty.")
+    if len(content) > MAX_ATTACHMENT_BYTES:
+        raise HTTPException(status_code=413, detail="Each evidence file must be 5 MB or smaller.")
+    valid_magic = (
+        (content_type == "application/pdf" and content.startswith(b"%PDF-"))
+        or (content_type == "image/jpeg" and content.startswith(b"\xff\xd8\xff"))
+        or (content_type == "image/png" and content.startswith(b"\x89PNG\r\n\x1a\n"))
+    )
+    if not valid_magic:
+        raise HTTPException(status_code=415, detail="The file contents do not match the declared PDF, JPEG or PNG type.")
+    count = db.scalar(select(func.count(SupportCaseAttachment.id)).where(SupportCaseAttachment.case_id == case.id)) or 0
+    total_size = db.scalar(select(func.coalesce(func.sum(SupportCaseAttachment.file_size), 0)).where(SupportCaseAttachment.case_id == case.id)) or 0
+    if count >= MAX_CASE_ATTACHMENTS:
+        raise HTTPException(status_code=409, detail="A support case can contain up to five evidence files.")
+    if total_size + len(content) > MAX_CASE_ATTACHMENT_TOTAL:
+        raise HTTPException(status_code=413, detail="The total evidence size for this case cannot exceed 15 MB.")
+    now = datetime.now(timezone.utc)
+    attachment = SupportCaseAttachment(
+        case_id=case.id,
+        uploader_id=uploader.id,
+        filename=filename,
+        content_type=content_type,
+        file_size=len(content),
+        sha256=sha256(content).hexdigest(),
+        is_internal=is_internal,
+        file_content=content,
+        created_at=now,
+    )
+    db.add(attachment)
+    case.updated_at = now
+    db.add(SupportCaseEvent(
+        case_id=case.id,
+        actor_id=uploader.id,
+        event_type="evidence_attached",
+        from_status=case.status,
+        to_status=case.status,
+        note="An evidence file was attached to the support case.",
+        created_at=now,
+    ))
+    db.commit()
+    db.refresh(case)
+    return _serialize_case(db, case, include_internal=uploader.role == "admin")
+
+
+def _attachment_response(attachment: SupportCaseAttachment) -> Response:
+    safe_filename = attachment.filename.replace('"', "").replace("\r", "").replace("\n", "")
+    return Response(
+        content=attachment.file_content,
+        media_type="application/octet-stream",
+        headers={
+            "Content-Disposition": f'attachment; filename="{safe_filename}"',
+            "X-Content-Type-Options": "nosniff",
+            "Cache-Control": "private, no-store",
+            "X-Evidence-SHA256": attachment.sha256,
+        },
+    )
+
+
+@router.post("/cases/{case_id}/attachments", response_model=SupportCaseResponse, status_code=status.HTTP_201_CREATED)
+async def upload_customer_evidence(
+    case_id: int,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Customer access is required.")
+    case = _case_for_customer(db, case_id, customer)
+    return await _store_case_attachment(db, case, customer, file, is_internal=False)
+
+
+@router.post("/admin/cases/{case_id}/attachments", response_model=SupportCaseResponse, status_code=status.HTTP_201_CREATED)
+async def upload_admin_evidence(
+    case_id: int,
+    file: UploadFile = File(...),
+    is_internal: bool = Form(default=True),
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    case = db.get(SupportCase, case_id)
+    if case is None:
+        raise HTTPException(status_code=404, detail="Support case not found.")
+    return await _store_case_attachment(db, case, admin, file, is_internal=is_internal)
+
+
+@router.get("/cases/{case_id}/attachments/{attachment_id}")
+def download_customer_evidence(
+    case_id: int,
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    customer: User = Depends(get_current_user),
+):
+    if customer.role != "customer":
+        raise HTTPException(status_code=403, detail="Customer access is required.")
+    _case_for_customer(db, case_id, customer)
+    attachment = db.get(SupportCaseAttachment, attachment_id)
+    if attachment is None or attachment.case_id != case_id or attachment.is_internal:
+        raise HTTPException(status_code=404, detail="Evidence file not found.")
+    return _attachment_response(attachment)
+
+
+@router.get("/admin/cases/{case_id}/attachments/{attachment_id}")
+def download_admin_evidence(
+    case_id: int,
+    attachment_id: int,
+    db: Session = Depends(get_db),
+    admin: User = Depends(require_admin),
+):
+    attachment = db.get(SupportCaseAttachment, attachment_id)
+    if attachment is None or attachment.case_id != case_id:
+        raise HTTPException(status_code=404, detail="Evidence file not found.")
+    return _attachment_response(attachment)
 
 
 @router.post("/cases/{case_id}/messages", response_model=SupportCaseResponse)
