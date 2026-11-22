@@ -18,6 +18,13 @@ export type DeliveryRouteStop = { parcel_id:number; tracking_number:string; reci
 export type DeliveryRoutePlan = { delivery_date:string; generated_at:string; total_unassigned:number; recommended:number; unassigned_without_partner:number; mapping_enabled:boolean; routing_provider:string; stops:DeliveryRouteStop[] };
 export type DeliveryAssignment = { id:number; parcel_id:number; partner_id:number; status:string; assigned_at:string; updated_at:string; tracking_number:string; recipient_name:string; phone:string; address_line:string; city:string; state:string; pincode:string; delivery_date:string; start_time:string; end_time:string; partner_name:string; estimated_delivery_start:string|null; estimated_delivery_end:string|null };
 
+export type DeliveryLiveLocation = {
+  parcel_id:number; assignment_id:number; location_status:"live"|"stale"|"awaiting_location";
+  latitude:number|null; longitude:number|null; accuracy_meters:number|null;
+  recorded_at:string|null; is_live:boolean;
+  estimated_delivery_start:string|null; estimated_delivery_end:string|null;
+};
+
 export type DeliveryEvent = {
   id:number; assignment_id:number; parcel_id:number; actor_id:number; actor_name:string;
   event_type:string; from_status:string|null; to_status:string; note:string|null; created_at:string;

@@ -95,6 +95,9 @@ export const getDeliveryRoutePlan=(token:string,date:string)=>request<DeliveryRo
 export const assignParcel=(token:string,parcelId:number,partnerId:number)=>request<DeliveryAssignment>(`/delivery/parcels/${parcelId}/assignments`,token,{method:"POST",body:JSON.stringify({partner_id:partnerId})});
 export const getMyAssignments=(token:string)=>request<DeliveryAssignment[]>("/delivery/my-assignments",token);
 export const getMyTracking=(token:string)=>request<DeliveryAssignment[]>("/delivery/my-tracking",token);
+export const publishDeliveryLocation=(token:string,assignmentId:number,data:{latitude:number;longitude:number;accuracy_meters?:number})=>request<{accepted:boolean;recorded_at:string}>(`/delivery/assignments/${assignmentId}/location`,token,{method:"POST",body:JSON.stringify(data)});
+export const getLiveDeliveryLocation=(token:string,parcelId:number)=>request<import("./types").DeliveryLiveLocation>(`/delivery/parcels/${parcelId}/live-location`,token);
+
 export const updateDeliveryEta=(token:string,id:number,data:{estimated_delivery_start:string;estimated_delivery_end:string})=>request<DeliveryAssignment>(`/delivery/assignments/${id}/eta`,token,{method:"PATCH",body:JSON.stringify(data)});
 export const updateAssignmentStatus=(token:string,id:number,data:{status:"accepted"|"out_for_delivery"|"delivered"|"failed";failure_reason?:string})=>request<DeliveryAssignment>(`/delivery/assignments/${id}/status`,token,{method:"PATCH",body:JSON.stringify(data)});
 

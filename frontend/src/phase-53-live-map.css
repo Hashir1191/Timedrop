@@ -1,0 +1,42 @@
+/* Phase 53 — customer live map and consent-based partner GPS controls */
+.customer-live-map{margin-top:17px;padding:17px;border:1px solid #dfe8f4;border-radius:15px;background:linear-gradient(145deg,#fbfdff,#f5f8fd)}
+.customer-live-map-heading{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:13px}
+.customer-live-map-kicker{display:block;color:#5574b8;font-size:8px;font-weight:850;letter-spacing:1.4px}
+.customer-live-map-heading h3{margin:5px 0;color:#243651;font-size:16px;letter-spacing:-.3px}
+.customer-live-map-heading p{margin:0;color:#8492a6;font-size:10px;line-height:1.55}
+.customer-live-map-heading .secondary-button{flex:0 0 auto}
+.customer-live-map-alert{padding:9px 11px;margin-bottom:10px;border:1px solid #f0d8b7;border-radius:9px;background:#fff9ef;color:#8b622b;font-size:10px;line-height:1.5}
+.customer-live-map-status{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 9px}
+.customer-live-map-status>span{display:inline-flex;align-items:center;gap:6px;font-size:10px;font-weight:800}
+.customer-live-map-status>span.live{color:#16845e}
+.customer-live-map-status>span.stale{color:#a36c2c}
+.customer-live-map-status small{color:#8996a8;font-size:9px}
+.customer-live-map-frame{height:290px;overflow:hidden;border:1px solid #d9e2ed;border-radius:12px;background:#e9eff5}
+.customer-live-map-frame iframe{width:100%;height:100%;border:0}
+.customer-live-map-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 2px 0}
+.customer-live-map-foot>div{display:flex;align-items:center;gap:8px;color:#4f6c9b}
+.customer-live-map-foot>div span{display:grid;gap:3px}
+.customer-live-map-foot strong{color:#34465f;font-size:10px}
+.customer-live-map-foot small{color:#8996a8;font-size:9px}
+.customer-live-map-foot a{display:inline-flex;align-items:center;gap:5px;color:#4268ce;font-size:10px;font-weight:750;text-decoration:none}
+.customer-live-map-stale-note{display:flex;align-items:center;gap:6px;margin:9px 0 0;color:#9a713c;font-size:9px}
+.customer-live-map-placeholder{min-height:135px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:18px;border:1px dashed #cad6e6;border-radius:11px;background:#fff;color:#72829a;text-align:center;font-size:10px}
+.customer-live-map-placeholder strong{color:#34465f;font-size:11px}
+.customer-live-map-placeholder span{max-width:380px;line-height:1.6}
+.customer-live-map-eta{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 12px;border:1px solid #dce7f5;border-radius:9px;background:#fff;color:#5472a4;font-size:10px}
+.customer-live-map-eta strong{margin-left:5px;color:#2f4260}
+.customer-live-map-disclaimer{margin:10px 0 0;color:#8c99aa;font-size:9px;line-height:1.6}
+.partner-location-sharing{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:13px 15px;margin:0 0 13px;border:1px solid #dbe7f5;border-radius:12px;background:#f7faff}
+.partner-location-sharing>div{min-width:0}
+.partner-location-sharing>div>strong{display:flex;align-items:center;gap:7px;color:#344c72;font-size:11px}
+.partner-location-sharing p{margin:5px 0 3px;color:#687b97;font-size:10px;line-height:1.5}
+.partner-location-sharing small{color:#929fb1;font-size:9px;line-height:1.5}
+.partner-location-sharing button{flex:0 0 auto}
+@media(max-width:620px){
+ .customer-live-map{padding:13px}
+ .customer-live-map-heading{align-items:flex-start}
+ .customer-live-map-frame{height:245px}
+ .customer-live-map-foot{align-items:flex-start;flex-direction:column}
+ .partner-location-sharing{align-items:stretch;flex-direction:column}
+ .partner-location-sharing button{align-self:flex-start}
+}
