@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from hashlib import sha256
 from io import BytesIO
+import re
 import secrets
 from xml.sax.saxutils import escape
 
@@ -75,7 +76,7 @@ class TimeDropLogo(Flowable):
         c.drawString(word_x, word_y, "Time")
         word_width = c.stringWidth("Time", font, size)
         c.setFillColor(blue)
-        c.drawString(word_x + word_width + 2.0 * mm, word_y, "Drop")
+        c.drawString(word_x + word_width, word_y, "Drop")
         c.setFont("Helvetica-Bold", 8)
         c.setFillColor(navy)
         tagline = "SCHEDULE  •  TRACK  •  RECEIVE"
@@ -161,8 +162,10 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
 
     local_issued = issued_at.astimezone(timezone.utc).strftime("%d %b %Y  ·  %H:%M UTC")
     masked_phone = "•••• " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
-    address = ", ".join(part.strip() for part in [parcel.address_line, parcel.city, parcel.state] if part)
-    address = f"{address}, {parcel.pincode}" if parcel.pincode else address
+    address_parts = [re.sub(r"\s*,\\s*", ", ", part.strip()) for part in [parcel.address_line, parcel.city, parcel.state] if part and part.strip()]
+    address = ", ".join(address_parts)
+    address = re.sub(r"\s+", " ", address).strip()
+    address = f"{address}, {parcel.pincode.strip()}" if parcel.pincode and parcel.pincode.strip() else address
     address = _safe(address)
     current = (parcel.status or "registered").lower()
     stage_map = {
