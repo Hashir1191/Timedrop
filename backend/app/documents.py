@@ -106,7 +106,7 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
 def create_parcel_registration_receipt(db: Session, parcel: Parcel, generated_by_id: int) -> ParcelDocument:
     issued_at = datetime.now(timezone.utc)
     document_number = "TD-R-" + secrets.token_hex(4).upper()
-    verification_code = "TDV-" + secrets.token_hex(6).upper()
+    verification_code = "TDV-" + secrets.token_hex(16).upper()
     content = build_parcel_receipt(parcel, document_number, verification_code, issued_at)
     record = ParcelDocument(
         parcel_id=parcel.id,
