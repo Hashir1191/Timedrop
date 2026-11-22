@@ -5,6 +5,7 @@ import { getMyAssignments, getMyAvailability, updateAssignmentStatus, submitDeli
 import { useAuth } from "../auth";
 import EmptyState from "../components/EmptyState";
 import DeliveryTimeline from "../components/DeliveryTimeline";
+import HandoverSignaturePad from "../components/HandoverSignaturePad";
 import StatusBadge from "../components/StatusBadge";
 import type { DeliveryAssignment } from "../types";
 
@@ -216,6 +217,8 @@ export default function PartnerDashboard() {
           </div>
         </div>
 
+        {item.handover_signature_required&&token&&user&&<HandoverSignaturePad token={token} assignmentId={item.id} signerName={user.full_name} onSigned={()=>void load()}/>}
+        {item.handover_signed_at&&<div className="partner-handover-confirmed"><ShieldCheck size={15}/><span><strong>Handover signature recorded</strong><small>{new Date(item.handover_signed_at).toLocaleString("en-IN",{dateStyle:"medium",timeStyle:"short"})}</small></span></div>}
         {item.status==="out_for_delivery" && token && <PartnerLocationSharing token={token} assignmentId={item.id}/>}
 
         {![ "delivered", "failed" ].includes(item.status) && <div className="partner-eta-editor">
