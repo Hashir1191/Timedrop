@@ -66,3 +66,46 @@ def test_customer_registration_automatically_issues_private_verifiable_pdf_recei
         app.dependency_overrides.clear()
         Base.metadata.drop_all(bind=engine)
         engine.dispose()
+
+
+def test_operations_intake_also_issues_a_printable_receipt():
+    engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
+    sessions = sessionmaker(bind=engine, autoflush=False, autocommit=False)
+    Base.metadata.create_all(bind=engine)
+    db = sessions()
+    db.add(User(email="intake-admin@example.com", full_name="Intake Admin", password_hash=hash_password("StrongAdminPassword123!"), role="admin"))
+    db.commit()
+    db.close()
+
+    def override_get_db():
+        session = sessions()
+        try:
+            yield session
+        finally:
+            session.close()
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app) as client:
+            login = client.post("/api/v1/auth/login", json={"email":"intake-admin@example.com","password":"StrongAdminPassword123!"})
+            admin = {"Authorization":"Bearer "+login.json()["access_token"]}
+            intake = client.post("/api/v1/operations/intake", headers=admin, json={
+                "tracking_number":"TD-INTAKE-RECEIPT-001",
+                "recipient_name":"Operations Recipient",
+                "phone":"9876543210",
+                "address_line":"18 Warehouse Road",
+                "city":"Prayagraj",
+                "state":"Uttar Pradesh",
+                "pincode":"211001",
+                "received_from":"Authorized sender",
+                "package_condition":"intact",
+            })
+            assert intake.status_code == 201
+            pdf = client.get(f"/api/v1/parcels/{intake.json()['id']}/receipt.pdf", headers=admin)
+            assert pdf.status_code == 200
+            assert pdf.content.startswith(b"%PDF")
+            assert pdf.headers["x-document-number"].startswith("TD-R-")
+    finally:
+        app.dependency_overrides.clear()
+        Base.metadata.drop_all(bind=engine)
+        engine.dispose()
