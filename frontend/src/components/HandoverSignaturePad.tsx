@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import type { PointerEvent } from "react";
 import { CheckCircle2, Eraser, PenLine, ShieldCheck } from "lucide-react";
 import { submitHandoverSignature } from "../api";
 
@@ -13,7 +14,7 @@ export default function HandoverSignaturePad({token,assignmentId,signerName,onSi
  const [error,setError]=useState("");
  const [saved,setSaved]=useState(false);
 
- function point(event:React.PointerEvent<HTMLCanvasElement>){
+ function point(event:PointerEvent<HTMLCanvasElement>){
   const canvas=event.currentTarget;
   const rect=canvas.getBoundingClientRect();
   return {x:(event.clientX-rect.left)*(canvas.width/rect.width),y:(event.clientY-rect.top)*(canvas.height/rect.height)};
