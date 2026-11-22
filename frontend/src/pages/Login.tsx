@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { FormEvent } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { Activity, ArrowLeft, ArrowRight, Eye, EyeOff, LockKeyhole, UserPlus } from "lucide-react";
+import BrandLogo from "../components/BrandLogo";
 import { getMe, login, register } from "../api";
 import { useAuth } from "../auth";
 
@@ -43,8 +44,7 @@ export default function Login() {
       <div className="login-panel auth-experience-panel">
         <div className="auth-topline">
           <Link className="login-brand auth-brand-link" to="/" aria-label="Back to TimeDrop home">
-            <span className="brand-mark"><Activity size={22} /></span>
-            <span>time<span className="brand-accent">drop</span></span>
+            <BrandLogo className="brand-logo"/>
           </Link>
           <Link className="auth-back-link" to="/"><ArrowLeft size={14} /> Home</Link>
         </div>
