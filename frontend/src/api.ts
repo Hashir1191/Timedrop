@@ -118,6 +118,7 @@ export const getAssignmentEvents=(token:string,assignmentId:number)=>request<Del
 
 export const issueDeliveryCode=(token:string,parcelId:number)=>request<{code:string;expires_at:string}>(`/delivery/parcels/${parcelId}/delivery-code`,token,{method:"POST"});
 export const submitDeliveryProof=(token:string,assignmentId:number,data:{code:string;recipient_name:string})=>request<DeliveryAssignment>(`/delivery/assignments/${assignmentId}/proof`,token,{method:"POST",body:JSON.stringify(data)});
+export const submitHandoverSignature=(token:string,assignmentId:number,data:{signed_name:string;signature_data_url:string})=>request<{id:number;assignment_id:number;parcel_id:number;custody_event_id:number;partner_user_id:number;signed_name:string;acknowledgement_text:string;signature_sha256:string;created_at:string}>("/delivery/assignments/"+assignmentId+"/handover-signature",token,{method:"POST",body:JSON.stringify(data)});
 
 
 export const getSupportCases=(token:string)=>request<import("./types").SupportCase[]>("/support/cases",token);

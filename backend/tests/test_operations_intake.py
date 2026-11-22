@@ -1,3 +1,4 @@
+import base64
 from datetime import datetime, timedelta
 
 import pytest
@@ -242,6 +243,13 @@ def test_failed_delivery_must_return_to_operations_before_reassignment(client):
     assert released.status_code == 201
 
     rider = auth(client, "return-rider@example.com", "StrongRiderPassword123!")
+    signature_png = base64.b64encode(b"\x89PNG\r\n\x1a\nfake-handover-signature").decode("ascii")
+    signed_handover = client.post(
+        f"/api/v1/delivery/assignments/{assignment.json()['id']}/handover-signature",
+        headers=rider,
+        json={"signed_name": "Return Rider", "signature_data_url": "data:image/png;base64," + signature_png},
+    )
+    assert signed_handover.status_code == 201
     assert client.patch(
         f"/api/v1/delivery/assignments/{assignment.json()['id']}/status",
         headers=rider,
