@@ -227,6 +227,23 @@ class SupportCaseMessage(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class SupportCaseAttachment(Base):
+    """Private evidence file linked to a support case."""
+
+    __tablename__ = "support_case_attachments"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    case_id: Mapped[int] = mapped_column(ForeignKey("support_cases.id", ondelete="CASCADE"), nullable=False, index=True)
+    uploader_id: Mapped[int] = mapped_column(ForeignKey("users.id"), nullable=False, index=True)
+    filename: Mapped[str] = mapped_column(String(180), nullable=False)
+    content_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    file_size: Mapped[int] = mapped_column(Integer, nullable=False)
+    sha256: Mapped[str] = mapped_column(String(64), nullable=False)
+    is_internal: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    file_content: Mapped[bytes] = mapped_column(LargeBinary, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class SupportCaseEvent(Base):
     """Append-only support case lifecycle event."""
 
