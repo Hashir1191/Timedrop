@@ -1,0 +1,10 @@
+/* Phase 57 — secure support evidence attachments */
+.support-evidence-list{display:grid;gap:7px;margin-top:12px;padding:10px;border:1px solid #e4ebf4;border-radius:9px;background:#fff}
+.support-evidence-list>strong{color:#566c8b;font-size:9px}
+.support-evidence-list>button{display:flex;align-items:center;gap:7px;width:100%;padding:7px 8px;border:1px solid #edf1f6;border-radius:7px;background:#fafcff;color:#49648f;text-align:left;font-size:9px;cursor:pointer}
+.support-evidence-list>button small{margin-left:auto;color:#96a2b2;font-size:8px}
+.support-evidence-upload{display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-top:10px;padding:10px;border:1px dashed #d7e0ed;border-radius:9px;background:#fbfcff}
+.support-evidence-upload>label{display:inline-flex;align-items:center;gap:7px;max-width:100%;color:#526b95;font-size:9px;font-weight:750;cursor:pointer}
+.support-evidence-upload input[type=file]{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;clip-path:inset(50%)}
+.support-evidence-upload .secondary-button{min-height:30px;padding:6px 9px;font-size:8px}
+.support-evidence-upload>small{flex-basis:100%;color:#99a5b4;font-size:8px}
