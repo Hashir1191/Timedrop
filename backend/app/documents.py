@@ -64,7 +64,7 @@ def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code
         ("RIGHTPADDING", (0, 0), (-1, -1), 9),
     ]))
     story.extend([table, Paragraph("Recipient and destination", section)])
-    masked_phone = "•••• " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
+    masked_phone = "**** " + parcel.phone[-4:] if len(parcel.phone) >= 4 else "••••"
     details = [
         [Paragraph("RECIPIENT", label), Paragraph("CONTACT", label)],
         [Paragraph(_safe(parcel.recipient_name), value), Paragraph(_safe(masked_phone), value)],
