@@ -724,7 +724,7 @@ def sign_delivery_handover(
         signature_bytes = base64.b64decode(data.signature_data_url.split(",", 1)[1], validate=True)
     except (ValueError, binascii.Error):
         raise HTTPException(status_code=422, detail="The signature image is not valid base64 PNG data.")
-    if not signature_bytes.startswith(b"\\x89PNG\\r\\n\\x1a\\n") or len(signature_bytes) > 256 * 1024:
+    if not signature_bytes.startswith(b"\x89PNG\r\n\x1a\n") or len(signature_bytes) > 256 * 1024:
         raise HTTPException(status_code=422, detail="Provide a valid PNG signature image smaller than 256 KB.")
 
     acknowledgement = (
