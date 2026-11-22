@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import type { FormEvent } from "react";
 import { LifeBuoy, MessageCircle, PlusCircle, RefreshCw, Send, ShieldAlert } from "lucide-react";
-import { createSupportCase, getSupportCases, replySupportCase } from "../api";
+import { createSupportCase, getParcels, getSupportCases, replySupportCase } from "../api";
 import { useAuth } from "../auth";
-import type { SupportCase } from "../types";
+import type { Parcel, SupportCase } from "../types";
 
 const categories=[
   {value:"missing_parcel",label:"Parcel missing"},
@@ -17,6 +18,7 @@ const dateLabel=(value:string)=>new Date(value).toLocaleString("en-IN",{dateStyl
 export default function SupportCenter(){
   const {token}=useAuth();
   const [cases,setCases]=useState<SupportCase[]>([]);
+  const [parcels,setParcels]=useState<Parcel[]>([]);
   const [loading,setLoading]=useState(true);
   const [error,setError]=useState("");
   const [category,setCategory]=useState("missing_parcel");
@@ -29,7 +31,7 @@ export default function SupportCenter(){
   async function load(){
     if(!token)return;
     setLoading(true);setError("");
-    try{setCases(await getSupportCases(token));}
+    try{const [caseRows,parcelRows]=await Promise.all([getSupportCases(token),getParcels(token)]);setCases(caseRows);setParcels(parcelRows);}
     catch(err){setError(err instanceof Error?err.message:"Unable to load your support cases.");}
     finally{setLoading(false);}
   }
@@ -61,7 +63,7 @@ export default function SupportCenter(){
         <div className="support-card-heading"><span><LifeBuoy size={18}/></span><div><h2>Raise a support request</h2><p>Our team will review your report and reply here.</p></div></div>
         <form onSubmit={submit} className="support-form">
           <label>What do you need help with?<select value={category} onChange={event=>setCategory(event.target.value)}>{categories.map(item=><option key={item.value} value={item.value}>{item.label}</option>)}</select></label>
-          <label>Tracking number (optional)<input inputMode="text" value={parcelId} onChange={event=>setParcelId(event.target.value.replace(/\D/g,""))} placeholder="Enter parcel ID if you know it"/></label>
+          <label>Related parcel (optional)<select value={parcelId} onChange={event=>setParcelId(event.target.value)}><option value="">No parcel selected</option>{parcels.map(parcel=><option key={parcel.id} value={String(parcel.id)}>{parcel.tracking_number} · {parcel.city}</option>)}</select></label>
           <label>Subject<input value={subject} onChange={event=>setSubject(event.target.value)} minLength={5} maxLength={160} required placeholder="Briefly describe the issue"/></label>
           <label>Tell us what happened<textarea value={description} onChange={event=>setDescription(event.target.value)} minLength={10} maxLength={5000} required rows={5} placeholder="Include dates, delivery details and anything that will help us investigate."/></label>
           <button className="primary-button" type="submit" disabled={busy}>{busy?"Submitting…":<><Send size={15}/> Submit report</>}</button>
