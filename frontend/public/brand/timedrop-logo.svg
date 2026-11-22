@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 680 150" role="img" aria-labelledby="title desc">
+  <title id="title">TimeDrop</title>
+  <desc id="desc">TimeDrop smart parcel delivery logo with a parcel and motion arc.</desc>
+  <defs>
+    <linearGradient id="tdBlue" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#167BFF"/>
+      <stop offset="1" stop-color="#0B2E6B"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(12 12)">
+    <path d="M18 61 C39 14 105 -3 143 24 C164 39 163 68 145 84" fill="none" stroke="#0B2E6B" stroke-width="9" stroke-linecap="round"/>
+    <path d="M136 17 L157 21 L145 40" fill="none" stroke="#0B2E6B" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M28 67 L77 41 L127 67 L77 95 Z" fill="url(#tdBlue)"/>
+    <path d="M28 67 L28 116 L77 143 L77 95 Z" fill="#167BFF"/>
+    <path d="M77 95 L127 67 L127 116 L77 143 Z" fill="#0B2E6B"/>
+    <path d="M77 41 L77 95 M28 67 L77 95 L127 67" fill="none" stroke="#FFFFFF" stroke-width="3" opacity=".92"/>
+    <path d="M3 88 L20 88 M0 103 L17 103" stroke="#167BFF" stroke-width="6" stroke-linecap="round"/>
+  </g>
+  <text x="190" y="91" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="750" letter-spacing="-3" fill="#0B2E6B">Time</text>
+  <text x="354" y="91" font-family="Inter, Arial, sans-serif" font-size="72" font-weight="750" letter-spacing="-3" fill="#167BFF">Drop</text>
+  <text x="194" y="125" font-family="Inter, Arial, sans-serif" font-size="16" font-weight="650" letter-spacing="4.1" fill="#64748B">SMART PARCEL DELIVERY</text>
+</svg>
