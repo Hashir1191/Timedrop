@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, CheckCircle2, MapPin, Package, PackageCheck, RefreshCw, Search, Save, Truck, Warehouse, X } from "lucide-react";
 import { getWarehouseParcels, getWarehouseSummary, updateWarehouseLocation } from "../api";
 import { useAuth } from "../auth";
-import type { Parcel } from "../types";
+import type { WarehouseParcel } from "../types";
 import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 
@@ -21,7 +21,7 @@ type WarehouseSummary = Awaited<ReturnType<typeof getWarehouseSummary>>;
 
 export default function WarehousePage() {
   const { token } = useAuth();
-  const [parcels, setParcels] = useState<Parcel[]>([]);
+  const [parcels, setParcels] = useState<WarehouseParcel[]>([]);
   const [summary, setSummary] = useState<WarehouseSummary | null>(null);
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("");
@@ -53,7 +53,7 @@ export default function WarehousePage() {
 
   useEffect(() => { void refresh(); }, [token, query, status, location]);
 
-  function beginEdit(parcel: Parcel) {
+  function beginEdit(parcel: WarehouseParcel) {
     setEditingId(parcel.id);
     setLocationDraft(parcel.warehouse_location || "");
     setError("");
@@ -65,7 +65,7 @@ export default function WarehousePage() {
     setLocationDraft("");
   }
 
-  async function saveLocation(parcel: Parcel) {
+  async function saveLocation(parcel: WarehouseParcel) {
     if (!token) return;
     const next = locationDraft.trim() || null;
     if (next && next.length > 40) {
@@ -125,7 +125,7 @@ export default function WarehousePage() {
           {editingId===parcel.id ? <div className="warehouse-bin-editor">
             <label><span>Bin / shelf reference</span><input autoFocus maxLength={40} value={locationDraft} onChange={(event) => setLocationDraft(event.target.value)} placeholder="Example: A-01-02"/></label>
             <div><button className="warehouse-save-bin" disabled={busyId===parcel.id} onClick={() => void saveLocation(parcel)}><Save size={14}/>{busyId===parcel.id?"Saving…":"Save"}</button><button className="warehouse-cancel-bin" onClick={cancelEdit} disabled={busyId===parcel.id} aria-label="Cancel bin edit"><X size={14}/></button></div>
-          </div> : <button className="warehouse-edit-bin" onClick={() => beginEdit(parcel)}>{parcel.warehouse_location?"Edit location":"Assign storage bin"} <MapPin size={13}/></button>}
+          </div> : parcel.can_update_location ? <button className="warehouse-edit-bin" onClick={() => beginEdit(parcel)}>{parcel.warehouse_location?"Edit location":"Assign storage bin"} <MapPin size={13}/></button> : <div className="warehouse-bin-locked"><span className="warehouse-bin-locked-label">Location locked</span><small>{parcel.custody_event_type === "released" ? "This parcel is with the delivery partner. You can update its bin after it is returned to operations." : parcel.custody_event_type ? "This parcel is not currently in warehouse custody." : "No custody receipt is recorded for this parcel, so a storage bin cannot be assigned yet."}</small></div>}
         </div>
         <div className="warehouse-parcel-card-foot"><span>Received / created {new Date(parcel.created_at).toLocaleDateString("en-IN",{day:"numeric",month:"short",year:"numeric"})}</span><span>#{parcel.id}</span></div>
        </article>)}</div> : <div className="warehouse-empty"><EmptyState title="No matching parcels" description="Try changing the search text or inventory filters."/></div>
