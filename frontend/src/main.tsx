@@ -24,6 +24,7 @@ import "./phase-47-tracking.css";
 import "./phase-48-scheduling.css";
 import "./phase-49-registration.css";
 import "./phase-50-customer-delivery.css";
+import "./phase-53-live-map.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
