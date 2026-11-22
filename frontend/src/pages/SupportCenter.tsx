@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { FormEvent } from "react";
-import { LifeBuoy, MessageCircle, RefreshCw, Send, ShieldAlert } from "lucide-react";
-import { createSupportCase, getParcels, getSupportCases, replySupportCase } from "../api";
+import { Download, LifeBuoy, MessageCircle, Paperclip, RefreshCw, Send, ShieldAlert } from "lucide-react";
+import { createSupportCase, downloadSupportAttachment, getParcels, getSupportCases, replySupportCase, uploadSupportAttachment } from "../api";
 import { useAuth } from "../auth";
 import type { Parcel, SupportCase } from "../types";
 
@@ -27,6 +27,8 @@ export default function SupportCenter(){
   const [parcelId,setParcelId]=useState("");
   const [busy,setBusy]=useState(false);
   const [reply,setReply]=useState<Record<number,string>>({});
+  const [evidence,setEvidence]=useState<Record<number,File|null>>({});
+  const [uploadBusy,setUploadBusy]=useState<number|null>(null);
 
   async function load(){
     if(!token)return;
@@ -47,6 +49,19 @@ export default function SupportCenter(){
     }catch(err){setError(err instanceof Error?err.message:"Unable to submit your report.");}
     finally{setBusy(false);}
   }
+  async function uploadEvidence(caseId:number){
+    if(!token||!evidence[caseId])return;
+    setUploadBusy(caseId);setError("");
+    try{await uploadSupportAttachment(token,caseId,evidence[caseId]!);setEvidence(current=>({...current,[caseId]:null}));await load();}
+    catch(err){setError(err instanceof Error?err.message:"Unable to upload evidence.");}
+    finally{setUploadBusy(null);}
+  }
+  async function downloadEvidence(caseId:number,attachmentId:number,filename:string){
+    if(!token)return;
+    try{const blob=await downloadSupportAttachment(token,caseId,attachmentId);const url=URL.createObjectURL(blob);const link=document.createElement("a");link.href=url;link.download=filename;document.body.appendChild(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    catch(err){setError(err instanceof Error?err.message:"Unable to download evidence.");}
+  }
+
   async function sendReply(caseId:number){
     if(!token||!reply[caseId]?.trim())return;
     setBusy(true);setError("");
