@@ -35,43 +35,42 @@ class TimeDropLogo(Flowable):
         blue = colors.HexColor("#2877F5")
         cyan = colors.HexColor("#25BDEB")
         violet = colors.HexColor("#8755F5")
+        x, y, unit = 4 * mm, 6 * mm, 1 * mm
 
-        # Parcel mark: three clean faces and a small location pin.
-        x, y, unit = 4 * mm, 9 * mm, 1 * mm
-        parcel = canvas.beginPath()
-        parcel.moveTo(x + 13 * unit, y + 18 * unit)
-        parcel.lineTo(x + 26 * unit, y + 3 * unit + 13 * unit)
-        parcel.lineTo(x + 13 * unit, y + 5 * unit)
-        parcel.lineTo(x, y + 13 * unit)
-        parcel.close()
+        top = canvas.beginPath()
+        top.moveTo(x + 12 * unit, y + 17 * unit)
+        top.lineTo(x + 24 * unit, y + 11 * unit)
+        top.lineTo(x + 12 * unit, y + 5 * unit)
+        top.lineTo(x, y + 11 * unit)
+        top.close()
         canvas.setFillColor(cyan)
-        canvas.drawPath(parcel, fill=1, stroke=0)
+        canvas.drawPath(top, fill=1, stroke=0)
 
         left = canvas.beginPath()
-        left.moveTo(x, y + 14 * unit)
-        left.lineTo(x + 13 * unit, y + 7 * unit)
-        left.lineTo(x + 13 * unit, y - 5 * unit)
-        left.lineTo(x, y + 3 * unit)
+        left.moveTo(x, y + 11 * unit)
+        left.lineTo(x + 12 * unit, y + 5 * unit)
+        left.lineTo(x + 12 * unit, y - 5 * unit)
+        left.lineTo(x, y + 1 * unit)
         left.close()
         canvas.setFillColor(blue)
         canvas.drawPath(left, fill=1, stroke=0)
 
         right = canvas.beginPath()
-        right.moveTo(x + 26 * unit, y + 14 * unit)
-        right.lineTo(x + 13 * unit, y + 7 * unit)
-        right.lineTo(x + 13 * unit, y - 7 * unit)
-        right.lineTo(x + 26 * unit, y)
+        right.moveTo(x + 24 * unit, y + 11 * unit)
+        right.lineTo(x + 12 * unit, y + 5 * unit)
+        right.lineTo(x + 12 * unit, y - 5 * unit)
+        right.lineTo(x + 24 * unit, y + 1 * unit)
         right.close()
         canvas.setFillColor(navy)
         canvas.drawPath(right, fill=1, stroke=0)
 
         canvas.setStrokeColor(colors.white)
         canvas.setLineWidth(0.8)
-        canvas.line(x + 13 * unit, y + 21 * unit, x + 13 * unit, y + 7 * unit)
-        canvas.line(x, y + 14 * unit, x + 13 * unit, y + 7 * unit)
-        canvas.line(x + 26 * unit, y + 14 * unit, x + 13 * unit, y + 7 * unit)
+        canvas.line(x + 12 * unit, y + 17 * unit, x + 12 * unit, y + 5 * unit)
+        canvas.line(x, y + 11 * unit, x + 12 * unit, y + 5 * unit)
+        canvas.line(x + 24 * unit, y + 11 * unit, x + 12 * unit, y + 5 * unit)
 
-        pin_x, pin_y = x + 29 * unit, y + 17 * unit
+        pin_x, pin_y = x + 29 * unit, y + 14 * unit
         canvas.setFillColor(violet)
         canvas.circle(pin_x, pin_y, 3.5 * unit, fill=1, stroke=0)
         canvas.setFillColor(colors.white)
@@ -86,7 +85,6 @@ class TimeDropLogo(Flowable):
         canvas.setFont("Helvetica-Bold", 6.5)
         canvas.drawString(38.5 * mm, 5 * mm, "S M A R T   P A R C E L   D E L I V E R Y")
         canvas.restoreState()
-
 
 def build_parcel_receipt(parcel: Parcel, document_number: str, verification_code: str, issued_at: datetime) -> bytes:
     buffer = BytesIO()
