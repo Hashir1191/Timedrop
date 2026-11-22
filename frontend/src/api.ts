@@ -106,6 +106,13 @@ export const getAssignmentEvents=(token:string,assignmentId:number)=>request<Del
 export const issueDeliveryCode=(token:string,parcelId:number)=>request<{code:string;expires_at:string}>(`/delivery/parcels/${parcelId}/delivery-code`,token,{method:"POST"});
 export const submitDeliveryProof=(token:string,assignmentId:number,data:{code:string;recipient_name:string})=>request<DeliveryAssignment>(`/delivery/assignments/${assignmentId}/proof`,token,{method:"POST",body:JSON.stringify(data)});
 
+
+export const getSupportCases=(token:string)=>request<import("./types").SupportCase[]>("/support/cases",token);
+export const createSupportCase=(token:string,data:{category:string;subject:string;description:string;parcel_id?:number|null})=>request<import("./types").SupportCase>("/support/cases",token,{method:"POST",body:JSON.stringify(data)});
+export const replySupportCase=(token:string,caseId:number,body:string)=>request<import("./types").SupportCase>("/support/cases/"+caseId+"/messages",token,{method:"POST",body:JSON.stringify({body})});
+export const getSupportQueue=(token:string,status?:string)=>request<import("./types").SupportCase[]>("/support/admin/cases"+(status?"?status="+encodeURIComponent(status):""),token);
+export const updateSupportCase=(token:string,caseId:number,data:{status?:string;priority?:string;assigned_to_id?:number|null})=>request<import("./types").SupportCase>("/support/admin/cases/"+caseId,token,{method:"PATCH",body:JSON.stringify(data)});
+export const replyAdminSupportCase=(token:string,caseId:number,body:string,is_internal=false)=>request<import("./types").SupportCase>("/support/admin/cases/"+caseId+"/messages",token,{method:"POST",body:JSON.stringify({body,is_internal})});
 export const getNotifications=(token:string)=>request<NotificationItem[]>("/notifications/?limit=30",token);
 export const getUnreadNotificationCount=(token:string)=>request<{unread_count:number}>("/notifications/unread-count",token);
 export const markNotificationRead=(token:string,id:number)=>request<NotificationItem>(`/notifications/${id}/read`,token,{method:"PATCH"});

@@ -17,6 +17,7 @@ from app.routers.serviceability import public_router as serviceability_router, o
 from app.routers.health import router as health_router
 from app.routers.notification_operations import router as notification_operations_router
 from app.routers.system_health import router as system_health_router
+from app.routers.support import router as support_router
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ app.include_router(service_areas_router)
 app.include_router(health_router)
 app.include_router(notification_operations_router)
 app.include_router(system_health_router)
+app.include_router(support_router)
 
 
 @app.get("/", tags=["General"])

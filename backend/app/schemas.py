@@ -591,3 +591,78 @@ class ParcelTimelineEvent(BaseModel):
     description: str
     status: str
     created_at: datetime
+
+
+class SupportCaseCreate(BaseModel):
+    category: str = Field(pattern=r"^(missing_parcel|suspected_theft|damaged_parcel|delivery_not_received|app_bug|other)$")
+    subject: str = Field(min_length=5, max_length=160)
+    description: str = Field(min_length=10, max_length=5000)
+    parcel_id: int | None = Field(default=None, gt=0)
+
+    @field_validator("subject", "description")
+    @classmethod
+    def normalize_support_text(cls, value: str) -> str:
+        return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def validate_support_text(self):
+        if not self.subject or not self.description:
+            raise ValueError("A subject and a description are required.")
+        return self
+
+
+class SupportMessageCreate(BaseModel):
+    body: str = Field(min_length=2, max_length=5000)
+    is_internal: bool = False
+
+    @field_validator("body")
+    @classmethod
+    def normalize_message(cls, value: str) -> str:
+        return " ".join(value.split())
+
+    @model_validator(mode="after")
+    def validate_message(self):
+        if not self.body:
+            raise ValueError("A message cannot be blank.")
+        return self
+
+
+class SupportCaseUpdate(BaseModel):
+    status: str | None = Field(default=None, pattern=r"^(open|triaged|in_progress|waiting_customer|resolved|closed)$")
+    priority: str | None = Field(default=None, pattern=r"^(low|normal|high|urgent)$")
+    assigned_to_id: int | None = Field(default=None, gt=0)
+
+    @model_validator(mode="after")
+    def require_update(self):
+        if not self.model_fields_set:
+            raise ValueError("Provide at least one support case field to update.")
+        return self
+
+
+class SupportCaseMessageResponse(BaseModel):
+    id: int
+    author_id: int
+    author_name: str
+    body: str
+    is_internal: bool
+    created_at: datetime
+
+
+class SupportCaseResponse(BaseModel):
+    id: int
+    case_number: str
+    customer_id: int
+    customer_name: str
+    parcel_id: int | None
+    tracking_number: str | None
+    category: str
+    subject: str
+    description: str
+    status: str
+    priority: str
+    assigned_to_id: int | None
+    assigned_to_name: str | None
+    created_at: datetime
+    updated_at: datetime
+    resolved_at: datetime | None
+    messages: list[SupportCaseMessageResponse] = Field(default_factory=list)
