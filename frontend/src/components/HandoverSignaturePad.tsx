@@ -19,7 +19,7 @@ export default function HandoverSignaturePad({token,assignmentId,signerName,onSi
   const rect=canvas.getBoundingClientRect();
   return {x:(event.clientX-rect.left)*(canvas.width/rect.width),y:(event.clientY-rect.top)*(canvas.height/rect.height)};
  }
- function start(event:React.PointerEvent<HTMLCanvasElement>){
+ function start(event:PointerEvent<HTMLCanvasElement>){
   const canvas=canvasRef.current;if(!canvas)return;
   event.preventDefault();canvas.setPointerCapture(event.pointerId);
   const context=canvas.getContext("2d");if(!context)return;
@@ -27,13 +27,13 @@ export default function HandoverSignaturePad({token,assignmentId,signerName,onSi
   context.strokeStyle="#1e3555";context.lineWidth=3;context.lineCap="round";context.lineJoin="round";
   drawing.current=true;setHasInk(true);setError("");
  }
- function move(event:React.PointerEvent<HTMLCanvasElement>){
+ function move(event:PointerEvent<HTMLCanvasElement>){
   if(!drawing.current)return;
   const canvas=canvasRef.current;if(!canvas)return;
   const context=canvas.getContext("2d");if(!context)return;
   const p=point(event);context.lineTo(p.x,p.y);context.stroke();
  }
- function stop(event:React.PointerEvent<HTMLCanvasElement>){
+ function stop(event:PointerEvent<HTMLCanvasElement>){
   drawing.current=false;
   if(event.currentTarget.hasPointerCapture(event.pointerId))event.currentTarget.releasePointerCapture(event.pointerId);
  }
