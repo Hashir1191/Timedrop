@@ -7,8 +7,6 @@ import EmptyState from "../components/EmptyState";
 import StatusBadge from "../components/StatusBadge";
 import type { Parcel } from "../types";
 
-const money = new Intl.NumberFormat("en-IN", { style: "currency", currency: "INR", maximumFractionDigits: 0 });
-
 export default function MerchantDashboard() {
   const { token, user } = useAuth();
   const [parcels, setParcels] = useState<Parcel[]>([]);
