@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { LayoutDashboard, LogOut, Package, PlusCircle, ChartNoAxesCombined, Settings, UserRound } from "lucide-react";
+import { LayoutDashboard, LogOut, Package, PlusCircle, Settings, UserRound } from "lucide-react";
 import { useAuth } from "../auth";
 import NotificationBell from "./NotificationBell";
 import BrandLogo from "./BrandLogo";
