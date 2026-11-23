@@ -1,6 +1,6 @@
 export type User = {
   id: number; email: string; full_name: string;
-  role: "admin" | "customer" | "delivery_partner"; is_active: boolean; created_at: string;
+  role: "admin" | "customer" | "delivery_partner" | "merchant"; is_active: boolean; created_at: string;
 };
 export type Parcel = {
   id: number; tracking_number: string; recipient_name: string; phone: string;
