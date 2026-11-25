@@ -57,6 +57,29 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
 
 
+class MerchantApplication(Base):
+    """Business application whose linked account stays inactive until approval."""
+
+    __tablename__ = "merchant_applications"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), unique=True, nullable=False, index=True)
+    business_name: Mapped[str] = mapped_column(String(160), nullable=False)
+    business_type: Mapped[str] = mapped_column(String(80), nullable=False)
+    contact_name: Mapped[str] = mapped_column(String(120), nullable=False)
+    email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    phone_number: Mapped[str] = mapped_column(String(16), nullable=False)
+    pickup_address: Mapped[str] = mapped_column(String(255), nullable=False)
+    pickup_city: Mapped[str] = mapped_column(String(100), nullable=False)
+    pickup_state: Mapped[str] = mapped_column(String(100), nullable=False)
+    pickup_pincode: Mapped[str] = mapped_column(String(6), nullable=False)
+    status: Mapped[str] = mapped_column(String(20), default="pending", nullable=False, index=True)
+    review_note: Mapped[str | None] = mapped_column(String(500), nullable=True)
+    reviewed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"), nullable=True)
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False)
+
+
 class Parcel(Base):
     __tablename__ = "parcels"
 
