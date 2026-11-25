@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session
 from app.audit import record_operations_audit
 from app.database import get_db
 from app.models import MerchantApplication, User
-from app.security import get_current_user, hash_password, require_admin
+from app.security import hash_password, require_admin
 
 router = APIRouter(prefix="/api/v1/merchant-applications", tags=["Merchant onboarding"])
 admin_router = APIRouter(prefix="/api/v1/operations/merchant-applications", tags=["Merchant onboarding"])
