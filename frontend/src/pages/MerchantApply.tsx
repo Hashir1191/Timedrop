@@ -32,7 +32,7 @@ export default function MerchantApply(){
   </>}
  </div></div>;
 }
-function Field({label,value,onChange,type="text",...props}:{label:string;value:string;onChange:(value:string)=>void;type?:string;required?:boolean;minLength?:number;maxLength?:number;pattern?:string;placeholder?:string}){
+function Field({label,value,onChange,type="text",...props}:{label:string;value:string;onChange:(value:string)=>void;type?:"text"|"email"|"password";required?:boolean;minLength?:number;maxLength?:number;pattern?:string;placeholder?:string}){
  const id=label.toLowerCase().replace(/[^a-z0-9]+/g,"-");
  return <label className="merchant-apply-field" htmlFor={id}>{label}<input id={id} type={type} value={value} onChange={e=>onChange(e.target.value)} {...props}/></label>;
 }
