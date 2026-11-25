@@ -19,6 +19,7 @@ from app.routers.notification_operations import router as notification_operation
 from app.routers.system_health import router as system_health_router
 from app.routers.support import router as support_router
 from app.routers.documents import router as documents_router
+from app.routers.merchant_applications import router as merchant_applications_router, admin_router as merchant_admin_router
 
 
 @asynccontextmanager
@@ -54,6 +55,8 @@ app.include_router(notification_operations_router)
 app.include_router(system_health_router)
 app.include_router(support_router)
 app.include_router(documents_router)
+app.include_router(merchant_applications_router)
+app.include_router(merchant_admin_router)
 
 
 @app.get("/", tags=["General"])
