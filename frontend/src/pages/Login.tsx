@@ -95,6 +95,7 @@ export default function Login() {
           </button>
         </div>
 
+        <div className="merchant-apply-prompt"><span>Running a business?</span> <Link to="/merchant/apply">Apply for a merchant account</Link></div>
         <div className="login-security"><LockKeyhole size={14} /> Secure sign-in with your TimeDrop account</div>
         <p className="auth-registration-note">Customer registration is open here. Delivery partner and operations accounts are provisioned by the operations team.</p>
       </div>

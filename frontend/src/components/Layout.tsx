@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useLocation } from "react-router-dom";
-import { CalendarClock, CalendarX, History, BarChart3, BellRing, Gauge, ChevronDown, LayoutDashboard, LogOut, MapPin, Package, PackageCheck, Truck, Users, Warehouse, LifeBuoy } from "lucide-react";
+import { CalendarClock, CalendarX, History, BarChart3, BellRing, Gauge, ChevronDown, LayoutDashboard, LogOut, MapPin, Package, PackageCheck, Truck, Users, Warehouse, LifeBuoy, Building2 } from "lucide-react";
 import { useAuth } from "../auth";
 import NotificationBell from "./NotificationBell";
 import BrandLogo from "./BrandLogo";
@@ -18,6 +18,7 @@ const navItems=[
  {to:"/notification-queue",label:"Notification queue",icon:BellRing},
  {to:"/system-health",label:"System health",icon:Gauge},
  {to:"/support",label:"Support inbox",icon:LifeBuoy},
+ {to:"/merchant-applications",label:"Merchant applications",icon:Building2},
 ];
 export default function Layout(){
  const {user,logout}=useAuth();const location=useLocation();const page=navItems.find(item=>item.to===location.pathname)?.label||"Operations";
