@@ -31,6 +31,8 @@ import NotificationQueue from "./pages/NotificationQueue";
 import SystemHealth from "./pages/SystemHealth";
 import SupportCenter from "./pages/SupportCenter";
 import SupportInbox from "./pages/SupportInbox";
+import MerchantApplications from "./pages/MerchantApplications";
+import MerchantApply from "./pages/MerchantApply";
 
 export default function App() {
   const [auth, setAuth] = useState<AuthState>({ token: localStorage.getItem("timedrop_token"), user: null, loading: true });
@@ -58,9 +60,10 @@ export default function App() {
   const authenticatedLayout = role === "admin" ? <Layout /> : role === "delivery_partner" ? <PartnerLayout /> : role === "merchant" ? <MerchantLayout /> : <CustomerLayout />;
   return <AuthContext.Provider value={{ ...auth, setAuth, logout }}><Routes>
     <Route path="/login" element={auth.user ? <Navigate to="/" replace /> : <Login />} />
+    <Route path="/merchant/apply" element={auth.user ? <Navigate to="/" replace /> : <MerchantApply />} />
     {auth.user ? <Route path="/" element={authenticatedLayout}>
       {role === "admin" ? <>
-        <Route index element={<Dashboard />} /><Route path="parcels" element={<Parcels />} /><Route path="slots" element={<Slots />} /><Route path="bookings" element={<Bookings />} /><Route path="delivery-partners" element={<DeliveryPartners />} /><Route path="intake" element={<Intake />} /><Route path="warehouse" element={<WarehousePage />} /><Route path="analytics" element={<Analytics />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="service-areas" element={<ServiceAreas />} /><Route path="blackout-dates" element={<BlackoutDates />} /><Route path="audit-log" element={<AuditLog />} /><Route path="notification-queue" element={<NotificationQueue />} /><Route path="system-health" element={<SystemHealth />} /><Route path="support" element={<SupportInbox />} />
+        <Route index element={<Dashboard />} /><Route path="parcels" element={<Parcels />} /><Route path="slots" element={<Slots />} /><Route path="bookings" element={<Bookings />} /><Route path="delivery-partners" element={<DeliveryPartners />} /><Route path="intake" element={<Intake />} /><Route path="warehouse" element={<WarehousePage />} /><Route path="analytics" element={<Analytics />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="service-areas" element={<ServiceAreas />} /><Route path="blackout-dates" element={<BlackoutDates />} /><Route path="audit-log" element={<AuditLog />} /><Route path="notification-queue" element={<NotificationQueue />} /><Route path="system-health" element={<SystemHealth />} /><Route path="support" element={<SupportInbox />} /><Route path="merchant-applications" element={<MerchantApplications />} />
       </> : role === "delivery_partner" ? <>
         <Route index element={<PartnerDashboard />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="availability" element={<PartnerAvailability />} />
       </> : role === "merchant" ? <>
