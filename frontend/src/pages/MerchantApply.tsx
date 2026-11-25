@@ -1,12 +1,11 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Building2, LockKeyhole } from "lucide-react";
 import BrandLogo from "../components/BrandLogo";
 import { submitMerchantApplication } from "../api";
 
 export default function MerchantApply(){
- const navigate=useNavigate();
  const [form,setForm]=useState({email:"",full_name:"",password:"",phone_number:"",business_name:"",business_type:"",pickup_address:"",pickup_city:"",pickup_state:"",pickup_pincode:""});
  const [error,setError]=useState("");const [busy,setBusy]=useState(false);const [submitted,setSubmitted]=useState(false);
  const update=(key:keyof typeof form,value:string)=>setForm(current=>({...current,[key]:value}));
