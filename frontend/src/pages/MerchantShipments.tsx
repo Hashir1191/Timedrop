@@ -7,7 +7,7 @@ import StatusBadge from "../components/StatusBadge";
 import type { Parcel, ParcelCreate } from "../types";
 
 const HEADERS=["tracking_number","recipient_name","phone","address_line","city","state","pincode","delivery_instructions","preferred_delivery_date"];
-const TEMPLATE=[HEADERS.join(","), "TD-ORDER-001,Ananya Sharma,9876543210,\"12 Civil Lines\",Prayagraj,Uttar Pradesh,211001,\"Call on arrival\",2026-12-01"].join("\n");
+const TEMPLATE=HEADERS.join(",");
 
 function parseCsv(text:string):string[][] {
  const rows:string[][]=[];let row:string[]=[];let cell="";let quoted=false;
