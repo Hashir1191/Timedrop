@@ -17,7 +17,8 @@ const navItems=[
  {to:"/audit-log",label:"Audit log",icon:History},
  {to:"/notification-queue",label:"Notification queue",icon:BellRing},
  {to:"/system-health",label:"System health",icon:Gauge},
- {to:"/support",label:"Support inbox",icon:LifeBuoy},\n {to:"/merchant-applications",label:"Merchant applications",icon:Building2},
+ {to:"/support",label:"Support inbox",icon:LifeBuoy},
+ {to:"/merchant-applications",label:"Merchant applications",icon:Building2},
 ];
 export default function Layout(){
  const {user,logout}=useAuth();const location=useLocation();const page=navItems.find(item=>item.to===location.pathname)?.label||"Operations";
