@@ -95,6 +95,23 @@ export const cancelBooking=(token:string,parcelId:number)=>request<void>(`/sched
 export const rescheduleBooking=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"PATCH",body:JSON.stringify({slot_id:slotId})});
 export const getAdminBookings=(token:string,status:"booked"|"cancelled"|"all"="booked",deliveryDate="")=>{const params=new URLSearchParams();if(status!=="all")params.set("status",status);if(deliveryDate)params.set("delivery_date",deliveryDate);const query=params.toString();return request<AdminBooking[]>(`/scheduling/bookings${query?`?${query}`:""}`,token);};
 export const register=(data:{email:string;full_name:string;password:string})=>fetchJson<User>("/auth/register",{method:"POST",body:JSON.stringify(data)});
+export type MerchantApplication = {
+ id:number;user_id:number;business_name:string;business_type:string;contact_name:string;email:string;
+ phone_number:string;pickup_address:string;pickup_city:string;pickup_state:string;pickup_pincode:string;
+ status:"pending"|"approved"|"rejected"|"suspended";review_note:string|null;reviewed_at:string|null;created_at:string;
+};
+export type MerchantApplicationCreate = {
+ email:string;full_name:string;password:string;phone_number:string;business_name:string;business_type:string;
+ pickup_address:string;pickup_city:string;pickup_state:string;pickup_pincode:string;
+};
+export const submitMerchantApplication=(data:MerchantApplicationCreate)=>fetchJson<{message:string;application:MerchantApplication}>(
+ "/merchant-applications",{method:"POST",body:JSON.stringify(data)}
+);
+export const getMerchantApplications=(token:string,status="pending")=>
+ request<MerchantApplication[]>(`/operations/merchant-applications?application_status=${encodeURIComponent(status)}`,token);
+export const decideMerchantApplication=(token:string,id:number,action:"approve"|"reject"|"suspend"|"reactivate")=>
+ request<MerchantApplication>(`/operations/merchant-applications/${id}/${action}`,token,{method:"POST",body:JSON.stringify({})});
+
 export const createParcel=(token:string,data:ParcelCreate)=>request<Parcel>("/parcels/",token,{method:"POST",body:JSON.stringify(data)});
 export const getParcelBooking=(token:string,parcelId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token);
 export const bookParcel=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"POST",body:JSON.stringify({slot_id:slotId})});
