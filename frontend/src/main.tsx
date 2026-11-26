@@ -34,6 +34,7 @@ import "./merchant-dashboard.css";
 import "./merchant-onboarding.css";
 import "./merchant-shipments.css";
 import "./custom-platform-redesign.css";
+import "./world-class-workspace.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
