@@ -11,6 +11,7 @@ export default function WorkspaceShell({ role, links, footer }: { role: string; 
   const location = useLocation();
   const [mobileOpen, setMobileOpen] = useState(false);
   const current = links.find((item) => item.to === location.pathname)?.label
+    || links.find((item) => item.to !== "/" && location.pathname.startsWith(`${item.to}/`))?.label
     || (location.pathname.startsWith("/schedule/") ? "Schedule delivery" : "Workspace");
   const initials = (user?.full_name || "TD").split(/\\s+/).map((part) => part[0]).slice(0, 2).join("").toUpperCase();
 
