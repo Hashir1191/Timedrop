@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.documents import build_delivery_proof, build_parcel_receipt, create_parcel_registration_receipt
 from app.models import DeliveryAssignment, DeliveryBooking, DeliveryEvent, DeliverySlot, Parcel, ParcelCustodyEvent, ParcelDocument, ServiceablePincode, User
-from app.schemas import ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
+from app.schemas import BulkParcelCreate, ParcelCreate, ParcelResponse, ParcelStatusUpdate, ParcelTimelineEvent
 from app.security import get_current_user, require_admin
 
 router = APIRouter(prefix="/api/v1/parcels", tags=["Parcels"])
@@ -56,6 +56,46 @@ def create_parcel(
             detail="A parcel with this tracking number already exists.",
         )
     return parcel
+
+
+@router.post("/bulk", response_model=list[ParcelResponse], status_code=status.HTTP_201_CREATED)
+def create_merchant_parcels_bulk(
+    payload: BulkParcelCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Create up to 50 merchant-owned shipments atomically."""
+    if current_user.role != "merchant":
+        raise HTTPException(status_code=403, detail="Bulk shipment creation is available to approved merchants only.")
+    parcels_data = payload.parcels
+    tracking_numbers = [item.tracking_number.strip() for item in parcels_data]
+    if len(set(tracking_numbers)) != len(tracking_numbers):
+        raise HTTPException(status_code=409, detail="The upload contains duplicate tracking numbers.")
+    existing = set(db.scalars(select(Parcel.tracking_number).where(Parcel.tracking_number.in_(tracking_numbers))).all())
+    if existing:
+        raise HTTPException(status_code=409, detail=f"Tracking numbers already registered: {', '.join(sorted(existing))}")
+    pincodes = {item.pincode for item in parcels_data}
+    serviceable = set(db.scalars(select(ServiceablePincode.pincode).where(
+        ServiceablePincode.pincode.in_(pincodes), ServiceablePincode.is_active.is_(True)
+    )).all())
+    unsupported = sorted(pincodes - serviceable)
+    if unsupported:
+        raise HTTPException(status_code=409, detail=f"These destination PIN codes are not currently serviceable: {', '.join(unsupported)}. No shipments were created.")
+    created: list[Parcel] = []
+    try:
+        for item in parcels_data:
+            parcel = Parcel(**item.model_dump(), owner_id=current_user.id)
+            db.add(parcel)
+            db.flush()
+            create_parcel_registration_receipt(db, parcel, current_user.id)
+            created.append(parcel)
+        db.commit()
+        for parcel in created:
+            db.refresh(parcel)
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=409, detail="A tracking number conflicts with an existing shipment. No shipments were created.")
+    return created
 
 
 @router.get("/", response_model=list[ParcelResponse])

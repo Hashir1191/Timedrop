@@ -189,6 +189,10 @@ class ParcelCreate(BaseModel):
     preferred_delivery_date: date | None = None
 
 
+class BulkParcelCreate(BaseModel):
+    parcels: list[ParcelCreate] = Field(min_length=1, max_length=50)
+
+
 class ParcelResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: int

@@ -32,6 +32,7 @@ import "./phase-56-handover-signature.css";
 import "./phase-57-evidence.css";
 import "./merchant-dashboard.css";
 import "./merchant-onboarding.css";
+import "./merchant-shipments.css";
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

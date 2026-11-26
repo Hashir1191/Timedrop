@@ -113,6 +113,7 @@ export const decideMerchantApplication=(token:string,id:number,action:"approve"|
  request<MerchantApplication>(`/operations/merchant-applications/${id}/${action}`,token,{method:"POST",body:JSON.stringify({})});
 
 export const createParcel=(token:string,data:ParcelCreate)=>request<Parcel>("/parcels/",token,{method:"POST",body:JSON.stringify(data)});
+export const createMerchantParcelsBulk=(token:string,parcels:ParcelCreate[])=>request<Parcel[]>("/parcels/bulk",token,{method:"POST",body:JSON.stringify({parcels})});
 export const getParcelBooking=(token:string,parcelId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token);
 export const bookParcel=(token:string,parcelId:number,slotId:number)=>request<Booking>(`/scheduling/parcels/${parcelId}/bookings`,token,{method:"POST",body:JSON.stringify({slot_id:slotId})});
 export const getDeliveryPartners=(token:string)=>request<DeliveryPartner[]>("/delivery/partners",token);

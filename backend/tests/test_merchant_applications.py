@@ -6,7 +6,7 @@ from sqlalchemy.pool import StaticPool
 
 from app.database import Base, get_db
 from app.main import app
-from app.models import User
+from app.models import ServiceablePincode, User
 from app.security import hash_password
 
 
@@ -137,3 +137,82 @@ def test_suspended_merchant_cannot_log_in_and_can_be_reactivated(client):
     assert client.post("/api/v1/auth/login", json={
         "email": "merchant@example.com", "password": "StrongMerchantPassword123!"
     }).status_code == 200
+
+
+def merchant_headers(client):
+    submitted = client.post("/api/v1/merchant-applications", json=application_payload())
+    application_id = submitted.json()["application"]["id"]
+    admin = admin_headers(client)
+    approved = client.post(
+        f"/api/v1/operations/merchant-applications/{application_id}/approve",
+        headers=admin, json={},
+    )
+    assert approved.status_code == 200
+    login = client.post("/api/v1/auth/login", json={
+        "email": "merchant@example.com", "password": "StrongMerchantPassword123!"
+    })
+    assert login.status_code == 200
+    return {"Authorization": f"Bearer {login.json()['access_token']}"}
+
+
+def add_serviceable_pincode(pincode="211001"):
+    session_generator = app.dependency_overrides[get_db]()
+    db = next(session_generator)
+    try:
+        db.add(ServiceablePincode(pincode=pincode, city="Prayagraj", state="Uttar Pradesh", is_active=True))
+        db.commit()
+    finally:
+        try:
+            next(session_generator)
+        except StopIteration:
+            pass
+
+
+def test_merchant_bulk_shipment_creation_is_atomic_and_owned(client):
+    headers = merchant_headers(client)
+    add_serviceable_pincode()
+    payload = {"parcels": [
+        {"tracking_number": "BULK-TD-001", "recipient_name": "Asha Sharma", "phone": "9876543210",
+         "address_line": "12 Civil Lines Road", "city": "Prayagraj", "state": "Uttar Pradesh", "pincode": "211001"},
+        {"tracking_number": "BULK-TD-002", "recipient_name": "Ravi Kumar", "phone": "9876543211",
+         "address_line": "14 Civil Lines Road", "city": "Prayagraj", "state": "Uttar Pradesh", "pincode": "211001"},
+    ]}
+    created = client.post("/api/v1/parcels/bulk", headers=headers, json=payload)
+    assert created.status_code == 201
+    assert len(created.json()) == 2
+    listed = client.get("/api/v1/parcels/?skip=0&limit=100", headers=headers)
+    assert {item["tracking_number"] for item in listed.json()} == {"BULK-TD-001", "BULK-TD-002"}
+
+
+def test_bulk_shipment_rejects_non_merchant_and_invalid_service_area(client):
+    customer = client.post("/api/v1/auth/register", json={
+        "email": "customer@example.com", "full_name": "Regular Customer", "password": "StrongCustomer123!"
+    })
+    assert customer.status_code == 201
+    login = client.post("/api/v1/auth/login", json={
+        "email": "customer@example.com", "password": "StrongCustomer123!"
+    })
+    headers = {"Authorization": f"Bearer {login.json()['access_token']}"}
+    payload = {"parcels": [
+        {"tracking_number": "BULK-TD-003", "recipient_name": "Asha Sharma", "phone": "9876543210",
+         "address_line": "12 Civil Lines Road", "city": "Prayagraj", "state": "Uttar Pradesh", "pincode": "211001"}
+    ]}
+    assert client.post("/api/v1/parcels/bulk", headers=headers, json=payload).status_code == 403
+
+    merchant = merchant_headers(client)
+    invalid = client.post("/api/v1/parcels/bulk", headers=merchant, json=payload)
+    assert invalid.status_code == 409
+    assert "No shipments were created" in invalid.json()["detail"]
+
+
+def test_bulk_shipment_rejects_duplicate_tracking_numbers(client):
+    headers = merchant_headers(client)
+    payload = {"parcels": [
+        {"tracking_number": "DUPLICATE-001", "recipient_name": "Asha Sharma", "phone": "9876543210",
+         "address_line": "12 Civil Lines Road", "city": "Prayagraj", "state": "Uttar Pradesh", "pincode": "211001"},
+        {"tracking_number": "DUPLICATE-001", "recipient_name": "Ravi Kumar", "phone": "9876543211",
+         "address_line": "14 Civil Lines Road", "city": "Prayagraj", "state": "Uttar Pradesh", "pincode": "211001"}
+    ]}
+    response = client.post("/api/v1/parcels/bulk", headers=headers, json=payload)
+    assert response.status_code == 409
+    assert "duplicate tracking numbers" in response.json()["detail"]

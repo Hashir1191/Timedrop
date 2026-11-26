@@ -19,6 +19,7 @@ import ScheduleParcel from "./pages/ScheduleParcel";
 import DeliveryPartners from "./pages/DeliveryPartners";
 import PartnerDashboard from "./pages/PartnerDashboard";
 import MerchantDashboard from "./pages/MerchantDashboard";
+import MerchantShipments from "./pages/MerchantShipments";
 import PhoneSettings from "./pages/PhoneSettings";
 import Intake from "./pages/Intake";
 import WarehousePage from "./pages/Warehouse";
@@ -67,7 +68,7 @@ export default function App() {
       </> : role === "delivery_partner" ? <>
         <Route index element={<PartnerDashboard />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="availability" element={<PartnerAvailability />} />
       </> : role === "merchant" ? <>
-        <Route index element={<MerchantDashboard />} /><Route path="shipments" element={<MerchantDashboard />} /><Route path="new-shipment" element={<NewParcel />} /><Route path="phone-settings" element={<PhoneSettings />} />
+        <Route index element={<MerchantDashboard />} /><Route path="shipments" element={<MerchantShipments />} /><Route path="new-shipment" element={<NewParcel />} /><Route path="phone-settings" element={<PhoneSettings />} />
       </> : <>
         <Route index element={<CustomerDashboard />} /><Route path="my-parcels" element={<CustomerParcels />} /><Route path="new-parcel" element={<NewParcel />} /><Route path="schedule/:parcelId" element={<ScheduleParcel />} /><Route path="phone-settings" element={<PhoneSettings />} /><Route path="support" element={<SupportCenter />} />
       </>}</Route> : <Route path="/" element={<LandingPage />} />
